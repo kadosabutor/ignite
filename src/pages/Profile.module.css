@@ -1,0 +1,290 @@
+.container {
+  padding: 20px;
+  padding-top: calc(20px + env(safe-area-inset-top, 0));
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--color-foreground);
+  margin: 0;
+}
+
+.cancelButton,
+.settingsButton {
+  background: none;
+  border: none;
+  color: var(--color-muted);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 8px;
+}
+
+.settingsButton {
+  font-size: 20px;
+}
+
+/* Form */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.avatarSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted);
+}
+
+.avatarGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.avatarOption {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  border-radius: 16px;
+  background-color: var(--color-surface);
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.avatarOption:hover {
+  background-color: var(--color-surface-light);
+}
+
+.avatarSelected {
+  border-color: var(--color-primary);
+}
+
+.avatarImage {
+  width: 60px;
+  height: 60px;
+  object-fit: contain;
+}
+
+.avatarName {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.inputWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.textarea {
+  padding: 12px 16px;
+  border-radius: 12px;
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
+  color: var(--color-foreground);
+  font-family: inherit;
+  font-size: 16px;
+  resize: none;
+}
+
+.textarea:focus {
+  border-color: var(--color-primary);
+  outline: none;
+}
+
+/* Profile card */
+.profileCard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.profileHeader {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.profileAvatar {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+}
+
+.profileInfo {
+  flex: 1;
+}
+
+.profileName {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-foreground);
+  margin: 0;
+}
+
+.profileUsername {
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.editButton {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--color-background);
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.profileBio {
+  font-size: 14px;
+  color: var(--color-muted);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.profileStats {
+  display: flex;
+  justify-content: space-around;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.profileStat {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.statValue {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--color-foreground);
+}
+
+.statLabel {
+  font-size: 10px;
+  color: var(--color-muted);
+  text-transform: uppercase;
+}
+
+.rankBadge {
+  font-size: 12px;
+  font-weight: 700;
+}
+
+/* Streak card */
+.streakCard,
+.rankCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sectionTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0;
+}
+
+.streakDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.streakItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.streakLabel {
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.streakValue {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+/* Rank card */
+.rankInfo {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.rankEmoji {
+  font-size: 40px;
+}
+
+.rankDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rankName {
+  font-size: 18px;
+  font-weight: 700;
+}
+
+.rankRange {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+/* Settings */
+.settingsSection {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.settingsCard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settingsList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.settingsDivider {
+  height: 1px;
+  background-color: var(--color-border);
+}

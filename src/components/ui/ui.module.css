@@ -1,0 +1,393 @@
+/* Button */
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 12px;
+  transition: all 0.2s;
+  cursor: pointer;
+  border: none;
+}
+
+.button:active {
+  transform: scale(0.97);
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.primary {
+  background-color: var(--color-primary);
+  color: #121212;
+}
+
+.primary:hover:not(:disabled) {
+  background-color: var(--color-primary-dark);
+}
+
+.secondary {
+  background-color: var(--color-surface);
+  color: var(--color-foreground);
+  border: 1px solid var(--color-border);
+}
+
+.secondary:hover:not(:disabled) {
+  background-color: var(--color-surface-light);
+}
+
+.ghost {
+  background-color: transparent;
+  color: var(--color-muted);
+}
+
+.ghost:hover:not(:disabled) {
+  background-color: var(--color-surface);
+  color: var(--color-foreground);
+}
+
+.danger {
+  background-color: rgba(248, 113, 113, 0.2);
+  color: var(--color-error);
+}
+
+.danger:hover:not(:disabled) {
+  background-color: rgba(248, 113, 113, 0.3);
+}
+
+.sm {
+  padding: 8px 16px;
+  font-size: 12px;
+}
+
+.md {
+  padding: 12px 24px;
+  font-size: 14px;
+}
+
+.lg {
+  padding: 16px 32px;
+  font-size: 16px;
+}
+
+.fullWidth {
+  width: 100%;
+}
+
+/* Card */
+.card {
+  background-color: var(--color-surface);
+  border-radius: 16px;
+  padding: 20px;
+  border: none;
+  width: 100%;
+  text-align: left;
+}
+
+.cardInteractive {
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.cardInteractive:hover {
+  background-color: var(--color-surface-light);
+}
+
+.cardInteractive:active {
+  transform: scale(0.98);
+}
+
+/* Input */
+.inputWrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted);
+}
+
+.input {
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  font-size: 16px;
+  color: var(--color-foreground);
+  outline: none;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+}
+
+.input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(255, 112, 51, 0.2);
+}
+
+.inputError {
+  border-color: var(--color-error);
+}
+
+.errorText {
+  font-size: 12px;
+  color: var(--color-error);
+}
+
+/* Time Input */
+.timeInputContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+}
+
+.timeInput {
+  width: 80px;
+  text-align: center;
+  font-size: 32px;
+  font-weight: 700;
+  padding: 12px;
+  background-color: var(--color-background);
+  border: 2px solid var(--color-border);
+  border-radius: 12px;
+  color: var(--color-foreground);
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.timeInput:focus {
+  border-color: var(--color-primary);
+}
+
+.timeSeparator {
+  font-size: 32px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+/* Toggle */
+.toggleContainer {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}
+
+.toggleButton {
+  flex: 1;
+  padding: 16px;
+  border-radius: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  font-size: 14px;
+  border: 2px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: center;
+}
+
+.toggleButton.inactive {
+  background-color: var(--color-background);
+  border-color: var(--color-border);
+  color: var(--color-muted);
+}
+
+.toggleButton.success {
+  background-color: var(--color-success);
+  color: #121212;
+}
+
+.toggleButton.primary {
+  background-color: var(--color-primary);
+  color: #121212;
+}
+
+.toggleButton.error {
+  background-color: var(--color-error);
+  color: #fff;
+}
+
+.toggleButton.muted {
+  background-color: var(--color-surface-light);
+  color: var(--color-foreground);
+}
+
+.toggleButton:active {
+  transform: scale(0.97);
+}
+
+/* Stepper */
+.stepperContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+}
+
+.stepperButton {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background-color: var(--color-surface);
+  color: var(--color-foreground);
+  font-size: 24px;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.stepperButton:hover:not(:disabled) {
+  background-color: var(--color-surface-light);
+}
+
+.stepperButton:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.stepperButtonPrimary {
+  background-color: var(--color-primary);
+  color: #121212;
+}
+
+.stepperButtonPrimary:hover:not(:disabled) {
+  background-color: var(--color-primary-dark);
+}
+
+.stepperValue {
+  font-size: 48px;
+  font-weight: 700;
+  min-width: 80px;
+  text-align: center;
+  color: var(--color-foreground);
+}
+
+/* Progress Ring */
+.progressRing {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.progressRing svg {
+  transform: rotate(-90deg);
+}
+
+.progressRingBg {
+  fill: none;
+  stroke: var(--color-surface);
+}
+
+.progressRingFg {
+  fill: none;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 0.5s ease;
+}
+
+.progressRingContent {
+  position: absolute;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Switch */
+.switchContainer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+}
+
+.switchLabel {
+  font-size: 14px;
+  color: var(--color-foreground);
+}
+
+.switch {
+  width: 52px;
+  height: 28px;
+  background-color: var(--color-surface-light);
+  border-radius: 14px;
+  position: relative;
+  transition: background-color 0.2s;
+}
+
+.switchChecked {
+  background-color: var(--color-primary);
+}
+
+.switchThumb {
+  width: 24px;
+  height: 24px;
+  background-color: var(--color-foreground);
+  border-radius: 50%;
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  transition: transform 0.2s;
+}
+
+.switchChecked .switchThumb {
+  transform: translateX(24px);
+}
+
+/* Tab Bar */
+.tabBar {
+  display: flex;
+  background-color: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  padding: 8px 0;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0));
+}
+
+.tabButton {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 8px;
+  background: none;
+  border: none;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: color 0.2s;
+}
+
+.tabButton:hover {
+  color: var(--color-foreground);
+}
+
+.tabActive {
+  color: var(--color-primary);
+}
+
+.tabIcon {
+  font-size: 24px;
+}
+
+.tabLabel {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}

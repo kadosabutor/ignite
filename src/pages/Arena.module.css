@@ -1,0 +1,313 @@
+.container {
+  padding: 20px;
+  padding-top: calc(20px + env(safe-area-inset-top, 0));
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--color-foreground);
+  margin: 0;
+}
+
+/* Empty state */
+.empty {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  padding: 60px 20px;
+  text-align: center;
+}
+
+.emptyIcon {
+  font-size: 48px;
+}
+
+.emptyTitle {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-foreground);
+  margin: 0;
+}
+
+.emptyText {
+  font-size: 14px;
+  color: var(--color-muted);
+  margin: 0;
+}
+
+.emptyCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  text-align: center;
+  color: var(--color-muted);
+}
+
+/* Tabs */
+.tabs {
+  display: flex;
+  background-color: var(--color-surface);
+  border-radius: 12px;
+  padding: 4px;
+}
+
+.tab {
+  flex: 1;
+  padding: 12px;
+  border-radius: 10px;
+  background: none;
+  border: none;
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.tabActive {
+  background-color: var(--color-primary);
+  color: #121212;
+}
+
+/* Feed */
+.feed {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.feedCard {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.feedHeader {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.feedAvatar {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.feedInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.feedName {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.feedUsername {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.feedScore {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 12px;
+  background-color: var(--color-background);
+  border-radius: 12px;
+}
+
+.scoreValue {
+  font-size: 32px;
+  font-weight: 800;
+}
+
+.scoreLabel {
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.feedPending {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px;
+  background-color: var(--color-background);
+  border-radius: 12px;
+}
+
+.pendingText {
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.feedActions {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.fireButton {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: var(--color-background);
+  border: none;
+  font-size: 24px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.fireButton:active {
+  transform: scale(1.2);
+}
+
+/* Leaderboard */
+.leaderboard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.periodSelector {
+  display: flex;
+  gap: 8px;
+}
+
+.periodButton {
+  flex: 1;
+  padding: 10px;
+  border-radius: 8px;
+  background-color: var(--color-surface);
+  border: none;
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.periodActive {
+  background-color: var(--color-primary);
+  color: #121212;
+}
+
+.leaderboardList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.leaderboardCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+.currentUser {
+  border: 2px solid var(--color-primary);
+}
+
+.position {
+  min-width: 32px;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-muted);
+}
+
+.leaderboardAvatar {
+  width: 40px;
+  height: 40px;
+  object-fit: contain;
+}
+
+.leaderboardInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.leaderboardName {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-foreground);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.youBadge {
+  font-size: 10px;
+  padding: 2px 6px;
+  background-color: var(--color-primary);
+  color: #121212;
+  border-radius: 4px;
+  font-weight: 700;
+}
+
+.leaderboardStreak {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.leaderboardScore {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+/* Friends list */
+.friendsList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.friendCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+}
+
+.friendAvatar {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.friendInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.friendName {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.friendRank {
+  font-size: 12px;
+  font-weight: 600;
+}

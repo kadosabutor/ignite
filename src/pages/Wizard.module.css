@@ -1,0 +1,387 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: var(--color-background);
+}
+
+.progressBar {
+  display: flex;
+  gap: 4px;
+  padding: 12px 20px;
+  padding-top: calc(12px + env(safe-area-inset-top, 0));
+}
+
+.progressStep {
+  flex: 1;
+  height: 4px;
+  background-color: var(--color-surface);
+  border-radius: 2px;
+  transition: background-color 0.3s;
+}
+
+.progressActive {
+  background-color: var(--color-primary);
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 12px 20px;
+}
+
+.backButton {
+  background: none;
+  border: none;
+  color: var(--color-muted);
+  font-size: 14px;
+  cursor: pointer;
+  padding: 8px 0;
+}
+
+.stepIndicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.stepIcon {
+  font-size: 20px;
+}
+
+.stepName {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.stepCount {
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.main {
+  flex: 1;
+  padding: 20px;
+  overflow-y: auto;
+}
+
+.stepContent {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.stepTitle {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-foreground);
+  text-align: center;
+  margin: 0;
+}
+
+.stepDescription {
+  font-size: 14px;
+  color: var(--color-muted);
+  text-align: center;
+  margin: 0;
+}
+
+/* Sleep step */
+.timeSection {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.timeBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.timeLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.sleepResult {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 16px;
+  background-color: var(--color-surface);
+  border-radius: 12px;
+}
+
+.sleepIcon {
+  font-size: 24px;
+}
+
+.sleepDuration {
+  font-size: 18px;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+/* Work step */
+.currentValue {
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  padding: 20px;
+}
+
+.bigNumber {
+  font-size: 48px;
+  font-weight: 800;
+  color: var(--color-primary);
+}
+
+.unit {
+  font-size: 16px;
+  color: var(--color-muted);
+}
+
+.hourGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 8px;
+}
+
+.hourButton {
+  padding: 12px;
+  border-radius: 10px;
+  background-color: var(--color-surface);
+  border: 2px solid transparent;
+  color: var(--color-foreground);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.hourButton:hover {
+  background-color: var(--color-surface-light);
+}
+
+.hourActive {
+  background-color: var(--color-primary);
+  color: #121212;
+}
+
+.minuteGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.minuteButton {
+  padding: 12px;
+  border-radius: 10px;
+  background-color: var(--color-surface);
+  border: 2px solid transparent;
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.minuteButton:hover {
+  background-color: var(--color-surface-light);
+}
+
+.minuteActive {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
+}
+
+.customMinuteSection {
+  display: flex;
+  justify-content: center;
+}
+
+.customButton {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.customInputRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.customInput {
+  width: 100px;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-foreground);
+  font-size: 16px;
+}
+
+/* Health & Purity steps */
+.toggleSection {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.toggleItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.toggleLabel {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-foreground);
+  text-align: center;
+}
+
+.toggleHint {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+/* Mind step */
+.hint {
+  font-size: 14px;
+  color: var(--color-muted);
+  text-align: center;
+  margin: 0;
+}
+
+/* Summary step */
+.summaryScore {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
+  border-radius: 20px;
+}
+
+.summaryScoreValue {
+  font-size: 64px;
+  font-weight: 800;
+  color: #121212;
+  line-height: 1;
+}
+
+.summaryScoreLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(18, 18, 18, 0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.summaryGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.summaryItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px;
+  background-color: var(--color-surface);
+  border-radius: 12px;
+}
+
+.summaryIcon {
+  font-size: 24px;
+}
+
+.summaryLabel {
+  font-size: 12px;
+  color: var(--color-muted);
+  text-transform: uppercase;
+}
+
+.summaryValue {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-foreground);
+}
+
+/* Reflection section */
+.reflectionSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.reflectionTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-primary);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0;
+}
+
+.reflectionItem {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reflectionLabel {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.reflectionInput {
+  padding: 12px;
+  border-radius: 12px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-foreground);
+  font-size: 14px;
+  font-family: inherit;
+  resize: none;
+}
+
+.reflectionInput:focus {
+  border-color: var(--color-primary);
+  outline: none;
+}
+
+/* Footer */
+.footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 20px;
+  padding-bottom: calc(20px + env(safe-area-inset-bottom, 0));
+  background-color: var(--color-background);
+  border-top: 1px solid var(--color-border);
+}
+
+.footer button:only-child {
+  margin-left: auto;
+}

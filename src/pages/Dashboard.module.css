@@ -1,0 +1,234 @@
+.container {
+  padding: 20px;
+  padding-top: calc(20px + env(safe-area-inset-top, 0));
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.logo {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.logoImage {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+}
+
+.logoText {
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--color-primary);
+  letter-spacing: 0.1em;
+}
+
+.userBadge {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--color-surface);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.rankEmoji {
+  font-size: 20px;
+}
+
+/* Streak Section */
+.streakSection {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 24px;
+  padding: 24px;
+  background-color: var(--color-surface);
+  border-radius: 20px;
+}
+
+.streakInfo {
+  text-align: left;
+}
+
+.streakDays {
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--color-foreground);
+  margin: 0;
+}
+
+.streakLabel {
+  font-size: 14px;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin: 0;
+}
+
+.cryoCount {
+  margin-top: 8px;
+  font-size: 14px;
+  color: var(--color-frozen);
+  font-weight: 600;
+}
+
+/* Score Card */
+.scoreCard {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.scoreHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sectionTitle {
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-primary);
+  margin: 0;
+}
+
+.dateLabel {
+  font-size: 12px;
+  color: var(--color-muted);
+  text-transform: uppercase;
+}
+
+.scoreContent {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.scoreValue {
+  font-size: 48px;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.scoreUnit {
+  font-size: 12px;
+  color: var(--color-muted);
+  text-transform: uppercase;
+}
+
+.todayStats {
+  display: flex;
+  gap: 24px;
+}
+
+.statItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.statIcon {
+  font-size: 16px;
+}
+
+.statValue {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+/* Week Card */
+.weekCard {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.weekHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.weekAvg {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.weekChart {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 100px;
+  gap: 8px;
+}
+
+.chartBar {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  height: 100%;
+}
+
+.bar {
+  width: 100%;
+  border-radius: 4px;
+  transition: height 0.3s ease;
+  margin-top: auto;
+}
+
+.dayLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-muted);
+  text-transform: uppercase;
+}
+
+.dayLabel.today {
+  color: var(--color-primary);
+}
+
+/* Quick Stats */
+.quickStats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px;
+}
+
+.quickStatValue {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--color-foreground);
+}
+
+.quickStatLabel {
+  font-size: 10px;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: center;
+}
