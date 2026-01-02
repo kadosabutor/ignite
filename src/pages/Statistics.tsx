@@ -5,7 +5,7 @@ import { getScoreColor } from '../lib/scoring';
 import styles from './Statistics.module.css';
 
 export function Statistics() {
-  const { entries, weeklyAverage, monthlyAverage, authUser } = useHabits();
+  const { entries, weeklyAverage, monthlyAverage } = useHabits();
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth() };
