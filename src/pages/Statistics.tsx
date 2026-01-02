@@ -2,11 +2,10 @@ import { useState, useEffect } from 'react';
 import { useHabits } from '../context/HabitContext';
 import { Card } from '../components/ui';
 import { getScoreColor } from '../lib/scoring';
-import { getMonthlyStats } from '../lib/storage';
 import styles from './Statistics.module.css';
 
 export function Statistics() {
-  const { entries, weeklyAverage, monthlyAverage } = useHabits();
+  const { entries, weeklyAverage, monthlyAverage, authUser } = useHabits();
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth() };
@@ -20,11 +19,25 @@ export function Statistics() {
   }>({ entries: [], average: 0, total: 0, count: 0, best: 0 });
 
   useEffect(() => {
-    const loadStats = async () => {
-      const stats = await getMonthlyStats(currentMonth.year, currentMonth.month);
-      setMonthStats(stats);
-    };
-    loadStats();
+    // Calculate monthly stats from entries in context
+    const monthStr = `${currentMonth.year}-${String(currentMonth.month + 1).padStart(2, '0')}`;
+    const monthEntries = entries.filter(e => e.date.startsWith(monthStr));
+    
+    if (monthEntries.length === 0) {
+      setMonthStats({ entries: [], average: 0, total: 0, count: 0, best: 0 });
+      return;
+    }
+    
+    const total = monthEntries.reduce((sum, e) => sum + e.score, 0);
+    const best = Math.max(...monthEntries.map(e => e.score));
+    
+    setMonthStats({
+      entries: monthEntries,
+      average: total / monthEntries.length,
+      total,
+      count: monthEntries.length,
+      best,
+    });
   }, [currentMonth, entries]);
 
   const colorMap = {
