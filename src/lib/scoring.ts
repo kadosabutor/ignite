@@ -72,8 +72,8 @@ export function calculateTotalScore(entry: Partial<HabitEntry>): number {
   // Exercise (7 points)
   if (entry.exercise) score += POINTS.EXERCISE;
   
-  // Paradigm (5 points if at least 1)
-  if ((entry.paradigm ?? 0) >= 1) score += POINTS.PARADIGM;
+  // Paradigm (5 points if true)
+  if (entry.paradigm) score += POINTS.PARADIGM;
   
   // No satisfaction (4 points)
   if (!entry.satisfaction) score += POINTS.NO_SATISFACTION;
@@ -151,7 +151,7 @@ export function calculateRadarStats(entries: HabitEntry[]): {
   const cleanDays = entries.filter(e => !e.satisfaction && !e.dopamineContent && !e.gaming).length;
   const exerciseDays = entries.filter(e => e.exercise).length;
   const cleanEatingDays = entries.filter(e => e.cleanEating).length;
-  const paradigmDays = entries.filter(e => e.paradigm >= 1).length;
+  const paradigmDays = entries.filter(e => e.paradigm).length;
   
   return {
     business: Math.min(100, (avgBusinessMinutes / POINTS.BUSINESS_TARGET_MINUTES) * 100),

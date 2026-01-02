@@ -8,7 +8,7 @@ export interface HabitEntry {
   sleepMinutes: number;
   cleanEating: boolean;
   exercise: boolean;
-  paradigm: number;
+  paradigm: boolean;
   satisfaction: boolean;
   dopamineContent: boolean;
   gaming: boolean;

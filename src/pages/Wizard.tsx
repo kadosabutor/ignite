@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
-import { Button, TimeInput, Toggle, Stepper } from '../components/ui';
+import { Button, TimeInput, Toggle } from '../components/ui';
 import { calculateSleepMinutes, calculateTotalScore, getTodayString } from '../lib/scoring';
 import { createNewEntry } from '../lib/storage';
 import type { HabitEntry } from '../types';
@@ -11,7 +11,6 @@ const STEPS = [
   { id: 'sleep', title: 'Alvás', icon: '🌙' },
   { id: 'work', title: 'Business', icon: '💼' },
   { id: 'health', title: 'Egészség', icon: '💪' },
-  { id: 'mind', title: 'Szellem', icon: '🧠' },
   { id: 'purity', title: 'Tisztaság', icon: '✨' },
   { id: 'summary', title: 'Összegzés', icon: '📊' },
 ];
@@ -209,6 +208,9 @@ export function Wizard() {
                   positiveColor="success"
                   negativeColor="error"
                 />
+                <span className={styles.toggleHint}>
+                  {entry.exercise ? '+7 pont' : '0 pont'}
+                </span>
               </div>
               
               <div className={styles.toggleItem}>
@@ -221,29 +223,26 @@ export function Wizard() {
                   positiveColor="success"
                   negativeColor="error"
                 />
+                <span className={styles.toggleHint}>
+                  {entry.cleanEating ? '+6 pont' : '0 pont'}
+                </span>
+              </div>
+              
+              <div className={styles.toggleItem}>
+                <span className={styles.toggleLabel}>Paradigma váltás?</span>
+                <Toggle
+                  value={entry.paradigm}
+                  onChange={(val) => updateEntry({ paradigm: val })}
+                  positiveLabel="Igen"
+                  negativeLabel="Nem"
+                  positiveColor="success"
+                  negativeColor="error"
+                />
+                <span className={styles.toggleHint}>
+                  {entry.paradigm ? '+5 pont' : '0 pont'}
+                </span>
               </div>
             </div>
-          </div>
-        );
-
-      case 'mind':
-        return (
-          <div className={styles.stepContent}>
-            <h2 className={styles.stepTitle}>Paradigma</h2>
-            <p className={styles.stepDescription}>
-              Hányszor gyakoroltad ma a paradigma váltást?
-            </p>
-            
-            <Stepper
-              value={entry.paradigm}
-              onChange={(val) => updateEntry({ paradigm: val })}
-              min={0}
-              max={99}
-            />
-            
-            <p className={styles.hint}>
-              {entry.paradigm >= 1 ? '✓ Megvan az 5 pont!' : 'Legalább 1 kell az 5 ponthoz'}
-            </p>
           </div>
         );
 
@@ -342,7 +341,7 @@ export function Wizard() {
               <div className={styles.summaryItem}>
                 <span className={styles.summaryIcon}>🧠</span>
                 <span className={styles.summaryLabel}>Paradigma</span>
-                <span className={styles.summaryValue}>{entry.paradigm}×</span>
+                <span className={styles.summaryValue}>{entry.paradigm ? '✓' : '✗'}</span>
               </div>
               <div className={styles.summaryItem}>
                 <span className={styles.summaryIcon}>✨</span>

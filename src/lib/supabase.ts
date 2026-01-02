@@ -186,7 +186,7 @@ export async function getAllEntries(userId: string): Promise<HabitEntry[]> {
     sleepMinutes: e.sleep_minutes,
     cleanEating: e.clean_eating,
     exercise: e.exercise,
-    paradigm: e.paradigm,
+    paradigm: (e.paradigm ?? 0) >= 1, // Convert INT to boolean
     satisfaction: e.satisfaction,
     dopamineContent: e.dopamine_content,
     gaming: e.gaming,
@@ -218,7 +218,7 @@ export async function getEntryByDate(userId: string, date: string): Promise<Habi
     sleepMinutes: data.sleep_minutes,
     cleanEating: data.clean_eating,
     exercise: data.exercise,
-    paradigm: data.paradigm,
+    paradigm: (data.paradigm ?? 0) >= 1, // Convert INT to boolean
     satisfaction: data.satisfaction,
     dopamineContent: data.dopamine_content,
     gaming: data.gaming,
@@ -246,7 +246,7 @@ export async function saveEntry(userId: string, entry: HabitEntry): Promise<void
       sleep_minutes: entry.sleepMinutes,
       clean_eating: entry.cleanEating,
       exercise: entry.exercise,
-      paradigm: entry.paradigm,
+      paradigm: entry.paradigm ? 1 : 0, // Convert boolean to INT
       satisfaction: entry.satisfaction,
       dopamine_content: entry.dopamineContent,
       gaming: entry.gaming,
@@ -680,7 +680,7 @@ export async function getMonthlyStats(userId: string, year: number, month: numbe
     sleepMinutes: e.sleep_minutes,
     cleanEating: e.clean_eating,
     exercise: e.exercise,
-    paradigm: e.paradigm,
+    paradigm: (e.paradigm ?? 0) >= 1, // Convert INT to boolean
     satisfaction: e.satisfaction,
     dopamineContent: e.dopamine_content,
     gaming: e.gaming,

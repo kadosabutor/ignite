@@ -47,7 +47,7 @@ export function createNewEntry(date: string): HabitEntry {
     sleepMinutes: 0,
     cleanEating: false,
     exercise: false,
-    paradigm: 0,
+    paradigm: false,
     satisfaction: false,
     dopamineContent: false,
     gaming: false,

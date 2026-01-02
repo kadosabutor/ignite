@@ -117,7 +117,9 @@ export function Summary() {
         <Card className={styles.statCard}>
           <span className={styles.statIcon}>🧠</span>
           <span className={styles.statLabel}>Paradigma</span>
-          <span className={styles.statValue}>{entry.paradigm}×</span>
+          <span className={`${styles.statValue} ${entry.paradigm ? styles.positive : styles.negative}`}>
+            {entry.paradigm ? '✓ Igen' : '✗ Nem'}
+          </span>
         </Card>
 
         <Card className={styles.statCard}>
