@@ -950,3 +950,21 @@ export function subscribeToFriendEntries(friendIds: string[], callback: (payload
     }, callback)
     .subscribe();
 }
+
+export function subscribeToFriendships(userId: string, callback: (payload: any) => void) {
+  return supabase
+    .channel(`friendships:${userId}`)
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'friendships',
+      filter: `user_id=eq.${userId}`,
+    }, callback)
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'friendships',
+      filter: `friend_id=eq.${userId}`,
+    }, callback)
+    .subscribe();
+}
