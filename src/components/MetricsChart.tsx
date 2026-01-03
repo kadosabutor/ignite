@@ -229,11 +229,11 @@ export function MetricsChart({ entries, currentMonth }: MetricsChartProps) {
         displayColors: false,
         titleFont: {
           size: 12,
-          weight: '600',
+          weight: 600,
         },
         bodyFont: {
           size: 14,
-          weight: '700',
+          weight: 700,
         },
         cornerRadius: 8,
         callbacks: {
@@ -263,7 +263,7 @@ export function MetricsChart({ entries, currentMonth }: MetricsChartProps) {
           color: '#ff7033',
           font: {
             size: 11,
-            weight: '600',
+            weight: 600,
           },
           padding: 8,
         },
@@ -277,7 +277,7 @@ export function MetricsChart({ entries, currentMonth }: MetricsChartProps) {
           color: '#ff7033',
           font: {
             size: 11,
-            weight: '600',
+            weight: 600,
           },
           padding: 12,
         },
