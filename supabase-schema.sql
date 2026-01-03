@@ -148,6 +148,9 @@ CREATE POLICY "Users can view own friendships" ON public.friendships
 CREATE POLICY "Users can insert friendships" ON public.friendships
   FOR INSERT WITH CHECK (auth.uid() = user_id);
 
+CREATE POLICY "Users can update friendships they received" ON public.friendships
+  FOR UPDATE USING (auth.uid() = friend_id);
+
 CREATE POLICY "Users can delete own friendships" ON public.friendships
   FOR DELETE USING (auth.uid() = user_id OR auth.uid() = friend_id);
 

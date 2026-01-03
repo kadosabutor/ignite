@@ -9,7 +9,18 @@ import styles from './Friends.module.css';
 
 export function Friends() {
   const navigate = useNavigate();
-  const { friends, addFriend, removeFriend, user, refreshFriends } = useHabits();
+  const { 
+    friends, 
+    pendingRequests, 
+    addFriend, 
+    removeFriend, 
+    acceptFriendRequest, 
+    rejectFriendRequest, 
+    cancelFriendRequest,
+    user, 
+    refreshFriends,
+    refreshPendingRequests 
+  } = useHabits();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
@@ -48,8 +59,40 @@ export function Friends() {
       setSearchQuery('');
       setSearchResults([]);
       await refreshFriends();
+      await refreshPendingRequests();
     } catch (err: any) {
-      setError(err.message || 'Hiba a barát hozzáadása során');
+      setError(err.message || 'Hiba a barátkérelem küldése során');
+    }
+  };
+
+  const handleAcceptRequest = async (requesterId: string) => {
+    setError('');
+    try {
+      await acceptFriendRequest(requesterId);
+      await refreshFriends();
+      await refreshPendingRequests();
+    } catch (err: any) {
+      setError(err.message || 'Hiba a barátkérelem elfogadása során');
+    }
+  };
+
+  const handleRejectRequest = async (requesterId: string) => {
+    setError('');
+    try {
+      await rejectFriendRequest(requesterId);
+      await refreshPendingRequests();
+    } catch (err: any) {
+      setError(err.message || 'Hiba a barátkérelem elutasítása során');
+    }
+  };
+
+  const handleCancelRequest = async (friendId: string) => {
+    setError('');
+    try {
+      await cancelFriendRequest(friendId);
+      await refreshPendingRequests();
+    } catch (err: any) {
+      setError(err.message || 'Hiba a barátkérelem törlése során');
     }
   };
 
@@ -95,19 +138,84 @@ export function Friends() {
       {searchResults.length > 0 && (
         <div className={styles.searchResults}>
           <h3 className={styles.resultsTitle}>Találatok</h3>
-          {searchResults.map(result => (
-            <Card key={result.id} className={styles.resultCard}>
+          {searchResults.map(result => {
+            // Check if there's already a pending request to/from this user
+            const hasOutgoingRequest = pendingRequests.outgoing.some(f => f.id === result.id);
+            const isAlreadyFriend = friends.some(f => f.id === result.id);
+            
+            return (
+              <Card key={result.id} className={styles.resultCard}>
+                <img
+                  src={AVATARS[result.avatar as keyof typeof AVATARS]?.icon || AVATARS.lion.icon}
+                  alt={result.displayName}
+                  className={styles.resultAvatar}
+                />
+                <div className={styles.resultInfo}>
+                  <span className={styles.resultName}>{result.displayName}</span>
+                  <span className={styles.resultUsername}>@{result.username}</span>
+                </div>
+                {isAlreadyFriend ? (
+                  <span className={styles.alreadyFriend}>Már barátok</span>
+                ) : hasOutgoingRequest ? (
+                  <Button size="sm" variant="secondary" onClick={() => handleCancelRequest(result.id)}>
+                    Mégse
+                  </Button>
+                ) : (
+                  <Button size="sm" onClick={() => handleAddFriend(result.username)}>
+                    Kérelem küldése
+                  </Button>
+                )}
+              </Card>
+            );
+          })}
+        </div>
+      )}
+
+      {/* Pending requests - Incoming */}
+      {pendingRequests.incoming.length > 0 && (
+        <div className={styles.pendingSection}>
+          <h3 className={styles.sectionTitle}>Bejövő barátkérelmek</h3>
+          {pendingRequests.incoming.map(request => (
+            <Card key={request.id} className={styles.requestCard}>
               <img
-                src={AVATARS[result.avatar as keyof typeof AVATARS]?.icon || AVATARS.lion.icon}
-                alt={result.displayName}
+                src={AVATARS[request.avatar]?.icon || AVATARS.lion.icon}
+                alt={request.displayName}
                 className={styles.resultAvatar}
               />
               <div className={styles.resultInfo}>
-                <span className={styles.resultName}>{result.displayName}</span>
-                <span className={styles.resultUsername}>@{result.username}</span>
+                <span className={styles.resultName}>{request.displayName}</span>
+                <span className={styles.resultUsername}>@{request.username}</span>
               </div>
-              <Button size="sm" onClick={() => handleAddFriend(result.username)}>
-                + Hozzáad
+              <div className={styles.requestActions}>
+                <Button size="sm" onClick={() => handleAcceptRequest(request.id)}>
+                  Elfogad
+                </Button>
+                <Button size="sm" variant="secondary" onClick={() => handleRejectRequest(request.id)}>
+                  Elutasít
+                </Button>
+              </div>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Pending requests - Outgoing */}
+      {pendingRequests.outgoing.length > 0 && (
+        <div className={styles.pendingSection}>
+          <h3 className={styles.sectionTitle}>Kimenő barátkérelmek</h3>
+          {pendingRequests.outgoing.map(request => (
+            <Card key={request.id} className={styles.requestCard}>
+              <img
+                src={AVATARS[request.avatar]?.icon || AVATARS.lion.icon}
+                alt={request.displayName}
+                className={styles.resultAvatar}
+              />
+              <div className={styles.resultInfo}>
+                <span className={styles.resultName}>{request.displayName}</span>
+                <span className={styles.resultUsername}>@{request.username}</span>
+              </div>
+              <Button size="sm" variant="secondary" onClick={() => handleCancelRequest(request.id)}>
+                Mégse
               </Button>
             </Card>
           ))}

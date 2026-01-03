@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { HabitProvider, useHabits } from './context/HabitContext';
+import { ToastProvider } from './context/ToastContext';
 import { Layout } from './components/Layout';
 import { Dashboard } from './pages/Dashboard';
 import { Wizard } from './pages/Wizard';
@@ -114,9 +115,11 @@ function AppRoutes() {
 function App() {
   return (
     <BrowserRouter>
-      <HabitProvider>
-        <AppRoutes />
-      </HabitProvider>
+      <ToastProvider>
+        <HabitProvider>
+          <AppRoutes />
+        </HabitProvider>
+      </ToastProvider>
     </BrowserRouter>
   );
 }

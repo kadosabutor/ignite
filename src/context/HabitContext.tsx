@@ -1,8 +1,9 @@
-import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import type { HabitEntry, UserProfile, StreakData, Friend } from '../types';
 import * as supabase from '../lib/supabase';
 import { getTodayString } from '../lib/scoring';
 import { v4 as uuidv4 } from 'uuid';
+import { useToast } from './ToastContext';
 
 interface HabitContextType {
   // Auth
@@ -28,9 +29,14 @@ interface HabitContextType {
   
   // Friends
   friends: Friend[];
+  pendingRequests: { incoming: Friend[]; outgoing: Friend[] };
   addFriend: (username: string) => Promise<void>;
   removeFriend: (friendId: string) => Promise<void>;
+  acceptFriendRequest: (requesterId: string) => Promise<void>;
+  rejectFriendRequest: (requesterId: string) => Promise<void>;
+  cancelFriendRequest: (friendId: string) => Promise<void>;
   refreshFriends: () => Promise<void>;
+  refreshPendingRequests: () => Promise<void>;
   
   // Stats
   weeklyAverage: number;
@@ -49,6 +55,13 @@ export function HabitProvider({ children }: { children: ReactNode }) {
   const [entries, setEntries] = useState<HabitEntry[]>([]);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [friends, setFriends] = useState<Friend[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<{ incoming: Friend[]; outgoing: Friend[] }>({ incoming: [], outgoing: [] });
+  
+  // Get toast function - ToastProvider wraps HabitProvider in App.tsx
+  const { showToast } = useToast();
+  
+  // Track previous pending requests to detect new ones
+  const previousPendingRequestsRef = useRef<{ incoming: Friend[]; outgoing: Friend[] }>({ incoming: [], outgoing: [] });
 
   // Check auth state on mount
   useEffect(() => {
@@ -79,6 +92,7 @@ export function HabitProvider({ children }: { children: ReactNode }) {
         setEntries([]);
         setUser(null);
         setFriends([]);
+        setPendingRequests({ incoming: [], outgoing: [] });
       }
     });
     
@@ -87,17 +101,29 @@ export function HabitProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Store subscription references for cleanup
+  const friendshipSubscriptionRef = useRef<any>(null);
+  
   const loadUserData = async (userId: string) => {
     try {
-      const [loadedProfile, loadedEntries, loadedFriends] = await Promise.all([
+      // Clean up previous subscription if it exists
+      if (friendshipSubscriptionRef.current) {
+        friendshipSubscriptionRef.current.unsubscribe();
+        friendshipSubscriptionRef.current = null;
+      }
+      
+      const [loadedProfile, loadedEntries, loadedFriends, loadedPendingRequests] = await Promise.all([
         supabase.getUserProfile(userId),
         supabase.getAllEntries(userId),
         supabase.getAllFriends(userId),
+        supabase.getPendingFriendRequests(userId),
       ]);
       
       setUser(loadedProfile);
       setEntries(loadedEntries);
       setFriends(loadedFriends);
+      setPendingRequests(loadedPendingRequests);
+      previousPendingRequestsRef.current = loadedPendingRequests;
       
       // Subscribe to real-time updates
       supabase.subscribeToEntries(userId, (payload) => {
@@ -107,10 +133,54 @@ export function HabitProvider({ children }: { children: ReactNode }) {
           refreshEntries();
         }
       });
+      
+      // Subscribe to friendship changes for notifications
+      friendshipSubscriptionRef.current = supabase.subscribeToFriendships(userId, async (payload) => {
+        // Check notification settings
+        const settings = await supabase.getNotificationSettings(userId);
+        if (!settings.enabled || !settings.socialEnabled) {
+          return;
+        }
+        
+        if (payload.eventType === 'INSERT') {
+          const newRecord = payload.new;
+          // New incoming friend request
+          if (newRecord.friend_id === userId && newRecord.status === 'pending') {
+            const requesterProfile = await supabase.getUserProfile(newRecord.user_id);
+            if (requesterProfile) {
+              showToast(`Új barátkérelem: ${requesterProfile.displayName} (@${requesterProfile.username})`, 'info', 6000);
+            }
+            await refreshPendingRequests();
+          }
+        } else if (payload.eventType === 'UPDATE') {
+          const oldRecord = payload.old;
+          const newRecord = payload.new;
+          
+          // Outgoing request was accepted (status changed from pending to connected)
+          if (oldRecord.status === 'pending' && newRecord.status === 'connected' && newRecord.user_id === userId) {
+            const friendProfile = await supabase.getUserProfile(newRecord.friend_id);
+            if (friendProfile) {
+              showToast(`${friendProfile.displayName} (@${friendProfile.username}) elfogadta a barátkérelmedet! 🎉`, 'success', 6000);
+            }
+            await refreshFriends();
+            await refreshPendingRequests();
+          }
+        }
+      });
     } catch (error) {
       console.error('Failed to load user data:', error);
     }
   };
+  
+  // Cleanup subscription on unmount
+  useEffect(() => {
+    return () => {
+      if (friendshipSubscriptionRef.current) {
+        friendshipSubscriptionRef.current.unsubscribe();
+        friendshipSubscriptionRef.current = null;
+      }
+    };
+  }, []);
 
   const signUp = useCallback(async (email: string, password: string, username: string, displayName: string, avatar: 'lion' | 'wolf' | 'bull') => {
     await supabase.signUp(email, password, username, displayName, avatar);
@@ -176,6 +246,7 @@ export function HabitProvider({ children }: { children: ReactNode }) {
     
     await supabase.addFriend(authUser.id, username);
     await refreshFriends();
+    await refreshPendingRequests();
   }, [authUser]);
 
   const removeFriend = useCallback(async (friendId: string) => {
@@ -185,12 +256,56 @@ export function HabitProvider({ children }: { children: ReactNode }) {
     await refreshFriends();
   }, [authUser]);
 
+  const acceptFriendRequest = useCallback(async (requesterId: string) => {
+    if (!authUser) return;
+    
+    await supabase.acceptFriendRequest(authUser.id, requesterId);
+    await refreshFriends();
+    await refreshPendingRequests();
+  }, [authUser]);
+
+  const rejectFriendRequest = useCallback(async (requesterId: string) => {
+    if (!authUser) return;
+    
+    await supabase.rejectFriendRequest(authUser.id, requesterId);
+    await refreshPendingRequests();
+  }, [authUser]);
+
+  const cancelFriendRequest = useCallback(async (friendId: string) => {
+    if (!authUser) return;
+    
+    await supabase.cancelFriendRequest(authUser.id, friendId);
+    await refreshPendingRequests();
+  }, [authUser]);
+
   const refreshFriends = useCallback(async () => {
     if (!authUser) return;
     
     const loadedFriends = await supabase.getAllFriends(authUser.id);
     setFriends(loadedFriends);
   }, [authUser]);
+
+  const refreshPendingRequests = useCallback(async () => {
+    if (!authUser) return;
+    
+    const loadedPendingRequests = await supabase.getPendingFriendRequests(authUser.id);
+    
+    // Check for new incoming requests and show notification
+    if (showToast) {
+      const settings = await supabase.getNotificationSettings(authUser.id);
+      if (settings.enabled && settings.socialEnabled) {
+        const previousIncoming = previousPendingRequestsRef.current.incoming.map(f => f.id);
+        const newIncoming = loadedPendingRequests.incoming.filter(f => !previousIncoming.includes(f.id));
+        
+        for (const newRequest of newIncoming) {
+          showToast(`Új barátkérelem: ${newRequest.displayName} (@${newRequest.username})`, 'info', 6000);
+        }
+      }
+    }
+    
+    previousPendingRequestsRef.current = loadedPendingRequests;
+    setPendingRequests(loadedPendingRequests);
+  }, [authUser, showToast]);
 
   const getLeaderboard = useCallback(async (period: 'today' | 'week' | 'month') => {
     if (!authUser) return [];
@@ -239,9 +354,14 @@ export function HabitProvider({ children }: { children: ReactNode }) {
         streak,
         saveUser,
         friends,
+        pendingRequests,
         addFriend,
         removeFriend,
+        acceptFriendRequest,
+        rejectFriendRequest,
+        cancelFriendRequest,
         refreshFriends,
+        refreshPendingRequests,
         weeklyAverage,
         monthlyAverage,
         getLeaderboard,

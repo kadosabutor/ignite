@@ -9,7 +9,7 @@ import styles from './Profile.module.css';
 
 export function Profile() {
   const navigate = useNavigate();
-  const { user, streak, saveUser, monthlyAverage, signOut, authUser } = useHabits();
+  const { user, streak, saveUser, monthlyAverage, signOut, authUser, pendingRequests } = useHabits();
   const [isEditing, setIsEditing] = useState(false);
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [selectedAvatar, setSelectedAvatar] = useState<AvatarType>(user?.avatar || 'lion');
@@ -283,9 +283,16 @@ export function Profile() {
           </Card>
 
           {/* Friends button */}
-          <Button variant="secondary" fullWidth onClick={() => navigate('/friends')}>
-            👥 Barátok kezelése
-          </Button>
+          <div className={styles.friendsButtonWrapper}>
+            <Button variant="secondary" fullWidth onClick={() => navigate('/friends')}>
+              👥 Barátok kezelése
+            </Button>
+            {pendingRequests.incoming.length > 0 && (
+              <span className={styles.notificationDot} title={`${pendingRequests.incoming.length} bejövő barátkérelem`}>
+                {pendingRequests.incoming.length}
+              </span>
+            )}
+          </div>
 
           {/* Sign out button */}
           <Button variant="danger" fullWidth onClick={handleSignOut}>

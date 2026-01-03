@@ -241,3 +241,95 @@
 .removeButton:hover {
   background-color: rgba(248, 113, 113, 0.2);
 }
+
+/* Search results */
+.searchResults {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.resultsTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.resultCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+}
+
+.resultAvatar {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+}
+
+.resultInfo {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.resultName {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.resultUsername {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.alreadyFriend {
+  font-size: 12px;
+  color: var(--color-muted);
+  padding: 8px 12px;
+}
+
+/* Pending requests */
+.pendingSection {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.sectionTitle {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0;
+}
+
+.requestCard {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+}
+
+.requestActions {
+  display: flex;
+  gap: 8px;
+}
+
+/* Error */
+.error {
+  padding: 12px;
+  background-color: rgba(248, 113, 113, 0.1);
+  border: 1px solid var(--color-error);
+  border-radius: 8px;
+  color: var(--color-error);
+  font-size: 14px;
+  text-align: center;
+}

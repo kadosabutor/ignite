@@ -430,7 +430,8 @@ export async function getAllFriends(userId: string): Promise<Friend[]> {
         monthly_average
       )
     `)
-    .eq('user_id', userId);
+    .eq('user_id', userId)
+    .eq('status', 'connected'); // Only return connected friends
   
   if (error) throw error;
   
@@ -461,7 +462,7 @@ export async function getAllFriends(userId: string): Promise<Friend[]> {
       displayName: friend.display_name,
       avatar: friend.avatar as AvatarType,
       rank: friend.rank as RankType,
-      status: f.status as 'pending' | 'connected',
+      status: 'connected' as const,
       streak: streakData ? {
         currentStreak: streakData.current_streak,
         longestStreak: streakData.longest_streak,
@@ -507,23 +508,223 @@ export async function addFriend(userId: string, friendUsername: string): Promise
     throw new Error('Nem adhatod hozzá magadat');
   }
   
-  // Check if already friends
+  // Check if already friends or request already exists
   const { data: existing } = await supabase
     .from('friendships')
-    .select('id')
-    .eq('user_id', userId)
-    .eq('friend_id', friendData.id)
-    .single();
+    .select('id, status')
+    .or(`and(user_id.eq.${userId},friend_id.eq.${friendData.id}),and(user_id.eq.${friendData.id},friend_id.eq.${userId})`)
+    .maybeSingle();
   
   if (existing) {
-    throw new Error('Már barátok vagytok');
+    if (existing.status === 'connected') {
+      throw new Error('Már barátok vagytok');
+    } else {
+      throw new Error('Barátkérelem már küldve');
+    }
   }
   
-  // Add friendship (both directions)
-  const { error } = await supabase.from('friendships').insert([
-    { user_id: userId, friend_id: friendData.id, status: 'connected' },
-    { user_id: friendData.id, friend_id: userId, status: 'connected' },
-  ]);
+  // Create pending friend request (only one direction)
+  const { error } = await supabase.from('friendships').insert({
+    user_id: userId,
+    friend_id: friendData.id,
+    status: 'pending',
+  });
+  
+  if (error) throw error;
+}
+
+export async function getPendingFriendRequests(userId: string): Promise<{
+  incoming: Friend[];
+  outgoing: Friend[];
+}> {
+  // Get incoming requests (where friend_id = userId and status = pending)
+  const { data: incomingData, error: incomingError } = await supabase
+    .from('friendships')
+    .select(`
+      id,
+      status,
+      user:user_id (
+        id,
+        username,
+        display_name,
+        avatar,
+        rank,
+        monthly_average
+      )
+    `)
+    .eq('friend_id', userId)
+    .eq('status', 'pending');
+  
+  if (incomingError) throw incomingError;
+  
+  // Get outgoing requests (where user_id = userId and status = pending)
+  const { data: outgoingData, error: outgoingError } = await supabase
+    .from('friendships')
+    .select(`
+      id,
+      status,
+      friend:friend_id (
+        id,
+        username,
+        display_name,
+        avatar,
+        rank,
+        monthly_average
+      )
+    `)
+    .eq('user_id', userId)
+    .eq('status', 'pending');
+  
+  if (outgoingError) throw outgoingError;
+  
+  const incoming: Friend[] = [];
+  const outgoing: Friend[] = [];
+  
+  // Process incoming requests
+  for (const f of incomingData || []) {
+    const user = f.user as any;
+    if (!user) continue;
+    
+    const { data: streakData } = await supabase
+      .from('streaks')
+      .select('*')
+      .eq('user_id', user.id)
+      .single();
+    
+    incoming.push({
+      id: user.id,
+      username: user.username,
+      displayName: user.display_name,
+      avatar: user.avatar as AvatarType,
+      rank: user.rank as RankType,
+      status: 'pending' as const,
+      streak: streakData ? {
+        currentStreak: streakData.current_streak,
+        longestStreak: streakData.longest_streak,
+        level: streakData.level,
+        cryoFreezeCount: streakData.cryo_freeze_count,
+        lastEntryDate: streakData.last_entry_date,
+        phoenixActive: streakData.phoenix_active,
+        phoenixDaysRemaining: streakData.phoenix_days_remaining,
+        phoenixStartStreak: streakData.phoenix_start_streak,
+      } : {
+        currentStreak: 0,
+        longestStreak: 0,
+        level: 'frozen',
+        cryoFreezeCount: 0,
+        lastEntryDate: null,
+        phoenixActive: false,
+        phoenixDaysRemaining: 0,
+        phoenixStartStreak: 0,
+      },
+      todayScore: null,
+      todayCompleted: false,
+      monthlyAverage: user.monthly_average || 0,
+      lastPingedAt: null,
+    });
+  }
+  
+  // Process outgoing requests
+  for (const f of outgoingData || []) {
+    const friend = f.friend as any;
+    if (!friend) continue;
+    
+    const { data: streakData } = await supabase
+      .from('streaks')
+      .select('*')
+      .eq('user_id', friend.id)
+      .single();
+    
+    outgoing.push({
+      id: friend.id,
+      username: friend.username,
+      displayName: friend.display_name,
+      avatar: friend.avatar as AvatarType,
+      rank: friend.rank as RankType,
+      status: 'pending' as const,
+      streak: streakData ? {
+        currentStreak: streakData.current_streak,
+        longestStreak: streakData.longest_streak,
+        level: streakData.level,
+        cryoFreezeCount: streakData.cryo_freeze_count,
+        lastEntryDate: streakData.last_entry_date,
+        phoenixActive: streakData.phoenix_active,
+        phoenixDaysRemaining: streakData.phoenix_days_remaining,
+        phoenixStartStreak: streakData.phoenix_start_streak,
+      } : {
+        currentStreak: 0,
+        longestStreak: 0,
+        level: 'frozen',
+        cryoFreezeCount: 0,
+        lastEntryDate: null,
+        phoenixActive: false,
+        phoenixDaysRemaining: 0,
+        phoenixStartStreak: 0,
+      },
+      todayScore: null,
+      todayCompleted: false,
+      monthlyAverage: friend.monthly_average || 0,
+      lastPingedAt: null,
+    });
+  }
+  
+  return { incoming, outgoing };
+}
+
+export async function acceptFriendRequest(userId: string, requesterId: string): Promise<void> {
+  // Find the pending request
+  const { data: request, error: findError } = await supabase
+    .from('friendships')
+    .select('id')
+    .eq('user_id', requesterId)
+    .eq('friend_id', userId)
+    .eq('status', 'pending')
+    .single();
+  
+  if (findError || !request) {
+    throw new Error('Barátkérelem nem található');
+  }
+  
+  // Update the request to connected
+  const { error: updateError } = await supabase
+    .from('friendships')
+    .update({ status: 'connected' })
+    .eq('id', request.id);
+  
+  if (updateError) throw updateError;
+  
+  // Create the reverse friendship record
+  const { error: insertError } = await supabase
+    .from('friendships')
+    .insert({
+      user_id: userId,
+      friend_id: requesterId,
+      status: 'connected',
+    });
+  
+  if (insertError) throw insertError;
+}
+
+export async function rejectFriendRequest(userId: string, requesterId: string): Promise<void> {
+  // Delete the pending request
+  const { error } = await supabase
+    .from('friendships')
+    .delete()
+    .eq('user_id', requesterId)
+    .eq('friend_id', userId)
+    .eq('status', 'pending');
+  
+  if (error) throw error;
+}
+
+export async function cancelFriendRequest(userId: string, friendId: string): Promise<void> {
+  // Delete the pending request
+  const { error } = await supabase
+    .from('friendships')
+    .delete()
+    .eq('user_id', userId)
+    .eq('friend_id', friendId)
+    .eq('status', 'pending');
   
   if (error) throw error;
 }
@@ -746,6 +947,24 @@ export function subscribeToFriendEntries(friendIds: string[], callback: (payload
       schema: 'public',
       table: 'entries',
       filter: `user_id=in.(${friendIds.join(',')})`,
+    }, callback)
+    .subscribe();
+}
+
+export function subscribeToFriendships(userId: string, callback: (payload: any) => void) {
+  return supabase
+    .channel(`friendships:${userId}`)
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'friendships',
+      filter: `user_id=eq.${userId}`,
+    }, callback)
+    .on('postgres_changes', {
+      event: '*',
+      schema: 'public',
+      table: 'friendships',
+      filter: `friend_id=eq.${userId}`,
     }, callback)
     .subscribe();
 }
