@@ -28,9 +28,14 @@ interface HabitContextType {
   
   // Friends
   friends: Friend[];
+  pendingRequests: { incoming: Friend[]; outgoing: Friend[] };
   addFriend: (username: string) => Promise<void>;
   removeFriend: (friendId: string) => Promise<void>;
+  acceptFriendRequest: (requesterId: string) => Promise<void>;
+  rejectFriendRequest: (requesterId: string) => Promise<void>;
+  cancelFriendRequest: (friendId: string) => Promise<void>;
   refreshFriends: () => Promise<void>;
+  refreshPendingRequests: () => Promise<void>;
   
   // Stats
   weeklyAverage: number;
@@ -49,6 +54,7 @@ export function HabitProvider({ children }: { children: ReactNode }) {
   const [entries, setEntries] = useState<HabitEntry[]>([]);
   const [user, setUser] = useState<UserProfile | null>(null);
   const [friends, setFriends] = useState<Friend[]>([]);
+  const [pendingRequests, setPendingRequests] = useState<{ incoming: Friend[]; outgoing: Friend[] }>({ incoming: [], outgoing: [] });
 
   // Check auth state on mount
   useEffect(() => {
@@ -79,6 +85,7 @@ export function HabitProvider({ children }: { children: ReactNode }) {
         setEntries([]);
         setUser(null);
         setFriends([]);
+        setPendingRequests({ incoming: [], outgoing: [] });
       }
     });
     
@@ -89,15 +96,17 @@ export function HabitProvider({ children }: { children: ReactNode }) {
 
   const loadUserData = async (userId: string) => {
     try {
-      const [loadedProfile, loadedEntries, loadedFriends] = await Promise.all([
+      const [loadedProfile, loadedEntries, loadedFriends, loadedPendingRequests] = await Promise.all([
         supabase.getUserProfile(userId),
         supabase.getAllEntries(userId),
         supabase.getAllFriends(userId),
+        supabase.getPendingFriendRequests(userId),
       ]);
       
       setUser(loadedProfile);
       setEntries(loadedEntries);
       setFriends(loadedFriends);
+      setPendingRequests(loadedPendingRequests);
       
       // Subscribe to real-time updates
       supabase.subscribeToEntries(userId, (payload) => {
@@ -176,6 +185,7 @@ export function HabitProvider({ children }: { children: ReactNode }) {
     
     await supabase.addFriend(authUser.id, username);
     await refreshFriends();
+    await refreshPendingRequests();
   }, [authUser]);
 
   const removeFriend = useCallback(async (friendId: string) => {
@@ -185,11 +195,40 @@ export function HabitProvider({ children }: { children: ReactNode }) {
     await refreshFriends();
   }, [authUser]);
 
+  const acceptFriendRequest = useCallback(async (requesterId: string) => {
+    if (!authUser) return;
+    
+    await supabase.acceptFriendRequest(authUser.id, requesterId);
+    await refreshFriends();
+    await refreshPendingRequests();
+  }, [authUser]);
+
+  const rejectFriendRequest = useCallback(async (requesterId: string) => {
+    if (!authUser) return;
+    
+    await supabase.rejectFriendRequest(authUser.id, requesterId);
+    await refreshPendingRequests();
+  }, [authUser]);
+
+  const cancelFriendRequest = useCallback(async (friendId: string) => {
+    if (!authUser) return;
+    
+    await supabase.cancelFriendRequest(authUser.id, friendId);
+    await refreshPendingRequests();
+  }, [authUser]);
+
   const refreshFriends = useCallback(async () => {
     if (!authUser) return;
     
     const loadedFriends = await supabase.getAllFriends(authUser.id);
     setFriends(loadedFriends);
+  }, [authUser]);
+
+  const refreshPendingRequests = useCallback(async () => {
+    if (!authUser) return;
+    
+    const loadedPendingRequests = await supabase.getPendingFriendRequests(authUser.id);
+    setPendingRequests(loadedPendingRequests);
   }, [authUser]);
 
   const getLeaderboard = useCallback(async (period: 'today' | 'week' | 'month') => {
@@ -239,9 +278,14 @@ export function HabitProvider({ children }: { children: ReactNode }) {
         streak,
         saveUser,
         friends,
+        pendingRequests,
         addFriend,
         removeFriend,
+        acceptFriendRequest,
+        rejectFriendRequest,
+        cancelFriendRequest,
         refreshFriends,
+        refreshPendingRequests,
         weeklyAverage,
         monthlyAverage,
         getLeaderboard,
