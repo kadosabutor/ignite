@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { useHabits } from '../context/HabitContext';
 import { Card } from '../components/ui';
+import { MetricsChart } from '../components/MetricsChart';
 import { getScoreColor } from '../lib/scoring';
 import styles from './Statistics.module.css';
 
@@ -28,13 +29,14 @@ export function Statistics() {
       return;
     }
     
-    const total = monthEntries.reduce((sum, e) => sum + e.score, 0);
+    const totalPoints = monthEntries.reduce((sum, e) => sum + e.score, 0);
     const best = Math.max(...monthEntries.map(e => e.score));
+    const totalBusinessMinutes = monthEntries.reduce((sum, e) => sum + (e.businessMinutes || 0), 0);
     
     setMonthStats({
       entries: monthEntries,
-      average: total / monthEntries.length,
-      total,
+      average: totalPoints / monthEntries.length,
+      total: totalBusinessMinutes, // Stores business minutes for display
       count: monthEntries.length,
       best,
     });
@@ -101,6 +103,11 @@ export function Statistics() {
       <header className={styles.header}>
         <h1 className={styles.title}>Statisztika</h1>
       </header>
+
+      {/* Metrics Chart */}
+      <Card className={styles.chartCard}>
+        <MetricsChart entries={entries} currentMonth={currentMonth} />
+      </Card>
 
       {/* Quick stats */}
       <div className={styles.quickStats}>
@@ -180,7 +187,7 @@ export function Statistics() {
           </div>
           <div className={styles.summaryItem}>
             <span className={styles.summaryValue}>{Math.round(monthStats.total)}</span>
-            <span className={styles.summaryLabel}>Összes pont</span>
+            <span className={styles.summaryLabel}>Összes Biz Perc</span>
           </div>
         </div>
       </Card>
