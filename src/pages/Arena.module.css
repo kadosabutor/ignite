@@ -93,6 +93,16 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  cursor: pointer;
+  transition: transform 0.2s, opacity 0.2s;
+}
+
+.feedCard:active {
+  transform: scale(0.98);
+}
+
+.sleepingAgent {
+  opacity: 0.6;
 }
 
 .feedHeader {
@@ -105,6 +115,8 @@
   width: 48px;
   height: 48px;
   object-fit: contain;
+  border-radius: 50%;
+  border: 3px solid;
 }
 
 .feedInfo {
@@ -159,8 +171,26 @@
 
 .feedActions {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-end;
   align-items: center;
+  gap: 8px;
+}
+
+.vsButton {
+  padding: 8px 16px;
+  border-radius: 8px;
+  background-color: var(--color-surface);
+  border: none;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.2s, background-color 0.2s;
+  color: var(--color-foreground);
+}
+
+.vsButton:active {
+  transform: scale(0.95);
+  background-color: var(--color-primary);
 }
 
 .fireButton {
@@ -236,6 +266,42 @@
   width: 40px;
   height: 40px;
   object-fit: contain;
+  border-radius: 50%;
+  border: 2px solid;
+}
+
+.clickable {
+  cursor: pointer;
+}
+
+.clickable:active {
+  transform: scale(0.98);
+}
+
+.leaderboardRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.miniVsButton {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background-color: var(--color-surface);
+  border: none;
+  font-size: 14px;
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.miniVsButton:active {
+  transform: scale(0.9);
+}
+
+.leaderboardRank {
+  font-size: 12px;
+  font-weight: 600;
 }
 
 .leaderboardInfo {
@@ -292,6 +358,14 @@
   width: 48px;
   height: 48px;
   object-fit: contain;
+  border-radius: 50%;
+  border: 3px solid;
+}
+
+.friendRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .friendInfo {
@@ -310,4 +384,11 @@
 .friendRank {
   font-size: 12px;
   font-weight: 600;
+}
+
+
+.loading {
+  text-align: center;
+  color: var(--color-muted);
+  padding: 20px;
 }

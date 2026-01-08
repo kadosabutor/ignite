@@ -978,3 +978,44 @@ export function subscribeToFriendships(userId: string, callback: (payload: any) 
     }, callback)
     .subscribe();
 }
+
+
+// ============ FRIEND ENTRIES FOR VS MODE ============
+
+export async function getFriendEntries(friendId: string, days: number = 30): Promise<HabitEntry[]> {
+  // Calculate date range
+  const endDate = new Date();
+  const startDate = new Date();
+  startDate.setDate(startDate.getDate() - days);
+  
+  const startDateStr = startDate.toISOString().split('T')[0];
+  const endDateStr = endDate.toISOString().split('T')[0];
+  
+  const { data, error } = await supabase
+    .from('entries')
+    .select('*')
+    .eq('user_id', friendId)
+    .gte('date', startDateStr)
+    .lte('date', endDateStr)
+    .order('date', { ascending: true });
+  
+  if (error) throw error;
+  
+  return (data || []).map(e => ({
+    id: e.id,
+    date: e.date,
+    wakeUpTime: e.wake_up_time,
+    bedTime: e.bed_time,
+    businessMinutes: e.business_minutes,
+    sleepMinutes: e.sleep_minutes,
+    cleanEating: e.clean_eating,
+    exercise: e.exercise,
+    paradigm: (e.paradigm ?? 0) >= 1,
+    satisfaction: e.satisfaction,
+    dopamineContent: e.dopamine_content,
+    gaming: e.gaming,
+    score: e.score,
+    createdAt: e.created_at,
+    updatedAt: e.updated_at,
+  })) as HabitEntry[];
+}

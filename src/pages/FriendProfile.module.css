@@ -1,0 +1,369 @@
+.container {
+  min-height: 100vh;
+  background: var(--color-background);
+  padding-bottom: 100px;
+}
+
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 16px;
+  background: var(--color-surface);
+  border-bottom: 1px solid var(--color-border);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.backButton {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 16px;
+  cursor: pointer;
+  padding: 8px;
+}
+
+.viewToggle {
+  display: flex;
+  gap: 4px;
+  background: var(--color-background);
+  padding: 4px;
+  border-radius: 8px;
+}
+
+.toggleButton {
+  padding: 8px 16px;
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 500;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggleActive {
+  background: var(--color-primary);
+  color: white;
+}
+
+/* Profile View */
+.profileView {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.profileCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px;
+  text-align: center;
+}
+
+.avatarWrapper {
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  border: 4px solid;
+  padding: 4px;
+  margin-bottom: 16px;
+}
+
+.avatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  object-fit: cover;
+}
+
+.displayName {
+  font-size: 24px;
+  font-weight: 700;
+  color: var(--color-foreground);
+  margin: 0 0 4px 0;
+}
+
+.username {
+  font-size: 14px;
+  color: var(--color-muted);
+  margin-bottom: 12px;
+}
+
+.rankBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 20px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+/* Stats Grid */
+.statsGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+}
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 12px;
+  text-align: center;
+}
+
+.statIcon {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.statValue {
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--color-foreground);
+}
+
+.statLabel {
+  font-size: 12px;
+  color: var(--color-muted);
+  margin-top: 4px;
+}
+
+.statSub {
+  font-size: 11px;
+  margin-top: 4px;
+  font-weight: 500;
+}
+
+/* Today Card */
+.todayCard {
+  padding: 20px;
+}
+
+.todayTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-foreground);
+  margin: 0 0 16px 0;
+}
+
+.todayScore {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+
+.scoreValue {
+  font-size: 48px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.scoreLabel {
+  font-size: 16px;
+  color: var(--color-muted);
+}
+
+.todayGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+
+.todayItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px;
+  background: var(--color-background);
+  border-radius: 8px;
+}
+
+.todayIcon {
+  font-size: 20px;
+}
+
+.todayLabel {
+  flex: 1;
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.todayValue {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-foreground);
+}
+
+.positive {
+  color: var(--color-success) !important;
+}
+
+.negative {
+  color: var(--color-error) !important;
+}
+
+.partial {
+  color: var(--color-warning) !important;
+}
+
+.noData {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 24px;
+  color: var(--color-muted);
+}
+
+.noDataIcon {
+  font-size: 32px;
+}
+
+.noDataText {
+  font-size: 14px;
+}
+
+/* VS View */
+.vsView {
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.loading, .error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 48px;
+  color: var(--color-muted);
+}
+
+.errorIcon {
+  font-size: 48px;
+  margin-bottom: 16px;
+}
+
+/* Radar Card */
+.radarCard {
+  padding: 20px;
+}
+
+.radarTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-foreground);
+  margin: 0 0 12px 0;
+  text-align: center;
+}
+
+.radarLegend {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+  margin-bottom: 16px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  color: var(--color-foreground);
+}
+
+.legendDot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.radarSvg {
+  width: 100%;
+  max-width: 300px;
+  margin: 0 auto;
+  display: block;
+}
+
+.radarLabel {
+  font-size: 11px;
+  fill: var(--color-muted);
+}
+
+/* Comparison Card */
+.comparisonCard {
+  padding: 20px;
+}
+
+.comparisonTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-foreground);
+  margin: 0 0 12px 0;
+}
+
+.comparisonText {
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-foreground);
+  margin: 0;
+}
+
+/* Bar Chart */
+.chartCard {
+  padding: 20px;
+}
+
+.chartTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-foreground);
+  margin: 0 0 16px 0;
+}
+
+.barChart {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  height: 150px;
+  gap: 8px;
+}
+
+.barGroup {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.bars {
+  display: flex;
+  gap: 4px;
+  align-items: flex-end;
+  height: 120px;
+  width: 100%;
+}
+
+.bar {
+  flex: 1;
+  border-radius: 4px 4px 0 0;
+  min-height: 4px;
+  transition: height 0.3s ease;
+}
+
+.barLabel {
+  font-size: 12px;
+  color: var(--color-muted);
+}

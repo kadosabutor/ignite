@@ -46,14 +46,36 @@ export function Arena() {
     }
   };
 
-  const handlePing = (_friendId: string) => {
-    // In a real app, this would send a notification
+  const handlePing = (e: React.MouseEvent, _friendId: string) => {
+    e.stopPropagation(); // Prevent navigation when clicking ping
     alert('Ping elküldve! 🔔');
   };
 
-  const handleFire = (_friendId: string) => {
-    // In a real app, this would record the fire
+  const handleFire = (e: React.MouseEvent, _friendId: string) => {
+    e.stopPropagation(); // Prevent navigation when clicking fire
     alert('🔥 Tűz elismerés elküldve!');
+  };
+
+  const handleVS = (e: React.MouseEvent, friendId: string) => {
+    e.stopPropagation(); // Prevent double navigation
+    navigate(`/friend/${friendId}?mode=vs`);
+  };
+
+  const handleViewProfile = (friendId: string) => {
+    navigate(`/friend/${friendId}`);
+  };
+
+  const handleViewLeaderboardProfile = (userId: string, isCurrentUser: boolean) => {
+    if (isCurrentUser) {
+      navigate('/profile');
+    } else {
+      // Check if this user is a friend
+      const isFriend = friends.some(f => f.id === userId);
+      if (isFriend) {
+        navigate(`/friend/${userId}`);
+      }
+      // If not a friend, we can't view their profile (privacy)
+    }
   };
 
   if (!user) {
@@ -100,7 +122,7 @@ export function Arena() {
         </button>
       </div>
 
-      {/* Content */}
+      {/* Feed Tab */}
       {activeTab === 'feed' && (
         <div className={styles.feed}>
           {friends.length === 0 ? (
@@ -114,12 +136,17 @@ export function Arena() {
               const scoreColor = friend.todayScore ? getScoreColor(friend.todayScore) : null;
               
               return (
-                <Card key={friend.id} className={styles.feedCard}>
+                <Card 
+                  key={friend.id} 
+                  className={`${styles.feedCard} ${!hasLoggedToday ? styles.sleepingAgent : ''}`}
+                  onClick={() => handleViewProfile(friend.id)}
+                >
                   <div className={styles.feedHeader}>
                     <img
                       src={AVATARS[friend.avatar]?.icon || AVATARS.lion.icon}
                       alt={friend.displayName}
                       className={styles.feedAvatar}
+                      style={{ borderColor: RANKS[friend.rank]?.color || '#888' }}
                     />
                     <div className={styles.feedInfo}>
                       <span className={styles.feedName}>{friend.displayName}</span>
@@ -140,9 +167,9 @@ export function Arena() {
                     </div>
                   ) : (
                     <div className={styles.feedPending}>
-                      <span className={styles.pendingText}>Még nem rögzített ma</span>
+                      <span className={styles.pendingText}>💤 Még nem rögzített ma</span>
                       {canPing && (
-                        <Button size="sm" variant="ghost" onClick={() => handlePing(friend.id)}>
+                        <Button size="sm" variant="ghost" onClick={(e) => handlePing(e, friend.id)}>
                           🔔 Ping
                         </Button>
                       )}
@@ -151,9 +178,16 @@ export function Arena() {
                   
                   <div className={styles.feedActions}>
                     <button 
+                      className={styles.vsButton}
+                      onClick={(e) => handleVS(e, friend.id)}
+                      title="VS Mode - Összehasonlítás"
+                    >
+                      ⚔️ VS
+                    </button>
+                    <button 
                       className={styles.fireButton}
-                      onClick={() => handleFire(friend.id)}
-                      title="Dupla koppintás a tűz elismeréshez"
+                      onClick={(e) => handleFire(e, friend.id)}
+                      title="Tűz elismerés"
                     >
                       🔥
                     </button>
@@ -165,6 +199,7 @@ export function Arena() {
         </div>
       )}
 
+      {/* Leaderboard Tab */}
       {activeTab === 'leaderboard' && (
         <div className={styles.leaderboard}>
           {/* Period selector */}
@@ -192,11 +227,14 @@ export function Arena() {
             ) : (
               leaderboardData.map((entry) => {
                 const medal = entry.position === 1 ? '🥇' : entry.position === 2 ? '🥈' : entry.position === 3 ? '🥉' : null;
+                const isFriend = friends.some(f => f.id === entry.user.id);
+                const isClickable = entry.isCurrentUser || isFriend;
                 
                 return (
                   <Card 
                     key={entry.user.id} 
-                    className={`${styles.leaderboardCard} ${entry.isCurrentUser ? styles.currentUser : ''}`}
+                    className={`${styles.leaderboardCard} ${entry.isCurrentUser ? styles.currentUser : ''} ${isClickable ? styles.clickable : ''}`}
+                    onClick={() => isClickable && handleViewLeaderboardProfile(entry.user.id, entry.isCurrentUser)}
                   >
                     <span className={styles.position}>
                       {medal || `#${entry.position}`}
@@ -205,6 +243,7 @@ export function Arena() {
                       src={AVATARS[entry.user.avatar as keyof typeof AVATARS]?.icon || AVATARS.lion.icon}
                       alt={entry.user.displayName}
                       className={styles.leaderboardAvatar}
+                      style={{ borderColor: RANKS[entry.user.rank as keyof typeof RANKS]?.color || '#888' }}
                     />
                     <div className={styles.leaderboardInfo}>
                       <span className={styles.leaderboardName}>
@@ -215,7 +254,17 @@ export function Arena() {
                         {RANKS[entry.user.rank as keyof typeof RANKS]?.emoji || '👤'} {RANKS[entry.user.rank as keyof typeof RANKS]?.name || 'Unknown'}
                       </span>
                     </div>
-                    <span className={styles.leaderboardScore}>{Math.round(entry.score)}</span>
+                    <div className={styles.leaderboardRight}>
+                      <span className={styles.leaderboardScore}>{Math.round(entry.score)}</span>
+                      {isFriend && !entry.isCurrentUser && (
+                        <button 
+                          className={styles.miniVsButton}
+                          onClick={(e) => handleVS(e, entry.user.id)}
+                        >
+                          ⚔️
+                        </button>
+                      )}
+                    </div>
                   </Card>
                 );
               })
@@ -224,6 +273,7 @@ export function Arena() {
         </div>
       )}
 
+      {/* Friends Tab */}
       {activeTab === 'friends' && (
         <div className={styles.friendsList}>
           {friends.length === 0 ? (
@@ -233,11 +283,16 @@ export function Arena() {
             </Card>
           ) : (
             friends.map(friend => (
-              <Card key={friend.id} className={styles.friendCard} variant="interactive">
+              <Card 
+                key={friend.id} 
+                className={`${styles.friendCard} ${styles.clickable}`}
+                onClick={() => handleViewProfile(friend.id)}
+              >
                 <img
                   src={AVATARS[friend.avatar]?.icon || AVATARS.lion.icon}
                   alt={friend.displayName}
                   className={styles.friendAvatar}
+                  style={{ borderColor: RANKS[friend.rank]?.color || '#888' }}
                 />
                 <div className={styles.friendInfo}>
                   <span className={styles.friendName}>{friend.displayName}</span>
@@ -245,7 +300,15 @@ export function Arena() {
                     {RANKS[friend.rank]?.emoji || '👤'} {RANKS[friend.rank]?.name || 'Unknown'}
                   </span>
                 </div>
-                <StreakIcon level={friend.streak.level} days={friend.streak.currentStreak} size="sm" />
+                <div className={styles.friendRight}>
+                  <StreakIcon level={friend.streak.level} days={friend.streak.currentStreak} size="sm" />
+                  <button 
+                    className={styles.miniVsButton}
+                    onClick={(e) => handleVS(e, friend.id)}
+                  >
+                    ⚔️
+                  </button>
+                </div>
               </Card>
             ))
           )}

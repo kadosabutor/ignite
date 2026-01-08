@@ -10,6 +10,7 @@ import { Statistics } from './pages/Statistics';
 import { Profile } from './pages/Profile';
 import { Arena } from './pages/Arena';
 import { Friends } from './pages/Friends';
+import { FriendProfile } from './pages/FriendProfile';
 import { Auth } from './pages/Auth';
 import './index.css';
 
@@ -103,6 +104,12 @@ function AppRoutes() {
       <Route path="/friends" element={
         <ProtectedRoute>
           <Friends />
+        </ProtectedRoute>
+      } />
+      
+      <Route path="/friend/:friendId" element={
+        <ProtectedRoute>
+          <FriendProfile />
         </ProtectedRoute>
       } />
       
