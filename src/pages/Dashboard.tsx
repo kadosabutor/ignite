@@ -1,7 +1,9 @@
+import { useState } from 'react';  // <-- ÚJ
 import { useNavigate } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
 import { Button, Card, ProgressRing } from '../components/ui';
 import { StreakIcon } from '../components/StreakIcon';
+import { DateSelector } from '../components/DateSelector';  // <-- ÚJ
 import { getScoreColor, getTodayString, formatMinutes } from '../lib/scoring';
 import { RANKS } from '../types';
 import styles from './Dashboard.module.css';
