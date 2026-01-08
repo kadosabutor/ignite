@@ -269,21 +269,21 @@ export function Friends() {
           ) : (
             <>
               {pendingRequests.incoming
-                .filter((request: any) => request && request.fromUser)
+                .filter((request: any) => request && request.username)
                 .map((request: any) => (
                   <ProfileCard
                     key={request.id}
-                    id={request.fromUserId}
-                    username={request.fromUser?.username || 'Unknown'}
-                    displayName={request.fromUser?.displayName || 'Unknown User'}
-                    avatar={request.fromUser?.avatar || 'lion'}
-                    rank={request.fromUser?.rank || 'sleepwalker'}
-                    streak={{ currentStreak: 0, longestStreak: 0, level: 'frozen', cryoFreezeCount: 0, lastEntryDate: null, phoenixActive: false, phoenixDaysRemaining: 0, phoenixStartStreak: 0 }}
-                    monthlyAverage={0}
+                    id={request.id}
+                    username={request.username || 'Unknown'}
+                    displayName={request.displayName || 'Unknown User'}
+                    avatar={request.avatar || 'lion'}
+                    rank={request.rank || 'sleepwalker'}
+                    streak={request.streak || { currentStreak: 0, longestStreak: 0, level: 'frozen', cryoFreezeCount: 0, lastEntryDate: null, phoenixActive: false, phoenixDaysRemaining: 0, phoenixStartStreak: 0 }}
+                    monthlyAverage={request.monthlyAverage || 0}
                     viewType="public"
                     requestStatus="pending_incoming"
-                    onAcceptRequest={() => handleAcceptRequest(request.fromUserId)}
-                    onRejectRequest={() => handleRejectRequest(request.fromUserId)}
+                    onAcceptRequest={() => handleAcceptRequest(request.id)}
+                    onRejectRequest={() => handleRejectRequest(request.id)}
                   />
                 ))}
             </>
