@@ -27,18 +27,24 @@ const hasMissedDays = last7Days.some(day => !day.hasEntry && day.date !== getTod
     error: 'var(--color-error)',
   };
 
-  // Get last 7 days for mini chart
-  const last7Days = Array.from({ length: 7 }, (_, i) => {
-    const date = new Date();
-    date.setDate(date.getDate() - (6 - i));
-    const dateStr = date.toISOString().split('T')[0];
-    const entry = entries.find(e => e.date === dateStr);
-    return {
-      date: dateStr,
-      score: entry?.score ?? 0,
-      hasEntry: !!entry,
-    };
-  });
+ const [showDateSelector, setShowDateSelector] = useState(false);
+
+// Get last 7 days for mini chart - ELŐSZÖR EZ!
+const last7Days = Array.from({ length: 7 }, (_, i) => {
+  const date = new Date();
+  date.setDate(date.getDate() - (6 - i));
+  const dateStr = date.toISOString().split('T')[0];
+  const entry = entries.find(e => e.date === dateStr);
+  return {
+    date: dateStr,
+    score: entry?.score ?? 0,
+    hasEntry: !!entry,
+  };
+});
+
+// Check if there are any missed days - UTÁNA EZ!
+const hasMissedDays = last7Days.some(day => !day.hasEntry && day.date !== getTodayString());
+
 
   const handleStartWizard = () => {
   if (hasMissedDays || !hasLoggedToday) {
