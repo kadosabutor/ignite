@@ -554,6 +554,7 @@ export async function getPendingFriendRequests(userId: string): Promise<{
   incoming: Friend[];
   outgoing: Friend[];
 }> {
+  console.log('[getPendingFriendRequests] Starting for userId:', userId);
   // Get incoming requests (where friend_id = userId and status = pending)
   const { data: incomingData, error: incomingError } = await supabase
     .from('friendships')
@@ -572,6 +573,7 @@ export async function getPendingFriendRequests(userId: string): Promise<{
     .eq('friend_id', userId)
     .eq('status', 'pending');
   
+  console.log('[getPendingFriendRequests] Incoming data:', { incomingData, incomingError });
   if (incomingError) throw incomingError;
   
   // Get outgoing requests (where user_id = userId and status = pending)
@@ -592,12 +594,14 @@ export async function getPendingFriendRequests(userId: string): Promise<{
     .eq('user_id', userId)
     .eq('status', 'pending');
   
+  console.log('[getPendingFriendRequests] Outgoing data:', { outgoingData, outgoingError });
   if (outgoingError) throw outgoingError;
   
   const incoming: Friend[] = [];
   const outgoing: Friend[] = [];
   
   // Process incoming requests
+  console.log('[getPendingFriendRequests] Processing incoming requests, count:', incomingData?.length || 0);
   for (const f of incomingData || []) {
     const user = f.user as any;
     if (!user) continue;
@@ -642,6 +646,7 @@ export async function getPendingFriendRequests(userId: string): Promise<{
   }
   
   // Process outgoing requests
+  console.log('[getPendingFriendRequests] Processing outgoing requests, count:', outgoingData?.length || 0);
   for (const f of outgoingData || []) {
     const friend = f.friend as any;
     if (!friend) continue;
