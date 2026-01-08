@@ -46,14 +46,40 @@ export function Arena() {
     }
   };
 
-  const handlePing = (e: React.MouseEvent, _friendId: string) => {
-    e.stopPropagation(); // Prevent navigation when clicking ping
-    alert('Ping elküldve! 🔔');
+  const handlePing = async (e: React.MouseEvent, friendId: string) => {
+    e.stopPropagation();
+    try {
+      const { sendPushNotification } = await import('../lib/supabase');
+      await sendPushNotification(
+        friendId,
+        '🔔 Ping!',
+        `${user?.displayName || 'Valaki'} pingelted! Mutasd meg, hogy még aktív vagy!`,
+        'ping',
+        { senderId: user?.id }
+      );
+      alert('Ping elküldve! 🔔');
+    } catch (error) {
+      console.error('Error sending ping:', error);
+      alert('Hiba a ping küldésekor');
+    }
   };
 
-  const handleFire = (e: React.MouseEvent, _friendId: string) => {
-    e.stopPropagation(); // Prevent navigation when clicking fire
-    alert('🔥 Tűz elismerés elküldve!');
+  const handleFire = async (e: React.MouseEvent, friendId: string) => {
+    e.stopPropagation();
+    try {
+      const { sendPushNotification } = await import('../lib/supabase');
+      await sendPushNotification(
+        friendId,
+        '🔥 Tűz Elismerés!',
+        `${user?.displayName || 'Valaki'} elismerésben részesített! Fantasztikus munka! 🎉`,
+        'fire',
+        { senderId: user?.id }
+      );
+      alert('🔥 Tűz elismerés elküldve!');
+    } catch (error) {
+      console.error('Error sending fire:', error);
+      alert('Hiba a tűz küldésekor');
+    }
   };
 
   const handleVS = (e: React.MouseEvent, friendId: string) => {

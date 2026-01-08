@@ -56,6 +56,25 @@ export function Friends() {
     setError('');
     try {
       await addFriend(username);
+      
+      // Find the user to get their ID for notification
+      const targetUser = searchResults.find(u => u.username === username);
+      if (targetUser && user) {
+        try {
+          const { sendPushNotification } = await import('../lib/supabase');
+          await sendPushNotification(
+            targetUser.id,
+            '👋 Új Barátkérelem!',
+            `${user.displayName || user.username} barátkérelmet küldött neked!`,
+            'friend_request',
+            { senderId: user.id }
+          );
+        } catch (notifError) {
+          console.error('Error sending notification:', notifError);
+          // Don't fail the friend request if notification fails
+        }
+      }
+      
       setSearchQuery('');
       setSearchResults([]);
       await refreshFriends();
@@ -69,6 +88,23 @@ export function Friends() {
     setError('');
     try {
       await acceptFriendRequest(requesterId);
+      
+      // Send notification to the requester
+      if (user) {
+        try {
+          const { sendPushNotification } = await import('../lib/supabase');
+          await sendPushNotification(
+            requesterId,
+            '✅ Barátkérelem Elfogadva!',
+            `${user.displayName || user.username} elfogadta a barátkérelmedet!`,
+            'friend_request_accepted',
+            { senderId: user.id }
+          );
+        } catch (notifError) {
+          console.error('Error sending notification:', notifError);
+        }
+      }
+      
       await refreshFriends();
       await refreshPendingRequests();
     } catch (err: any) {
