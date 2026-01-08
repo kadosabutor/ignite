@@ -119,6 +119,20 @@ const loadUserData = async (userId: string) => {
       supabase.getPendingFriendRequests(userId),
     ]);
     
+    // Initialize push notifications if supported
+    if ('serviceWorker' in navigator && 'PushManager' in window && Notification.permission === 'granted') {
+      try {
+        const { subscribeToPush } = await import('../lib/push');
+        const subscription = await subscribeToPush();
+        if (subscription) {
+          await supabase.savePushSubscription(subscription);
+          console.log('Push subscription saved');
+        }
+      } catch (error) {
+        console.error('Error setting up push:', error);
+      }
+    }
+    
     // Recalculate streak on load to ensure it's up-to-date
     const updatedStreak = await supabase.updateStreak(userId);
     

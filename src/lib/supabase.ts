@@ -1019,3 +1019,155 @@ export async function getFriendEntries(friendId: string, days: number = 30): Pro
     updatedAt: e.updated_at,
   })) as HabitEntry[];
 }
+
+
+// ============ PUSH NOTIFICATIONS ============
+
+/**
+ * Save push subscription to database
+ */
+export async function savePushSubscription(subscription: any) {
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) throw new Error('User not authenticated');
+  
+  const subscriptionData = subscription.toJSON ? subscription.toJSON() : subscription;
+  
+  const { error } = await supabase.from('push_subscriptions').upsert({
+    user_id: user.id,
+    endpoint: subscriptionData.endpoint,
+    p256dh: subscriptionData.keys.p256dh,
+    auth: subscriptionData.keys.auth,
+  }, {
+    onConflict: 'endpoint',
+  });
+  
+  if (error) throw error;
+}
+
+/**
+ * Get user's push subscriptions
+ */
+export async function getPushSubscriptions() {
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) throw new Error('User not authenticated');
+  
+  const { data, error } = await supabase
+    .from('push_subscriptions')
+    .select('*')
+    .eq('user_id', user.id);
+  
+  if (error) throw error;
+  return data || [];
+}
+
+/**
+ * Delete push subscription
+ */
+export async function deletePushSubscription(endpoint: string) {
+  const { error } = await supabase
+    .from('push_subscriptions')
+    .delete()
+    .eq('endpoint', endpoint);
+  
+  if (error) throw error;
+}
+
+/**
+ * Get user's notifications
+ */
+export async function getNotifications(limit: number = 20) {
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) throw new Error('User not authenticated');
+  
+  const { data, error } = await supabase
+    .from('notifications')
+    .select('*')
+    .eq('user_id', user.id)
+    .order('created_at', { ascending: false })
+    .limit(limit);
+  
+  if (error) throw error;
+  return data || [];
+}
+
+/**
+ * Mark notification as read
+ */
+export async function markNotificationAsRead(notificationId: string) {
+  const { error } = await supabase
+    .from('notifications')
+    .update({ read: true, read_at: new Date().toISOString() })
+    .eq('id', notificationId);
+  
+  if (error) throw error;
+}
+
+/**
+ * Get unread notification count
+ */
+export async function getUnreadNotificationCount() {
+  const { data: { user } } = await supabase.auth.getUser();
+  
+  if (!user) throw new Error('User not authenticated');
+  
+  const { count, error } = await supabase
+    .from('notifications')
+    .select('*', { count: 'exact', head: true })
+    .eq('user_id', user.id)
+    .eq('read', false);
+  
+  if (error) throw error;
+  return count || 0;
+}
+
+/**
+ * Send push notification to a user
+ * This calls the Supabase Edge Function
+ */
+export async function sendPushNotification(
+  recipientUserId: string,
+  title: string,
+  body: string,
+  type: string = 'general',
+  data?: Record<string, any>
+) {
+  const { data: { session } } = await supabase.auth.getSession();
+  
+  if (!session) throw new Error('User not authenticated');
+  
+  const response = await fetch(
+    'https://thibewmulezvjenwowmh.supabase.co/functions/v1/send-push',
+    {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        recipientUserId,
+        title,
+        body,
+        data: { type, ...data },
+      }),
+    }
+  );
+  
+  if (!response.ok) {
+    const error = await response.text();
+    throw new Error(`Push notification failed: ${error}`);
+  }
+  
+  return await response.json();
+}
+
+// Type for PushSubscription (from Web Push API)
+export interface PushSubscriptionData {
+  endpoint: string;
+  keys: {
+    p256dh: string;
+    auth: string;
+  };
+}
