@@ -215,6 +215,24 @@
   color: var(--color-warning);
 }
 
+/* No data message */
+.noDataMessage {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 16px;
+  color: var(--color-muted);
+}
+
+.noDataIcon {
+  font-size: 20px;
+}
+
+.noDataText {
+  font-size: 14px;
+}
+
 /* Actions section */
 .actions {
   padding: 12px 16px;

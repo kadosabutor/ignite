@@ -206,6 +206,7 @@ export function Friends() {
                 rank={friend.rank}
                 streak={friend.streak}
                 monthlyAverage={friend.monthlyAverage}
+                todayEntry={friend.todayEntry}
                 viewType="friend"
                 expandable={true}
                 onVSMode={() => navigate(`/friend/${friend.id}`)}

@@ -448,10 +448,10 @@ export async function getAllFriends(userId: string): Promise<Friend[]> {
       .eq('user_id', friend.id)
       .single();
     
-    // Get friend's today entry
+    // Get friend's today entry with full details for ProfileCard
     const { data: todayEntry } = await supabase
       .from('entries')
-      .select('score')
+      .select('score, business_minutes, sleep_minutes, exercise, clean_eating, satisfaction, dopamine_content, gaming')
       .eq('user_id', friend.id)
       .eq('date', getTodayString())
       .single();
@@ -486,6 +486,16 @@ export async function getAllFriends(userId: string): Promise<Friend[]> {
       todayCompleted: !!todayEntry,
       monthlyAverage: friend.monthly_average || 0,
       lastPingedAt: null,
+      todayEntry: todayEntry ? {
+        score: todayEntry.score,
+        businessMinutes: todayEntry.business_minutes,
+        sleepMinutes: todayEntry.sleep_minutes,
+        exercise: todayEntry.exercise,
+        cleanEating: todayEntry.clean_eating,
+        satisfaction: todayEntry.satisfaction,
+        dopamineContent: todayEntry.dopamine_content,
+        gaming: todayEntry.gaming,
+      } : undefined,
     });
   }
   

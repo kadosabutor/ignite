@@ -68,6 +68,17 @@ export interface Friend {
   todayCompleted: boolean;
   monthlyAverage: number;
   lastPingedAt: string | null;
+  bio?: string;
+  todayEntry?: {
+    score: number;
+    businessMinutes: number;
+    sleepMinutes: number;
+    exercise: boolean;
+    cleanEating: boolean;
+    satisfaction: boolean;
+    dopamineContent: boolean;
+    gaming: boolean;
+  };
 }
 
 // Arena types

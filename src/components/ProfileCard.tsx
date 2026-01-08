@@ -96,7 +96,7 @@ export function ProfileCard({
   
   // Determine what stats to show based on view type
   const showStats = viewType === 'friend' || viewType === 'self';
-  const showDetailedStats = viewType === 'friend' && expandable && isExpanded && todayEntry;
+  const showDetailedStats = viewType === 'friend' && expandable && isExpanded;
   
   // Calculate purity if we have today's entry
   const purity = todayEntry 
@@ -174,55 +174,64 @@ export function ProfileCard({
       </div>
       
       {/* Expanded detail view (only for friends) */}
-      {showDetailedStats && todayEntry && (
+      {showDetailedStats && (
         <div className={styles.detailSection}>
-          <div className={styles.detailHeader}>
-            <span className={styles.detailTitle}>Mai nap részletei</span>
-            <span className={styles.detailScore}>{Math.round(todayEntry.score)} pont</span>
-          </div>
-          
-          <div className={styles.detailGrid}>
-            {/* Business */}
-            <div className={styles.detailItem}>
-              <span className={styles.detailIcon}>💼</span>
-              <span className={styles.detailLabel}>Business</span>
-              <span className={styles.detailValue}>{formatMinutes(todayEntry.businessMinutes)}</span>
+          {todayEntry ? (
+            <>
+              <div className={styles.detailHeader}>
+                <span className={styles.detailTitle}>Mai nap részletei</span>
+                <span className={styles.detailScore}>{Math.round(todayEntry.score)} pont</span>
+              </div>
+              
+              <div className={styles.detailGrid}>
+                {/* Business */}
+                <div className={styles.detailItem}>
+                  <span className={styles.detailIcon}>💼</span>
+                  <span className={styles.detailLabel}>Business</span>
+                  <span className={styles.detailValue}>{formatMinutes(todayEntry.businessMinutes)}</span>
+                </div>
+                
+                {/* Sleep */}
+                <div className={styles.detailItem}>
+                  <span className={styles.detailIcon}>🌙</span>
+                  <span className={styles.detailLabel}>Alvás</span>
+                  <span className={styles.detailValue}>{formatMinutes(todayEntry.sleepMinutes)}</span>
+                </div>
+                
+                {/* Exercise */}
+                <div className={styles.detailItem}>
+                  <span className={styles.detailIcon}>💪</span>
+                  <span className={styles.detailLabel}>Edzés</span>
+                  <span className={`${styles.detailValue} ${todayEntry.exercise ? styles.positive : styles.negative}`}>
+                    {todayEntry.exercise ? '✓' : '✗'}
+                  </span>
+                </div>
+                
+                {/* Clean eating */}
+                <div className={styles.detailItem}>
+                  <span className={styles.detailIcon}>🍎</span>
+                  <span className={styles.detailLabel}>Étkezés</span>
+                  <span className={`${styles.detailValue} ${todayEntry.cleanEating ? styles.positive : styles.negative}`}>
+                    {todayEntry.cleanEating ? '✓' : '✗'}
+                  </span>
+                </div>
+                
+                {/* Purity (aggregated - dignity preserving) */}
+                <div className={styles.detailItem}>
+                  <span className={styles.detailIcon}>✨</span>
+                  <span className={styles.detailLabel}>Tisztaság</span>
+                  <span className={`${styles.detailValue} ${purity && purity.score === 3 ? styles.positive : purity && purity.score === 0 ? styles.negative : styles.partial}`}>
+                    {purity ? `${purity.score}/${purity.total}` : '—'}
+                  </span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <div className={styles.noDataMessage}>
+              <span className={styles.noDataIcon}>💤</span>
+              <span className={styles.noDataText}>Még nem rögzített ma</span>
             </div>
-            
-            {/* Sleep */}
-            <div className={styles.detailItem}>
-              <span className={styles.detailIcon}>🌙</span>
-              <span className={styles.detailLabel}>Alvás</span>
-              <span className={styles.detailValue}>{formatMinutes(todayEntry.sleepMinutes)}</span>
-            </div>
-            
-            {/* Exercise */}
-            <div className={styles.detailItem}>
-              <span className={styles.detailIcon}>💪</span>
-              <span className={styles.detailLabel}>Edzés</span>
-              <span className={`${styles.detailValue} ${todayEntry.exercise ? styles.positive : styles.negative}`}>
-                {todayEntry.exercise ? '✓' : '✗'}
-              </span>
-            </div>
-            
-            {/* Clean eating */}
-            <div className={styles.detailItem}>
-              <span className={styles.detailIcon}>🍎</span>
-              <span className={styles.detailLabel}>Étkezés</span>
-              <span className={`${styles.detailValue} ${todayEntry.cleanEating ? styles.positive : styles.negative}`}>
-                {todayEntry.cleanEating ? '✓' : '✗'}
-              </span>
-            </div>
-            
-            {/* Purity (aggregated - dignity preserving) */}
-            <div className={styles.detailItem}>
-              <span className={styles.detailIcon}>✨</span>
-              <span className={styles.detailLabel}>Tisztaság</span>
-              <span className={`${styles.detailValue} ${purity && purity.score === 3 ? styles.positive : purity && purity.score === 0 ? styles.negative : styles.partial}`}>
-                {purity ? `${purity.score}/${purity.total}` : '—'}
-              </span>
-            </div>
-          </div>
+          )}
         </div>
       )}
       
