@@ -55,7 +55,9 @@ export function Friends() {
   const handleAddFriend = async (username: string) => {
     setError('');
     try {
+      console.log('[Friends] Sending friend request for username:', username);
       await addFriend(username);
+      console.log('[Friends] Friend request sent successfully');
       
       // Find the user to get their ID for notification
       const targetUser = searchResults.find(u => u.username === username);
@@ -77,9 +79,12 @@ export function Friends() {
       
       setSearchQuery('');
       setSearchResults([]);
+      console.log('[Friends] Refreshing friends and pending requests...');
       await refreshFriends();
       await refreshPendingRequests();
+      console.log('[Friends] Refresh complete');
     } catch (err: any) {
+      console.error('[Friends] Error sending friend request:', err);
       setError(err.message || 'Hiba a barátkérelem küldése során');
     }
   };

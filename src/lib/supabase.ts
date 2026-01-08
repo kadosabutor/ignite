@@ -503,6 +503,7 @@ export async function getAllFriends(userId: string): Promise<Friend[]> {
 }
 
 export async function addFriend(userId: string, friendUsername: string): Promise<void> {
+  console.log('[addFriend] Starting - userId:', userId, 'friendUsername:', friendUsername);
   // Find friend by username
   const { data: friendData, error: findError } = await supabase
     .from('users')
@@ -510,6 +511,7 @@ export async function addFriend(userId: string, friendUsername: string): Promise
     .eq('username', friendUsername)
     .single();
   
+  console.log('[addFriend] User lookup result:', { friendData, findError });
   if (findError || !friendData) {
     throw new Error('Felhasználó nem található');
   }
@@ -519,12 +521,14 @@ export async function addFriend(userId: string, friendUsername: string): Promise
   }
   
   // Check if already friends or request already exists
+  console.log('[addFriend] Checking for existing friendship...');
   const { data: existing } = await supabase
     .from('friendships')
     .select('id, status')
     .or(`and(user_id.eq.${userId},friend_id.eq.${friendData.id}),and(user_id.eq.${friendData.id},friend_id.eq.${userId})`)
     .maybeSingle();
   
+  console.log('[addFriend] Existing friendship check:', existing);
   if (existing) {
     if (existing.status === 'connected') {
       throw new Error('Már barátok vagytok');
@@ -534,13 +538,16 @@ export async function addFriend(userId: string, friendUsername: string): Promise
   }
   
   // Create pending friend request (only one direction)
+  console.log('[addFriend] Inserting friend request:', { user_id: userId, friend_id: friendData.id, status: 'pending' });
   const { error } = await supabase.from('friendships').insert({
     user_id: userId,
     friend_id: friendData.id,
     status: 'pending',
   });
   
+  console.log('[addFriend] Insert result:', { error });
   if (error) throw error;
+  console.log('[addFriend] Friend request created successfully');
 }
 
 export async function getPendingFriendRequests(userId: string): Promise<{
