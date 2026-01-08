@@ -120,13 +120,24 @@ const loadUserData = async (userId: string) => {
     ]);
     
     // Initialize push notifications if supported
-    if ('serviceWorker' in navigator && 'PushManager' in window && Notification.permission === 'granted') {
+    if ('serviceWorker' in navigator && 'PushManager' in window) {
       try {
-        const { subscribeToPush } = await import('../lib/push');
-        const subscription = await subscribeToPush();
-        if (subscription) {
-          await supabase.savePushSubscription(subscription);
-          console.log('Push subscription saved');
+        const { subscribeToPush, requestNotificationPermission } = await import('../lib/push');
+        
+        // Request permission if not already granted
+        let permission = Notification.permission;
+        if (permission === 'default') {
+          permission = await requestNotificationPermission();
+          console.log('Notification permission requested:', permission);
+        }
+        
+        // Subscribe to push if permission is granted
+        if (permission === 'granted') {
+          const subscription = await subscribeToPush();
+          if (subscription) {
+            await supabase.savePushSubscription(subscription);
+            console.log('Push subscription saved');
+          }
         }
       } catch (error) {
         console.error('Error setting up push:', error);
