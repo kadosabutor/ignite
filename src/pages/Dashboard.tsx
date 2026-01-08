@@ -1,9 +1,9 @@
-import { useState } from 'react';  // <-- ÚJ
+import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
 import { Button, Card, ProgressRing } from '../components/ui';
 import { StreakIcon } from '../components/StreakIcon';
-import { DateSelector } from '../components/DateSelector';  // <-- ÚJ
+import { DateSelector } from '../components/DateSelector';
 import { getScoreColor, getTodayString, formatMinutes } from '../lib/scoring';
 import { RANKS } from '../types';
 import styles from './Dashboard.module.css';
@@ -15,65 +15,59 @@ export function Dashboard() {
   const todayScore = todayEntry?.score ?? 0;
   const hasLoggedToday = !!todayEntry;
   const scoreColor = getScoreColor(todayScore);
+  
   const [showDateSelector, setShowDateSelector] = useState(false);
 
-// Check if there are any missed days in the last 7 days
-const hasMissedDays = last7Days.some(day => !day.hasEntry && day.date !== getTodayString());
-
-  
   const colorMap = {
     success: 'var(--color-success)',
     warning: 'var(--color-warning)',
     error: 'var(--color-error)',
   };
 
- const [showDateSelector, setShowDateSelector] = useState(false);
+  // Get last 7 days for mini chart
+  const last7Days = Array.from({ length: 7 }, (_, i) => {
+    const date = new Date();
+    date.setDate(date.getDate() - (6 - i));
+    const dateStr = date.toISOString().split('T')[0];
+    const entry = entries.find(e => e.date === dateStr);
+    return {
+      date: dateStr,
+      score: entry?.score ?? 0,
+      hasEntry: !!entry,
+    };
+  });
 
-// Get last 7 days for mini chart - ELŐSZÖR EZ!
-const last7Days = Array.from({ length: 7 }, (_, i) => {
-  const date = new Date();
-  date.setDate(date.getDate() - (6 - i));
-  const dateStr = date.toISOString().split('T')[0];
-  const entry = entries.find(e => e.date === dateStr);
-  return {
-    date: dateStr,
-    score: entry?.score ?? 0,
-    hasEntry: !!entry,
-  };
-});
-
-// Check if there are any missed days - UTÁNA EZ!
-const hasMissedDays = last7Days.some(day => !day.hasEntry && day.date !== getTodayString());
-
+  // Check if there are any missed days in the last 7 days
+  const hasMissedDays = last7Days.some(day => !day.hasEntry && day.date !== getTodayString());
 
   const handleStartWizard = () => {
-  if (hasMissedDays || !hasLoggedToday) {
-    setShowDateSelector(true);
-  } else {
-    navigate(`/wizard?date=${getTodayString()}`);
-  }
-};
+    if (hasMissedDays || !hasLoggedToday) {
+      setShowDateSelector(true);
+    } else {
+      navigate(`/wizard?date=${getTodayString()}`);
+    }
+  };
 
-const handleDateSelect = (date: string) => {
-  setShowDateSelector(false);
-  navigate(`/wizard?date=${date}`);
-};
+  const handleDateSelect = (date: string) => {
+    setShowDateSelector(false);
+    navigate(`/wizard?date=${date}`);
+  };
 
-const handleDateSelectorCancel = () => {
-  setShowDateSelector(false);
-};
-
+  const handleDateSelectorCancel = () => {
+    setShowDateSelector(false);
+  };
 
   return (
-    <div className={styles.container}> 
+    <div className={styles.container}>
+      {/* Date Selector Modal */}
       {showDateSelector && (
-  <DateSelector
-    entries={entries}
-    onSelectDate={handleDateSelect}
-    onCancel={handleDateSelectorCancel}
-    maxMissedDays={7}
-  />
-)}
+        <DateSelector
+          entries={entries}
+          onSelectDate={handleDateSelect}
+          onCancel={handleDateSelectorCancel}
+          maxMissedDays={7}
+        />
+      )}
 
       {/* Header */}
       <header className={styles.header}>
@@ -148,15 +142,14 @@ const handleDateSelectorCancel = () => {
           )}
         </div>
 
-       <Button
-  variant={hasLoggedToday ? 'secondary' : 'primary'}
-  fullWidth
-  size="lg"
-  onClick={handleStartWizard}
->
-  {hasLoggedToday ? (hasMissedDays ? 'Nap rögzítése' : 'Szerkesztés') : 'Nap rögzítése'}
-</Button>
-
+        <Button
+          variant={hasLoggedToday ? 'secondary' : 'primary'}
+          fullWidth
+          size="lg"
+          onClick={handleStartWizard}
+        >
+          {hasLoggedToday ? (hasMissedDays ? 'Nap rögzítése' : 'Szerkesztés') : 'Nap rögzítése'}
+        </Button>
       </Card>
 
       {/* Weekly Overview */}
