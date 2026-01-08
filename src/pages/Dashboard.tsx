@@ -15,6 +15,11 @@ export function Dashboard() {
   const todayScore = todayEntry?.score ?? 0;
   const hasLoggedToday = !!todayEntry;
   const scoreColor = getScoreColor(todayScore);
+  const [showDateSelector, setShowDateSelector] = useState(false);
+
+// Check if there are any missed days in the last 7 days
+const hasMissedDays = last7Days.some(day => !day.hasEntry && day.date !== getTodayString());
+
   
   const colorMap = {
     success: 'var(--color-success)',
@@ -36,11 +41,34 @@ export function Dashboard() {
   });
 
   const handleStartWizard = () => {
+  if (hasMissedDays || !hasLoggedToday) {
+    setShowDateSelector(true);
+  } else {
     navigate(`/wizard?date=${getTodayString()}`);
-  };
+  }
+};
+
+const handleDateSelect = (date: string) => {
+  setShowDateSelector(false);
+  navigate(`/wizard?date=${date}`);
+};
+
+const handleDateSelectorCancel = () => {
+  setShowDateSelector(false);
+};
+
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container}> 
+      {showDateSelector && (
+  <DateSelector
+    entries={entries}
+    onSelectDate={handleDateSelect}
+    onCancel={handleDateSelectorCancel}
+    maxMissedDays={7}
+  />
+)}
+
       {/* Header */}
       <header className={styles.header}>
         <div className={styles.logo}>
@@ -114,14 +142,15 @@ export function Dashboard() {
           )}
         </div>
 
-        <Button
-          variant={hasLoggedToday ? 'secondary' : 'primary'}
-          fullWidth
-          size="lg"
-          onClick={handleStartWizard}
-        >
-          {hasLoggedToday ? 'Szerkesztés' : 'Nap rögzítése'}
-        </Button>
+       <Button
+  variant={hasLoggedToday ? 'secondary' : 'primary'}
+  fullWidth
+  size="lg"
+  onClick={handleStartWizard}
+>
+  {hasLoggedToday ? (hasMissedDays ? 'Nap rögzítése' : 'Szerkesztés') : 'Nap rögzítése'}
+</Button>
+
       </Card>
 
       {/* Weekly Overview */}
