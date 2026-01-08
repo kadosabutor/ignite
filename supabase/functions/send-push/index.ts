@@ -16,6 +16,7 @@ const VAPID_SUBJECT = 'mailto:ignite@example.com';
 // Supabase client
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://thibewmulezvjenwowmh.supabase.co';
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
+const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
 
 // CORS headers
 const corsHeaders = {
@@ -57,6 +58,43 @@ function base64UrlToUint8Array(base64Url: string): Uint8Array {
     outputArray[i] = rawData.charCodeAt(i);
   }
   return outputArray;
+}
+
+/**
+ * Extract and verify JWT token from Authorization header
+ */
+async function verifyJWT(req: Request): Promise<{ userId: string } | null> {
+  const authHeader = req.headers.get('authorization');
+  
+  if (!authHeader) {
+    console.log('No authorization header');
+    return null;
+  }
+  
+  const token = authHeader.replace('Bearer ', '');
+  
+  if (!token) {
+    console.log('No token in authorization header');
+    return null;
+  }
+  
+  try {
+    // Create Supabase client with anon key to verify JWT
+    const supabase = createClient(supabaseUrl, supabaseAnonKey);
+    
+    // Verify the token by getting the user
+    const { data: { user }, error } = await supabase.auth.getUser(token);
+    
+    if (error || !user) {
+      console.error('JWT verification failed:', error);
+      return null;
+    }
+    
+    return { userId: user.id };
+  } catch (error) {
+    console.error('Error verifying JWT:', error);
+    return null;
+  }
 }
 
 /**
@@ -103,6 +141,19 @@ serve(async (req) => {
   }
   
   try {
+    // Verify JWT token
+    const authResult = await verifyJWT(req);
+    
+    if (!authResult) {
+      console.log('JWT verification failed');
+      return new Response(
+        JSON.stringify({ error: 'Unauthorized' }),
+        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+    
+    console.log('JWT verified for user:', authResult.userId);
+    
     // Parse request body
     const payload: PushPayload = await req.json();
     
@@ -113,7 +164,7 @@ serve(async (req) => {
       );
     }
     
-    // Initialize Supabase client
+    // Initialize Supabase client with service role key
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
     
     // Get recipient's push subscription from database
@@ -131,6 +182,7 @@ serve(async (req) => {
     }
     
     if (!subscriptions || subscriptions.length === 0) {
+      console.log('No push subscriptions found for user:', payload.recipientUserId);
       return new Response(
         JSON.stringify({ error: 'No push subscriptions found for user', sent: 0 }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
