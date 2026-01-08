@@ -133,6 +133,27 @@ export function getStreakLevel(days: number, isFrozen: boolean = false, isPhoeni
 }
 
 /**
+ * Calculate purity score (how many negative habits were avoided)
+ * Returns score out of 3 (satisfaction, dopamine, gaming)
+ * This is the "dignity-preserving" aggregated view - doesn't reveal which specific habit failed
+ */
+export function calculatePurityScore(
+  satisfaction: boolean,
+  dopamineContent: boolean,
+  gaming: boolean
+): { score: number; total: number; isPerfect: boolean } {
+  let avoided = 0;
+  if (!satisfaction) avoided++;
+  if (!dopamineContent) avoided++;
+  if (!gaming) avoided++;
+  return {
+    score: avoided,
+    total: 3,
+    isPerfect: avoided === 3,
+  };
+}
+
+/**
  * Calculate radar stats for VS mode (0-100 scale)
  */
 export function calculateRadarStats(entries: HabitEntry[]): {
