@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Card } from './ui';
 import { StreakIcon } from './StreakIcon';
-import { AVATARS, RANKS, type AvatarType, type RankType, type StreakData, type Friend } from '../types';
+import { AVATARS, RANKS, type AvatarType, type RankType, type StreakData } from '../types';
 import styles from './ProfileCard.module.css';
 
 // View types for the profile card
@@ -69,7 +69,8 @@ function formatMinutes(minutes: number): string {
 }
 
 export function ProfileCard({
-  id,
+  // id is available for future use (e.g., navigation)
+  id: _id,
   username,
   displayName,
   avatar,
