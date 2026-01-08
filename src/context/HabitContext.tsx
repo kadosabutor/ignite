@@ -104,26 +104,34 @@ export function HabitProvider({ children }: { children: ReactNode }) {
   // Store subscription references for cleanup
   const friendshipSubscriptionRef = useRef<any>(null);
   
-  const loadUserData = async (userId: string) => {
-    try {
-      // Clean up previous subscription if it exists
-      if (friendshipSubscriptionRef.current) {
-        friendshipSubscriptionRef.current.unsubscribe();
-        friendshipSubscriptionRef.current = null;
-      }
-      
-      const [loadedProfile, loadedEntries, loadedFriends, loadedPendingRequests] = await Promise.all([
-        supabase.getUserProfile(userId),
-        supabase.getAllEntries(userId),
-        supabase.getAllFriends(userId),
-        supabase.getPendingFriendRequests(userId),
-      ]);
-      
-      setUser(loadedProfile);
-      setEntries(loadedEntries);
-      setFriends(loadedFriends);
-      setPendingRequests(loadedPendingRequests);
-      previousPendingRequestsRef.current = loadedPendingRequests;
+const loadUserData = async (userId: string) => {
+  try {
+    // Clean up previous subscription if it exists
+    if (friendshipSubscriptionRef.current) {
+      friendshipSubscriptionRef.current.unsubscribe();
+      friendshipSubscriptionRef.current = null;
+    }
+    
+    const [loadedProfile, loadedEntries, loadedFriends, loadedPendingRequests] = await Promise.all([
+      supabase.getUserProfile(userId),
+      supabase.getAllEntries(userId),
+      supabase.getAllFriends(userId),
+      supabase.getPendingFriendRequests(userId),
+    ]);
+    
+    // Recalculate streak on load to ensure it's up-to-date
+    const updatedStreak = await supabase.updateStreak(userId);
+    
+    // Update profile with fresh streak data
+    if (loadedProfile) {
+      loadedProfile.streak = updatedStreak;
+    }
+    
+    setUser(loadedProfile);
+    setEntries(loadedEntries);
+    setFriends(loadedFriends);
+    setPendingRequests(loadedPendingRequests);
+
       
       // Subscribe to real-time updates
       supabase.subscribeToEntries(userId, (payload) => {
