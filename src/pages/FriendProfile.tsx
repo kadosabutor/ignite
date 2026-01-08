@@ -3,12 +3,41 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
 import { Button, Card } from '../components/ui';
 import { StreakIcon } from '../components/StreakIcon';
-import { AVATARS, RANKS, STREAK_LEVELS, type HabitEntry } from '../types';
+import { AVATARS, RANKS, type HabitEntry } from '../types';
 import { calculateRadarStats, formatMinutes, calculatePurityScore } from '../lib/scoring';
 import * as supabase from '../lib/supabase';
 import styles from './FriendProfile.module.css';
 
 type ViewMode = 'profile' | 'vs';
+
+// Kategória magyarázatok
+const CATEGORY_EXPLANATIONS = {
+  business: {
+    name: 'Business Idő',
+    description: 'Produktív munkaórák száma. Minél több időt töltesz fókuszált munkával, annál magasabb a pontszámod.',
+    calculation: 'Napi business percek átlaga / 480 perc (8 óra) × 100'
+  },
+  discipline: {
+    name: 'Diszciplína',
+    description: 'Tisztaság és önkontroll. A satisfaction, dopamine content és gaming szokások alapján.',
+    calculation: 'Tiszta napok aránya × 100'
+  },
+  body: {
+    name: 'Test',
+    description: 'Fizikai egészség: edzés és egészséges étkezés kombinációja.',
+    calculation: '(Edzés napok + Tiszta étkezés napok) / (Összes nap × 2) × 100'
+  },
+  mind: {
+    name: 'Elme',
+    description: 'Mentális fejlődés és tanulás. Paradigma shift és tudatos döntések.',
+    calculation: 'Paradigma napok aránya × 100'
+  },
+  sleep: {
+    name: 'Alvás',
+    description: 'Alvás minősége és mennyisége. Optimális: 7-9 óra.',
+    calculation: 'Alvás percek átlaga / 480 perc (8 óra) × 100, max 100'
+  }
+};
 
 export function FriendProfile() {
   const { friendId } = useParams<{ friendId: string }>();
@@ -78,47 +107,16 @@ export function FriendProfile() {
     return days;
   }, [myEntries, friendEntries]);
   
-  // Generate VS comparison text
-  const vsComparisonText = useMemo(() => {
-    if (!friend) return '';
-    
-    const diffs = [
-      { name: 'Business', myVal: myRadarStats.business, friendVal: friendRadarStats.business },
-      { name: 'Diszciplína', myVal: myRadarStats.discipline, friendVal: friendRadarStats.discipline },
-      { name: 'Test', myVal: myRadarStats.body, friendVal: friendRadarStats.body },
-      { name: 'Elme', myVal: myRadarStats.mind, friendVal: friendRadarStats.mind },
-      { name: 'Alvás', myVal: myRadarStats.sleep, friendVal: friendRadarStats.sleep },
-    ];
-    
-    // Find biggest differences
-    const sorted = diffs.map(d => ({
-      ...d,
-      diff: d.myVal - d.friendVal,
-      absDiff: Math.abs(d.myVal - d.friendVal),
-    })).sort((a, b) => b.absDiff - a.absDiff);
-    
-    const parts: string[] = [];
-    
-    // Top advantage
-    const myBest = sorted.find(d => d.diff > 5);
-    if (myBest) {
-      parts.push(`Dominálod a ${myBest.name} területet (+${Math.round(myBest.diff)}%)`);
-    }
-    
-    // Friend's advantage
-    const friendBest = sorted.find(d => d.diff < -5);
-    if (friendBest) {
-      parts.push(`${friend.displayName} erősebb a ${friendBest.name} területen (+${Math.round(Math.abs(friendBest.diff))}%)`);
-    }
-    
-    // Similar areas
-    const similar = sorted.filter(d => Math.abs(d.diff) <= 5);
-    if (similar.length > 0) {
-      parts.push(`Hasonló szinten vagytok: ${similar.map(s => s.name).join(', ')}`);
-    }
-    
-    return parts.join('. ') + '.';
-  }, [friend, myRadarStats, friendRadarStats]);
+  // Calculate averages for 7 day chart
+  const myAverage = useMemo(() => {
+    const scores = last7DaysComparison.map(d => d.myScore).filter(s => s > 0);
+    return scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+  }, [last7DaysComparison]);
+  
+  const friendAverage = useMemo(() => {
+    const scores = last7DaysComparison.map(d => d.friendScore).filter(s => s > 0);
+    return scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
+  }, [last7DaysComparison]);
   
   if (!friend) {
     return (
@@ -134,7 +132,7 @@ export function FriendProfile() {
   
   const rankData = RANKS[friend.rank];
   const avatarData = AVATARS[friend.avatar] || AVATARS.lion;
-  const streakData = STREAK_LEVELS[friend.streak.level];
+  // Streak data available if needed: STREAK_LEVELS[friend.streak.level]
   
   // Get friend's today entry for details
   const friendTodayEntry = friend.todayEntry;
@@ -192,12 +190,11 @@ export function FriendProfile() {
           {/* Stats Grid */}
           <div className={styles.statsGrid}>
             <Card className={styles.statCard}>
-              <StreakIcon level={friend.streak.level} days={friend.streak.currentStreak} size="lg" />
+              <div className={styles.statIconWrapper}>
+                <StreakIcon level={friend.streak.level} days={friend.streak.currentStreak} size="lg" />
+              </div>
               <span className={styles.statValue}>{friend.streak.currentStreak}</span>
               <span className={styles.statLabel}>Nap streak</span>
-              <span className={styles.statSub} style={{ color: streakData.color }}>
-                {streakData.icon} {streakData.name}
-              </span>
             </Card>
             
             <Card className={styles.statCard}>
@@ -295,12 +292,12 @@ export function FriendProfile() {
                 </div>
                 
                 {/* SVG Radar Chart */}
-                <svg viewBox="0 0 300 300" className={styles.radarSvg}>
+                <svg viewBox="0 0 400 400" className={styles.radarSvg}>
                   {/* Background pentagon levels */}
                   {[100, 80, 60, 40, 20].map((level, i) => (
                     <polygon
                       key={i}
-                      points={getPolygonPoints(150, 150, 120 * (level / 100), 5)}
+                      points={getPolygonPoints(200, 200, 140 * (level / 100), 5)}
                       fill="none"
                       stroke="var(--color-border)"
                       strokeWidth="1"
@@ -311,13 +308,13 @@ export function FriendProfile() {
                   {/* Axis lines */}
                   {[0, 1, 2, 3, 4].map(i => {
                     const angle = (i * 72 - 90) * (Math.PI / 180);
-                    const x = 150 + 120 * Math.cos(angle);
-                    const y = 150 + 120 * Math.sin(angle);
+                    const x = 200 + 140 * Math.cos(angle);
+                    const y = 200 + 140 * Math.sin(angle);
                     return (
                       <line
                         key={i}
-                        x1="150"
-                        y1="150"
+                        x1="200"
+                        y1="200"
                         x2={x}
                         y2={y}
                         stroke="var(--color-border)"
@@ -329,7 +326,7 @@ export function FriendProfile() {
                   
                   {/* My stats polygon */}
                   <polygon
-                    points={getRadarPoints(150, 150, 120, myRadarStats)}
+                    points={getRadarPoints(200, 200, 140, myRadarStats)}
                     fill="rgba(255, 112, 51, 0.3)"
                     stroke="#ff7033"
                     strokeWidth="2"
@@ -337,66 +334,149 @@ export function FriendProfile() {
                   
                   {/* Friend stats polygon */}
                   <polygon
-                    points={getRadarPoints(150, 150, 120, friendRadarStats)}
+                    points={getRadarPoints(200, 200, 140, friendRadarStats)}
                     fill="rgba(51, 204, 255, 0.3)"
                     stroke="#33CCFF"
                     strokeWidth="2"
                   />
                   
-                  {/* Labels */}
-                  {['Business', 'Diszciplína', 'Test', 'Elme', 'Alvás'].map((label, i) => {
+                  {/* Labels with scores */}
+                  {[
+                    { key: 'business', label: 'Business Idő', myVal: myRadarStats.business, friendVal: friendRadarStats.business },
+                    { key: 'discipline', label: 'Diszciplína', myVal: myRadarStats.discipline, friendVal: friendRadarStats.discipline },
+                    { key: 'body', label: 'Test', myVal: myRadarStats.body, friendVal: friendRadarStats.body },
+                    { key: 'mind', label: 'Elme', myVal: myRadarStats.mind, friendVal: friendRadarStats.mind },
+                    { key: 'sleep', label: 'Alvás', myVal: myRadarStats.sleep, friendVal: friendRadarStats.sleep },
+                  ].map((item, i) => {
                     const angle = (i * 72 - 90) * (Math.PI / 180);
-                    const x = 150 + 140 * Math.cos(angle);
-                    const y = 150 + 140 * Math.sin(angle);
+                    const labelRadius = 175;
+                    const x = 200 + labelRadius * Math.cos(angle);
+                    const y = 200 + labelRadius * Math.sin(angle);
                     return (
-                      <text
-                        key={i}
-                        x={x}
-                        y={y}
-                        textAnchor="middle"
-                        dominantBaseline="middle"
-                        className={styles.radarLabel}
-                      >
-                        {label}
-                      </text>
+                      <g key={i}>
+                        <text
+                          x={x}
+                          y={y - 10}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          className={styles.radarLabelTitle}
+                        >
+                          {item.label}
+                        </text>
+                        <text
+                          x={x}
+                          y={y + 10}
+                          textAnchor="middle"
+                          dominantBaseline="middle"
+                          className={styles.radarLabelScores}
+                        >
+                          <tspan fill="#ff7033">{Math.round(item.myVal)}</tspan>
+                          <tspan fill="var(--color-muted)"> / </tspan>
+                          <tspan fill="#33CCFF">{Math.round(item.friendVal)}</tspan>
+                        </text>
+                      </g>
                     );
                   })}
                 </svg>
               </Card>
               
-              {/* Comparison Text */}
-              <Card className={styles.comparisonCard}>
-                <h3 className={styles.comparisonTitle}>Összehasonlítás</h3>
-                <p className={styles.comparisonText}>{vsComparisonText}</p>
-              </Card>
-              
-              {/* 7 Day Chart */}
-              <Card className={styles.chartCard}>
-                <h3 className={styles.chartTitle}>Utolsó 7 nap</h3>
-                <div className={styles.barChart}>
-                  {last7DaysComparison.map((day, i) => (
-                    <div key={i} className={styles.barGroup}>
-                      <div className={styles.bars}>
-                        <div 
-                          className={styles.bar} 
-                          style={{ 
-                            height: `${day.myScore}%`,
-                            backgroundColor: '#ff7033',
-                          }}
-                          title={`Te: ${Math.round(day.myScore)}`}
-                        />
-                        <div 
-                          className={styles.bar} 
-                          style={{ 
-                            height: `${day.friendScore}%`,
-                            backgroundColor: '#33CCFF',
-                          }}
-                          title={`${friend.displayName}: ${Math.round(day.friendScore)}`}
-                        />
+              {/* Category Explanations */}
+              <Card className={styles.explanationCard}>
+                <h3 className={styles.explanationTitle}>Kategória magyarázatok</h3>
+                <div className={styles.explanationList}>
+                  {Object.entries(CATEGORY_EXPLANATIONS).map(([key, cat]) => (
+                    <div key={key} className={styles.explanationItem}>
+                      <div className={styles.explanationHeader}>
+                        <span className={styles.explanationName}>{cat.name}</span>
                       </div>
-                      <span className={styles.barLabel}>{day.day}</span>
+                      <p className={styles.explanationDesc}>{cat.description}</p>
+                      <span className={styles.explanationCalc}>{cat.calculation}</span>
                     </div>
                   ))}
+                </div>
+              </Card>
+              
+              {/* Comparison Text - Coming Soon */}
+              <Card className={styles.comparisonCard}>
+                <h3 className={styles.comparisonTitle}>Összehasonlítás</h3>
+                <div className={styles.comingSoon}>
+                  <span className={styles.comingSoonIcon}>🚧</span>
+                  <span className={styles.comingSoonText}>Coming soon...</span>
+                </div>
+              </Card>
+              
+              {/* 7 Day Chart with Y-axis and averages */}
+              <Card className={styles.chartCard}>
+                <h3 className={styles.chartTitle}>Utolsó 7 nap</h3>
+                <div className={styles.chartContainer}>
+                  {/* Y-axis */}
+                  <div className={styles.yAxis}>
+                    <span>100</span>
+                    <span>75</span>
+                    <span>50</span>
+                    <span>25</span>
+                    <span>0</span>
+                  </div>
+                  
+                  {/* Chart area */}
+                  <div className={styles.chartArea}>
+                    {/* Average lines */}
+                    <div 
+                      className={styles.averageLine}
+                      style={{ 
+                        bottom: `${myAverage}%`,
+                        borderColor: '#ff7033'
+                      }}
+                    >
+                      <span className={styles.averageLabel} style={{ color: '#ff7033' }}>
+                        Átlag: {Math.round(myAverage)}
+                      </span>
+                    </div>
+                    <div 
+                      className={styles.averageLine}
+                      style={{ 
+                        bottom: `${friendAverage}%`,
+                        borderColor: '#33CCFF'
+                      }}
+                    >
+                      <span className={styles.averageLabel} style={{ color: '#33CCFF' }}>
+                        Átlag: {Math.round(friendAverage)}
+                      </span>
+                    </div>
+                    
+                    {/* Bars */}
+                    <div className={styles.barChart}>
+                      {last7DaysComparison.map((day, i) => (
+                        <div key={i} className={styles.barGroup}>
+                          <div className={styles.bars}>
+                            <div 
+                              className={styles.bar} 
+                              style={{ 
+                                height: `${day.myScore}%`,
+                                backgroundColor: '#ff7033',
+                              }}
+                            >
+                              {day.myScore > 0 && (
+                                <span className={styles.barValue}>{Math.round(day.myScore)}</span>
+                              )}
+                            </div>
+                            <div 
+                              className={styles.bar} 
+                              style={{ 
+                                height: `${day.friendScore}%`,
+                                backgroundColor: '#33CCFF',
+                              }}
+                            >
+                              {day.friendScore > 0 && (
+                                <span className={styles.barValue}>{Math.round(day.friendScore)}</span>
+                              )}
+                            </div>
+                          </div>
+                          <span className={styles.barLabel}>{day.day}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
                 </div>
               </Card>
             </>
