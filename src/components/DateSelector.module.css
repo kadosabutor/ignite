@@ -1,0 +1,145 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 20px;
+}
+
+.modal {
+  background-color: var(--color-surface);
+  border-radius: 20px;
+  padding: 24px;
+  width: 100%;
+  max-width: 400px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--color-foreground);
+  text-align: center;
+  margin: 0 0 24px 0;
+}
+
+.dateList {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-bottom: 24px;
+}
+
+.dateOption {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 16px;
+  background-color: var(--color-background);
+  border: 2px solid transparent;
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+  text-align: left;
+}
+
+.dateOption:hover {
+  background-color: var(--color-surface-light);
+}
+
+.dateOption.selected {
+  border-color: var(--color-primary);
+  background-color: rgba(255, 107, 0, 0.1);
+}
+
+.dateLabel {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-foreground);
+  min-width: 90px;
+}
+
+.dateInfo {
+  font-size: 14px;
+  color: var(--color-muted);
+  flex: 1;
+}
+
+.badge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-success);
+  background-color: rgba(76, 175, 80, 0.15);
+  padding: 4px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.missedBadge {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-warning);
+  background-color: rgba(255, 193, 7, 0.15);
+  padding: 4px 8px;
+  border-radius: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.missedDay {
+  opacity: 0.9;
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 8px 0;
+}
+
+.divider::before,
+.divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background-color: var(--color-border);
+}
+
+.divider span {
+  font-size: 12px;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+}
+
+.noOptions {
+  text-align: center;
+  padding: 24px;
+}
+
+.noOptions p {
+  margin: 0;
+  color: var(--color-foreground);
+  font-weight: 600;
+}
+
+.noOptionsHint {
+  margin-top: 8px !important;
+  font-size: 14px;
+  color: var(--color-muted);
+  font-weight: 400 !important;
+}
+
+.actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
