@@ -5,11 +5,38 @@ import { Button, Card, Input, Switch } from '../components/ui';
 import { StreakIcon } from '../components/StreakIcon';
 import { RadarChart } from '../components/RadarChart';
 import { RANKS, AVATARS, type AvatarType } from '../types';
-import { calculateRadarStats, CATEGORY_EXPLANATIONS } from '../lib/scoring'; // IMPORTÁLVA
+import { calculateRadarStats } from '../lib/scoring';
 import * as supabase from '../lib/supabase';
 import styles from './Profile.module.css';
 
-// A CATEGORY_EXPLANATIONS konstans törölve innen, mert most már importáljuk!
+// Kategória magyarázatok
+const CATEGORY_EXPLANATIONS = {
+  business: {
+    name: 'Business Idő',
+    description: 'Produktív munkaórák száma. Minél több időt töltesz fókuszált munkával, annál magasabb a pontszámod.',
+    calculation: 'Napi business percek átlaga / 480 perc (8 óra) × 100'
+  },
+  discipline: {
+    name: 'Fegyelem',
+    description: 'Tisztaság és önkontroll. A satisfaction, dopamine content és gaming szokások alapján.',
+    calculation: 'Tiszta napok aránya × 100'
+  },
+  body: {
+    name: 'Test',
+    description: 'Fizikai egészség: edzés és egészséges étkezés kombinációja.',
+    calculation: '(Edzés napok + Tiszta étkezés napok) / (Összes nap × 2) × 100'
+  },
+  mind: {
+    name: 'Elme',
+    description: 'Mentális fejlődés és tanulás. Paradigma shift és tudatos döntések.',
+    calculation: 'Paradigma napok aránya × 100'
+  },
+  sleep: {
+    name: 'Alvás',
+    description: 'Alvás minősége és mennyisége. Optimális: 7-9 óra.',
+    calculation: 'Alvás percek átlaga / 480 perc (8 óra) × 100, max 100'
+  }
+};
 
 export function Profile() {
   const navigate = useNavigate();
@@ -161,9 +188,12 @@ export function Profile() {
     <div className={styles.container}>
       <header className={styles.header}>
         <h1 className={styles.title}>Profil</h1>
-        <button className={styles.settingsButton} onClick={() => setShowSettings(!showSettings)}>
-          {showSettings ? '✕' : '⚙️'}
-        </button>
+        <div className={styles.settingsWrapper}>
+          <span className={styles.settingsLabel}>Beállítások</span>
+          <button className={styles.settingsButton} onClick={() => setShowSettings(!showSettings)}>
+            {showSettings ? '✕' : '⚙️'}
+          </button>
+        </div>
       </header>
 
       {showSettings ? (
