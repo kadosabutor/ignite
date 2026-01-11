@@ -18,10 +18,11 @@ export function Layout() {
   // Hide tab bar on wizard pages
   const hideTabBar = location.pathname.startsWith('/wizard') || location.pathname.startsWith('/summary');
 
-  // Scroll to top when location changes
+  // Scroll to top whenever the path changes
   useEffect(() => {
     if (mainRef.current) {
-      mainRef.current.scrollTo(0, 0);
+      // Azonnali ugrás a tetejére (smooth scroll nélkül, hogy gyors legyen a váltás érzete)
+      mainRef.current.scrollTop = 0;
     }
   }, [location.pathname]);
 
