@@ -1,11 +1,34 @@
 import { createClient } from '@supabase/supabase-js';
 import type { HabitEntry, UserProfile, Friend, StreakData, NotificationSettings, AvatarType, RankType } from '../types';
 import { calculateTotalScore, getRankFromScore, getStreakLevel, getTodayString } from './scoring';
+import { v4 as uuidv4 } from 'uuid';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
 const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
 
 export const supabase = createClient(supabaseUrl, supabaseKey);
+
+// ============ UTILS ============
+
+export function createNewEntry(date: string): HabitEntry {
+  return {
+    id: uuidv4(),
+    date,
+    wakeUpTime: null,
+    bedTime: null,
+    businessMinutes: 0,
+    sleepMinutes: 0,
+    cleanEating: false,
+    exercise: false,
+    paradigm: false,
+    satisfaction: false,
+    dopamineContent: false,
+    gaming: false,
+    score: 0,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+  };
+}
 
 // ============ AUTH ============
 
