@@ -35,32 +35,40 @@
   font-size: 20px;
 }
 
-/* View Toggle */
+/* --- JAVÍTOTT VÁLTÓGOMBOK (Mint a Barátok oldalon) --- */
 .viewToggle {
   display: flex;
   background-color: var(--color-surface);
   padding: 4px;
-  border-radius: 12px;
+  border-radius: 16px;
   gap: 4px;
+  margin-bottom: 8px;
+  border: 1px solid var(--color-border);
 }
 
 .toggleButton {
   flex: 1;
-  padding: 10px;
+  padding: 12px;
   border: none;
   background: transparent;
   color: var(--color-muted);
   font-size: 14px;
-  font-weight: 600;
-  border-radius: 8px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-radius: 12px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.toggleButton:hover {
+  color: var(--color-foreground);
 }
 
 .toggleActive {
   background-color: var(--color-primary);
-  color: #121212;
-  font-weight: 700;
+  color: #121212 !important; /* Fekete szöveg a narancs háttéren */
+  box-shadow: 0 2px 8px rgba(255, 112, 51, 0.3);
 }
 
 /* Form */
@@ -360,15 +368,18 @@
   text-align: center;
 }
 
+/* --- JAVÍTOTT MAGYARÁZATOK (Strukturáltabb megjelenés) --- */
 .explanationCard {
   padding: 20px;
 }
 
 .explanationTitle {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-foreground);
   margin: 0 0 16px 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .explanationList {
@@ -378,33 +389,41 @@
 }
 
 .explanationItem {
-  padding: 12px;
-  background: var(--color-background);
-  border-radius: 8px;
+  padding: 16px;
+  background-color: var(--color-background); /* Sötétebb háttér a kártyán belül */
+  border-radius: 12px;
+  border: 1px solid var(--color-border); /* Finom keret */
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .explanationHeader {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
 }
 
 .explanationName {
-  font-size: 14px;
+  font-size: 15px;
   font-weight: 700;
-  color: var(--color-primary);
+  color: var(--color-primary); /* Kiemelt szín */
 }
 
 .explanationDesc {
-  font-size: 13px;
+  font-size: 14px;
+  line-height: 1.5; /* Jobb olvashatóság */
   color: var(--color-foreground);
-  margin: 0 0 8px 0;
-  line-height: 1.5;
+  margin: 0;
 }
 
 .explanationCalc {
-  font-size: 11px;
+  font-size: 12px;
   color: var(--color-muted);
-  font-style: italic;
+  font-family: monospace; /* Kódszerű megjelenés a képlethez */
+  background: rgba(255, 255, 255, 0.05);
+  padding: 6px 10px;
+  border-radius: 6px;
+  align-self: flex-start; /* Balra igazítás */
+  margin-top: 4px;
 }
