@@ -1156,7 +1156,7 @@ export async function sendPushNotification(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`,
+        'Authorization': `Bearer ${supabaseKey}`,
       },
       body: JSON.stringify({
         recipientUserId,
