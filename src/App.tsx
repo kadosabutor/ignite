@@ -2,6 +2,7 @@ import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { HabitProvider, useHabits } from './context/HabitContext';
 import { ToastProvider } from './context/ToastContext';
 import { Layout } from './components/Layout';
+import { LoadingScreen } from './components/LoadingScreen';
 import { Dashboard } from './pages/Dashboard';
 import { Wizard } from './pages/Wizard';
 import { Summary } from './pages/Summary';
@@ -19,18 +20,7 @@ function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useHabits();
   
   if (isLoading) {
-    return (
-      <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        background: 'var(--color-background)',
-        color: 'var(--color-muted)'
-      }}>
-        Betöltés...
-      </div>
-    );
+    return <LoadingScreen />;
   }
   
   if (!isAuthenticated) {
@@ -45,18 +35,7 @@ function PublicRoute({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useHabits();
   
   if (isLoading) {
-    return (
-      <div style={{ 
-        minHeight: '100vh', 
-        display: 'flex', 
-        alignItems: 'center', 
-        justifyContent: 'center',
-        background: 'var(--color-background)',
-        color: 'var(--color-muted)'
-      }}>
-        Betöltés...
-      </div>
-    );
+    return <LoadingScreen />;
   }
   
   if (isAuthenticated) {
