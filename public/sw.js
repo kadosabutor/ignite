@@ -30,17 +30,30 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - Network first, fallback to cache
 self.addEventListener('fetch', (event) => {
+  // Only cache GET requests - POST, PATCH, PUT, DELETE are not cacheable
+  const isGetRequest = event.request.method === 'GET';
+
   event.respondWith(
     fetch(event.request)
       .then((response) => {
-        // Clone the response
-        const responseClone = response.clone();
-        caches.open(CACHE_NAME).then((cache) => {
-          cache.put(event.request, responseClone);
-        });
+        // Only cache successful GET requests
+        if (isGetRequest && response.ok) {
+          // Clone the response
+          const responseClone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => {
+            cache.put(event.request, responseClone);
+          });
+        }
         return response;
       })
-      .catch(() => caches.match(event.request))
+      .catch(() => {
+        // Only try cache for GET requests
+        if (isGetRequest) {
+          return caches.match(event.request);
+        }
+        // For non-GET requests, return a basic error response
+        return new Response('Network error', { status: 503 });
+      })
   );
 });
 
@@ -69,7 +82,7 @@ self.addEventListener('push', (event) => {
 // Notification click event
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
-  
+
   if (event.action === 'open' || !event.action) {
     event.waitUntil(
       clients.openWindow('/')

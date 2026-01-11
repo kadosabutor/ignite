@@ -71,7 +71,7 @@ export function Arena() {
       await sendPushNotification(
         friendId,
         '🔥 Tűz Elismerés!',
-        `${user?.displayName || 'Valaki'} elismerésben részesített! Fantasztikus munka! 🎉`,
+        `Valaki elismerésben részesített! Fantasztikus munka! 🎉`,
         'fire',
         { senderId: user?.id }
       );
@@ -160,10 +160,10 @@ export function Arena() {
             friends.map(friend => {
               const hasLoggedToday = friend.todayCompleted;
               const scoreColor = friend.todayScore ? getScoreColor(friend.todayScore) : null;
-              
+
               return (
-                <Card 
-                  key={friend.id} 
+                <Card
+                  key={friend.id}
                   className={`${styles.feedCard} ${!hasLoggedToday ? styles.sleepingAgent : ''}`}
                   onClick={() => handleViewProfile(friend.id)}
                 >
@@ -180,10 +180,10 @@ export function Arena() {
                     </div>
                     <StreakIcon level={friend.streak.level} days={friend.streak.currentStreak} size="sm" />
                   </div>
-                  
+
                   {hasLoggedToday && friend.todayScore !== null ? (
                     <div className={styles.feedScore}>
-                      <span 
+                      <span
                         className={styles.scoreValue}
                         style={{ color: colorMap[scoreColor!] }}
                       >
@@ -201,16 +201,16 @@ export function Arena() {
                       )}
                     </div>
                   )}
-                  
+
                   <div className={styles.feedActions}>
-                    <button 
+                    <button
                       className={styles.vsButton}
                       onClick={(e) => handleVS(e, friend.id)}
                       title="VS Mode - Összehasonlítás"
                     >
                       ⚔️ VS
                     </button>
-                    <button 
+                    <button
                       className={styles.fireButton}
                       onClick={(e) => handleFire(e, friend.id)}
                       title="Tűz elismerés"
@@ -240,7 +240,7 @@ export function Arena() {
               </button>
             ))}
           </div>
-          
+
           {/* Leaderboard list */}
           <div className={styles.leaderboardList}>
             {isLoadingLeaderboard ? (
@@ -255,10 +255,10 @@ export function Arena() {
                 const medal = entry.position === 1 ? '🥇' : entry.position === 2 ? '🥈' : entry.position === 3 ? '🥉' : null;
                 const isFriend = friends.some(f => f.id === entry.user.id);
                 const isClickable = entry.isCurrentUser || isFriend;
-                
+
                 return (
-                  <Card 
-                    key={entry.user.id} 
+                  <Card
+                    key={entry.user.id}
                     className={`${styles.leaderboardCard} ${entry.isCurrentUser ? styles.currentUser : ''} ${isClickable ? styles.clickable : ''}`}
                     onClick={() => isClickable && handleViewLeaderboardProfile(entry.user.id, entry.isCurrentUser)}
                   >
@@ -283,7 +283,7 @@ export function Arena() {
                     <div className={styles.leaderboardRight}>
                       <span className={styles.leaderboardScore}>{Math.round(entry.score)}</span>
                       {isFriend && !entry.isCurrentUser && (
-                        <button 
+                        <button
                           className={styles.miniVsButton}
                           onClick={(e) => handleVS(e, entry.user.id)}
                         >
@@ -309,8 +309,8 @@ export function Arena() {
             </Card>
           ) : (
             friends.map(friend => (
-              <Card 
-                key={friend.id} 
+              <Card
+                key={friend.id}
                 className={`${styles.friendCard} ${styles.clickable}`}
                 onClick={() => handleViewProfile(friend.id)}
               >
@@ -328,7 +328,7 @@ export function Arena() {
                 </div>
                 <div className={styles.friendRight}>
                   <StreakIcon level={friend.streak.level} days={friend.streak.currentStreak} size="sm" />
-                  <button 
+                  <button
                     className={styles.miniVsButton}
                     onClick={(e) => handleVS(e, friend.id)}
                   >
