@@ -17,6 +17,9 @@ importers:
       date-fns:
         specifier: ^4.1.0
         version: 4.1.0
+      deno:
+        specifier: ^2.6.4
+        version: 2.6.4
       localforage:
         specifier: ^1.10.0
         version: 1.10.0
@@ -599,6 +602,36 @@ packages:
   '@babel/types@7.28.5':
     resolution: {integrity: sha512-qQ5m48eI/MFLQ5PxQj4PFaprjyCTLI37ElWMmNs0K8Lk3dVeOdNpB3ks8jc7yM5CDmVC73eMVk/trk3fgmrUpA==}
     engines: {node: '>=6.9.0'}
+
+  '@deno/darwin-arm64@2.6.4':
+    resolution: {integrity: sha512-5pocuV2IVWYUzomXze+bDSO86uX1WPxUn82BS7BrLI3ix8Eq7l8DhvYgz064w7rwCM4CiLLSc6MAQpAI+0gUag==}
+    cpu: [arm64]
+    os: [darwin]
+
+  '@deno/darwin-x64@2.6.4':
+    resolution: {integrity: sha512-tX7Fz47HcoXTYR4wN2WzXjqJtEPTftzjEknCYkZa8D4BzvpN7Zo1ra3Jd6bWPN9+T6mgTL6YMPMMSigXddIUcA==}
+    cpu: [x64]
+    os: [darwin]
+
+  '@deno/linux-arm64-glibc@2.6.4':
+    resolution: {integrity: sha512-wY4hjjVLq5idClWj6e1de9IUZ0QZ1rxo16o0dwCJpMi+w1lolxtYxGF4y7pkcxAdZOpMGsXZuYMPq1Z2n51esA==}
+    cpu: [arm64]
+    os: [linux]
+
+  '@deno/linux-x64-glibc@2.6.4':
+    resolution: {integrity: sha512-H9b0WJw+eWyC6GcMGCXxC/3lz2kVveyWyUrzGyQ8hJmtDJpWiDnCU2iPqEpEcwXHgAUFFyjnRaFwedwwv5ApdA==}
+    cpu: [x64]
+    os: [linux]
+
+  '@deno/win32-arm64@2.6.4':
+    resolution: {integrity: sha512-fMH1dx54ORbCTpMorGjDshwonIu6KfgfPC+Pq+14jeq/8604EIFXiA484p3Ov+ViZycndNHEPe8ZKPNd8xLjJA==}
+    cpu: [arm64]
+    os: [win32]
+
+  '@deno/win32-x64@2.6.4':
+    resolution: {integrity: sha512-hAxqNrBLHCINtqDgKcRiu8QtMbtdnHOVW3OFQjzA3gZEcpnGUK3JiF5ql++83SjuQH8ViZKGcdqkioLR7Bf14A==}
+    cpu: [x64]
+    os: [win32]
 
   '@esbuild/aix-ppc64@0.27.2':
     resolution: {integrity: sha512-GZMB+a0mOMZs4MpDbj8RJp4cw+w1WV5NYD6xzgvzUJ5Ek2jerwfO2eADyI6ExDSUED+1X8aMbegahsJi+8mgpw==}
@@ -1356,6 +1389,10 @@ packages:
   define-properties@1.2.1:
     resolution: {integrity: sha512-8QmQKqEASLd5nx0U1B1okLElbUuuttJ/AnYmRXbbbGDWh6uS208EjD4Xqq/I9wK7u0v6O08XhTWnt5XtEbR6Dg==}
     engines: {node: '>= 0.4'}
+
+  deno@2.6.4:
+    resolution: {integrity: sha512-/nHUtrwoqUsjVTBWGqz3SjAbtBSfqCLb38YdkwstrO5qpQd3RC20dxsGYPPANy9RqMFJMfDyARL7RtOcUfatpw==}
+    hasBin: true
 
   dunder-proto@1.0.1:
     resolution: {integrity: sha512-KIN/nDJBQRcXw0MLVhZE9iQHmG68qAVIBg9CqmUYjmQIhgij9U5MFvrqkUL5FbtyyzZuOeOt0zdeRe4UY7ct+A==}
@@ -3216,6 +3253,24 @@ snapshots:
       '@babel/helper-string-parser': 7.27.1
       '@babel/helper-validator-identifier': 7.28.5
 
+  '@deno/darwin-arm64@2.6.4':
+    optional: true
+
+  '@deno/darwin-x64@2.6.4':
+    optional: true
+
+  '@deno/linux-arm64-glibc@2.6.4':
+    optional: true
+
+  '@deno/linux-x64-glibc@2.6.4':
+    optional: true
+
+  '@deno/win32-arm64@2.6.4':
+    optional: true
+
+  '@deno/win32-x64@2.6.4':
+    optional: true
+
   '@esbuild/aix-ppc64@0.27.2':
     optional: true
 
@@ -3927,6 +3982,15 @@ snapshots:
       define-data-property: 1.1.4
       has-property-descriptors: 1.0.2
       object-keys: 1.1.1
+
+  deno@2.6.4:
+    optionalDependencies:
+      '@deno/darwin-arm64': 2.6.4
+      '@deno/darwin-x64': 2.6.4
+      '@deno/linux-arm64-glibc': 2.6.4
+      '@deno/linux-x64-glibc': 2.6.4
+      '@deno/win32-arm64': 2.6.4
+      '@deno/win32-x64': 2.6.4
 
   dunder-proto@1.0.1:
     dependencies:
