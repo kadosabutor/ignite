@@ -35,19 +35,29 @@
   box-sizing: border-box;
 }
 
-html, body, #root {
+html {
   height: 100%;
   width: 100%;
-  overflow-x: hidden;
+  overflow: hidden; /* Megakadályozza a html szintű görgetést */
+  background-color: var(--color-background); /* Eltünteti a szürke sávot ha mégis látszana */
 }
 
 body {
+  height: 100%;
+  width: 100%;
   font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background-color: var(--color-background);
   color: var(--color-foreground);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.5;
+  overscroll-behavior-y: none; /* Letiltja a "gumi-szalag" effektust iOS-en */
+}
+
+#root {
+  height: 100%;
+  width: 100%;
+  isolation: isolate;
 }
 
 /* Scrollbar styling */
