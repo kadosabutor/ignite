@@ -4,39 +4,12 @@ import { useHabits } from '../context/HabitContext';
 import { Button, Card } from '../components/ui';
 import { ProfileCard } from '../components/ProfileCard';
 import { RadarChart } from '../components/RadarChart';
-import { calculateRadarStats } from '../lib/scoring';
+import { calculateRadarStats, CATEGORY_EXPLANATIONS } from '../lib/scoring'; // MÓDOSÍTVA: Importálva innen
 import type { HabitEntry } from '../types';
 import * as supabase from '../lib/supabase';
 import styles from './FriendProfile.module.css';
 
-// Kategória magyarázatok
-const CATEGORY_EXPLANATIONS = {
-  business: {
-    name: 'Business Idő',
-    description: 'Produktív munkaórák száma. Minél több időt töltesz fókuszált munkával, annál magasabb a pontszámod.',
-    calculation: 'Napi business percek átlaga / 480 perc (8 óra) × 100'
-  },
-  discipline: {
-    name: 'Diszciplína',
-    description: 'Tisztaság és önkontroll. A satisfaction, dopamine content és gaming szokások alapján.',
-    calculation: 'Tiszta napok aránya × 100'
-  },
-  body: {
-    name: 'Test',
-    description: 'Fizikai egészség: edzés és egészséges étkezés kombinációja.',
-    calculation: '(Edzés napok + Tiszta étkezés napok) / (Összes nap × 2) × 100'
-  },
-  mind: {
-    name: 'Elme',
-    description: 'Mentális fejlődés és tanulás. Paradigma shift és tudatos döntések.',
-    calculation: 'Paradigma napok aránya × 100'
-  },
-  sleep: {
-    name: 'Alvás',
-    description: 'Alvás minősége és mennyisége. Optimális: 7-9 óra.',
-    calculation: 'Alvás percek átlaga / 480 perc (8 óra) × 100, max 100'
-  }
-};
+// A lokális CATEGORY_EXPLANATIONS definíció TÖRÖLVE, mert most már importáljuk
 
 export function FriendProfile() {
   const { friendId } = useParams<{ friendId: string }>();
