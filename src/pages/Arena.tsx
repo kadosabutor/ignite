@@ -71,7 +71,7 @@ export function Arena() {
       await sendPushNotification(
         friendId,
         '🔥 Tűz Elismerés!',
-        `Valaki elismerésben részesített! Fantasztikus munka! 🎉`,
+        `${user?.displayName || 'Valaki'} elismerésben részesített! Fantasztikus munka! 🎉`,
         'fire',
         { senderId: user?.id }
       );

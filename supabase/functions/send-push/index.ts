@@ -138,6 +138,10 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
+  // Check if debug mode is enabled (via query parameter)
+  const url = new URL(req.url);
+  const debugMode = url.searchParams.get('debug') === 'true';
+
   try {
     // Verify JWT token
     const authResult = await verifyJWT(req);
@@ -200,6 +204,14 @@ Deno.serve(async (req) => {
     // Send to all subscriptions
     let successCount = 0;
     let failCount = 0;
+    const results: Array<{
+      endpoint: string;
+      success: boolean;
+      status?: number;
+      statusText?: string;
+      responseBody?: string;
+      error?: string;
+    }> = [];
 
     for (const sub of subscriptions) {
       try {
@@ -211,17 +223,66 @@ Deno.serve(async (req) => {
           },
         };
 
-        // For now, log the notification (actual sending requires web-push library)
         console.log('Sending push to:', subscription.endpoint);
         console.log('Payload:', notificationPayload);
 
-        // TODO: Implement actual web-push sending with VAPID
-        // This requires importing a web-push compatible Deno library
+        // Try to send the push notification
+        // Note: This is a simplified version - actual sending requires proper VAPID encryption
+        try {
+          const response = await sendWebPush(subscription, notificationPayload);
 
-        successCount++;
-      } catch (error) {
-        console.error('Error sending to subscription:', error);
+          const responseBody = await response.text();
+          const result = {
+            endpoint: subscription.endpoint,
+            success: response.ok,
+            status: response.status,
+            statusText: response.statusText,
+            responseBody: responseBody,
+          };
+
+          results.push(result);
+
+          console.log('FCM Response:', {
+            endpoint: subscription.endpoint,
+            status: response.status,
+            statusText: response.statusText,
+            headers: Object.fromEntries(response.headers.entries()),
+            body: responseBody,
+          });
+
+          if (response.ok) {
+            successCount++;
+          } else {
+            failCount++;
+
+            // If subscription is invalid (410 Gone or 404 Not Found), remove it
+            if (response.status === 410 || response.status === 404) {
+              console.log('Removing invalid subscription:', sub.id);
+              await supabase
+                .from('push_subscriptions')
+                .delete()
+                .eq('id', sub.id);
+            }
+          }
+        } catch (fetchError: any) {
+          const errorResult = {
+            endpoint: subscription.endpoint,
+            success: false,
+            error: fetchError.message || String(fetchError),
+          };
+          results.push(errorResult);
+          failCount++;
+          console.error('Error sending push notification:', fetchError);
+        }
+      } catch (error: any) {
+        const errorResult = {
+          endpoint: sub.endpoint,
+          success: false,
+          error: error.message || String(error),
+        };
+        results.push(errorResult);
         failCount++;
+        console.error('Error processing subscription:', error);
 
         // If subscription is invalid, remove it
         if ((error as any).statusCode === 410) {
@@ -244,13 +305,27 @@ Deno.serve(async (req) => {
       created_at: new Date().toISOString(),
     });
 
+    const responseData: any = {
+      success: true,
+      sent: successCount,
+      failed: failCount,
+      message: 'Notifications processed',
+    };
+
+    // Include detailed results only in debug mode
+    if (debugMode) {
+      responseData.results = results.map(r => ({
+        endpoint: r.endpoint,
+        success: r.success,
+        status: r.status,
+        statusText: r.statusText,
+        error: r.error,
+        responseBody: r.responseBody,
+      }));
+    }
+
     return new Response(
-      JSON.stringify({
-        success: true,
-        sent: successCount,
-        failed: failCount,
-        message: 'Notifications queued'
-      }),
+      JSON.stringify(responseData),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
 
