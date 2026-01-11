@@ -3,46 +3,19 @@ import { useNavigate } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
 import { Button, Card, Input, Switch } from '../components/ui';
 import { StreakIcon } from '../components/StreakIcon';
-import { RadarChart } from '../components/RadarChart'; // ÚJ IMPORT
+import { RadarChart } from '../components/RadarChart';
 import { RANKS, AVATARS, type AvatarType } from '../types';
-import { calculateRadarStats } from '../lib/scoring'; // ÚJ IMPORT
+import { calculateRadarStats, CATEGORY_EXPLANATIONS } from '../lib/scoring'; // IMPORTÁLVA
 import * as supabase from '../lib/supabase';
 import styles from './Profile.module.css';
 
-// Kategória magyarázatok (Ugyanaz, mint a FriendProfile-ban)
-const CATEGORY_EXPLANATIONS = {
-  business: {
-    name: 'Business Idő',
-    description: 'Produktív munkaórák száma. Minél több időt töltesz fókuszált munkával, annál magasabb a pontszámod.',
-    calculation: 'Napi business percek átlaga / 480 perc (8 óra) × 100'
-  },
-  discipline: {
-    name: 'Fegyelem',
-    description: 'Tisztaság és önkontroll. A satisfaction, dopamine content és gaming szokások alapján.',
-    calculation: 'Tiszta napok aránya × 100'
-  },
-  body: {
-    name: 'Test',
-    description: 'Fizikai egészség: edzés és egészséges étkezés kombinációja.',
-    calculation: '(Edzés napok + Tiszta étkezés napok) / (Összes nap × 2) × 100'
-  },
-  mind: {
-    name: 'Elme',
-    description: 'Mentális fejlődés és tanulás. Paradigma shift és tudatos döntések.',
-    calculation: 'Paradigma napok aránya × 100'
-  },
-  sleep: {
-    name: 'Alvás',
-    description: 'Alvás minősége és mennyisége. Optimális: 7-9 óra.',
-    calculation: 'Alvás percek átlaga / 480 perc (8 óra) × 100, max 100'
-  }
-};
+// A CATEGORY_EXPLANATIONS konstans törölve innen, mert most már importáljuk!
 
 export function Profile() {
   const navigate = useNavigate();
-  const { user, streak, saveUser, monthlyAverage, signOut, authUser, pendingRequests, entries } = useHabits(); // entries hozzáadva
+  const { user, streak, saveUser, monthlyAverage, signOut, authUser, pendingRequests, entries } = useHabits();
   
-  const [viewMode, setViewMode] = useState<'overview' | 'analysis'>('overview'); // ÚJ STATE
+  const [viewMode, setViewMode] = useState<'overview' | 'analysis'>('overview');
   const [isEditing, setIsEditing] = useState(false);
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [selectedAvatar, setSelectedAvatar] = useState<AvatarType>(user?.avatar || 'lion');
