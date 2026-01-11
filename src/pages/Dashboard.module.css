@@ -1,23 +1,13 @@
 .container {
   /* 1. JAVÍTÁS: A TOKA ELTÜNTETÉSE */
-  /* Ez biztosítja, hogy a háttér kitöltse az egész képernyőt, akkor is, ha kevés a tartalom */
   min-height: 100vh;
-  background-color: var(--color-background, #121212);
-  /* Fontos: Legyen háttérszíned! */
-
-  /* Ez megakadályozza a vízszintes görgetést a padding miatt */
+  background-color: var(--color-background);
   box-sizing: border-box;
-
   padding: 20px;
-
   /* 2. JAVÍTÁS: A FELSŐ SÁV (Notch) */
-  /* A 20px az alap távolság + a notch mérete */
   padding-top: calc(20px + env(safe-area-inset-top));
-
   /* 3. JAVÍTÁS: AZ ALSÓ SÁV (Home Indicator) */
-  /* Ez emeli meg a tartalmat alul, hogy ne lógjon bele a húzható csíkba */
   padding-bottom: calc(20px + env(safe-area-inset-bottom));
-
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -36,30 +26,37 @@
 }
 
 .logoImage {
-  width: 40px;
-  height: 40px;
-  border-radius: 10px;
+  width: 32px;
+  height: 32px;
 }
 
 .logoText {
-  font-size: 24px;
+  font-size: 20px;
   font-weight: 800;
   color: var(--color-primary);
-  letter-spacing: 0.1em;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
 }
 
 .userBadge {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
-  background-color: var(--color-surface);
   display: flex;
   align-items: center;
-  justify-content: center;
+  gap: 8px;
+  background-color: var(--color-surface);
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--color-border);
+}
+
+.rankName {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-muted);
+  text-transform: uppercase;
 }
 
 .rankEmoji {
-  font-size: 20px;
+  font-size: 16px;
 }
 
 /* Streak Section */
@@ -71,6 +68,7 @@
   padding: 24px;
   background-color: var(--color-surface);
   border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .streakInfo {
@@ -82,6 +80,9 @@
   font-weight: 800;
   color: var(--color-foreground);
   margin: 0;
+  background: linear-gradient(180deg, #FFFFFF 0%, #A0A0A0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
 }
 
 .streakLabel {
@@ -104,6 +105,8 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  position: relative;
+  overflow: hidden;
 }
 
 .scoreHeader {
@@ -125,6 +128,7 @@
   font-size: 12px;
   color: var(--color-muted);
   text-transform: uppercase;
+  font-weight: 600;
 }
 
 .scoreContent {
@@ -132,6 +136,14 @@
   flex-direction: column;
   align-items: center;
   gap: 16px;
+  padding: 10px 0;
+}
+
+.scoreInner {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
 }
 
 .scoreValue {
@@ -144,11 +156,14 @@
   font-size: 12px;
   color: var(--color-muted);
   text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-top: 4px;
 }
 
 .todayStats {
   display: flex;
   gap: 24px;
+  margin-top: 8px;
 }
 
 .statItem {
@@ -165,6 +180,11 @@
   font-size: 14px;
   font-weight: 600;
   color: var(--color-foreground);
+}
+
+.actionButton {
+  font-weight: 800;
+  letter-spacing: 0.1em;
 }
 
 /* Week Card */
@@ -190,11 +210,11 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  height: 100px;
+  height: 120px;
   gap: 8px;
 }
 
-.chartBar {
+.chartBarWrapper {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -205,9 +225,30 @@
 
 .bar {
   width: 100%;
-  border-radius: 4px;
+  border-radius: 6px;
   transition: height 0.3s ease;
   margin-top: auto;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.missedBar {
+  background-color: transparent;
+}
+
+.missedLabel {
+  position: absolute;
+  font-size: 9px;
+  font-weight: 800;
+  color: var(--color-error);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  /* Elforgatás 90 fokkal */
+  transform: rotate(-90deg);
+  white-space: nowrap;
 }
 
 .dayLabel {
@@ -217,8 +258,9 @@
   text-transform: uppercase;
 }
 
-.dayLabel.today {
+.todayLabel {
   color: var(--color-primary);
+  font-weight: 800;
 }
 
 /* Quick Stats */
