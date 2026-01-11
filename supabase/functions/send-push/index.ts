@@ -1,338 +1,218 @@
 /**
  * IGNITE Push Notification Edge Function
- * 
- * This Supabase Edge Function sends push notifications to users.
- * It uses the Web Push protocol with VAPID authentication.
+ * Handles user settings checks and sends notifications via Web Push.
  */
 
-import { createClient } from '@supabase/supabase-js';
-// VAPID keys for Web Push
+import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
+import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import webpush from 'npm:web-push@3.6.7';
+
+// VAPID keys
 const VAPID_PUBLIC_KEY = 'BKzPGSS5yEJp0Fk42IN8sOsAuQweLpNscwDEaIbumFJXUNfeQY7nta1AI49E4CKsmR5gBXZP503O-FuxU7v8fOQ';
+// FIGYELEM: Éles környezetben ezt a Deno.env-ből olvasd ki!
 const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY') || '6KYwugwMyKWz3RFBi5JY9NRtNm0BUzgOEyZu8mmkTfA';
 const VAPID_SUBJECT = 'mailto:ignite@example.com';
 
-// Supabase client
+// VAPID beállítása
+webpush.setVapidDetails(
+  VAPID_SUBJECT,
+  VAPID_PUBLIC_KEY,
+  VAPID_PRIVATE_KEY
+);
+
+// Supabase client config
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://thibewmulezvjenwowmh.supabase.co';
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') || '';
-const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY') || '';
 
-// CORS headers
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-interface PushPayload {
-  recipientUserId: string;
-  title: string;
-  body: string;
-  icon?: string;
-  badge?: string;
-  tag?: string;
-  data?: Record<string, any>;
-}
-
-interface PushSubscription {
-  endpoint: string;
-  keys: {
-    p256dh: string;
-    auth: string;
-  };
-}
-
-/**
- * Convert base64url to Uint8Array
- */
-function base64UrlToUint8Array(base64Url: string): Uint8Array {
-  const padding = '='.repeat((4 - base64Url.length % 4) % 4);
-  const base64 = (base64Url + padding)
-    .replace(/-/g, '+')
-    .replace(/_/g, '/');
-
-  const rawData = atob(base64);
-  const outputArray = new Uint8Array(rawData.length);
-
-  for (let i = 0; i < rawData.length; ++i) {
-    outputArray[i] = rawData.charCodeAt(i);
-  }
-  return outputArray;
-}
-
-/**
- * Extract and verify JWT token from Authorization header
- */
-async function verifyJWT(req: Request): Promise<{ userId: string } | null> {
-  const authHeader = req.headers.get('authorization');
-
-  if (!authHeader) {
-    console.log('No authorization header');
-    return null;
-  }
-
-  const token = authHeader.replace('Bearer ', '');
-
-  if (!token) {
-    console.log('No token in authorization header');
-    return null;
-  }
-
-  try {
-    // Create Supabase client with anon key to verify JWT
-    const supabase = createClient(supabaseUrl, supabaseAnonKey);
-
-    // Verify the token by getting the user
-    const { data: { user }, error } = await supabase.auth.getUser(token);
-
-    if (error || !user) {
-      console.error('JWT verification failed:', error);
-      return null;
-    }
-
-    return { userId: user.id };
-  } catch (error) {
-    console.error('Error verifying JWT:', error);
-    return null;
-  }
-}
-
-/**
- * Send a Web Push notification
- */
-async function sendWebPush(
-  subscription: PushSubscription,
-  payload: string
-): Promise<Response> {
-  // Import web-push compatible library for Deno
-  // For now, we'll use a simplified approach with fetch
-
-  const endpoint = subscription.endpoint;
-
-  // Create the push message
-  const pushPayload = {
-    title: 'IGNITE',
-    body: payload,
-  };
-
-  try {
-    // Use the Web Push protocol
-    // Note: This is a simplified version. For production, use a proper web-push library.
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'TTL': '86400', // 24 hours
-      },
-      body: JSON.stringify(pushPayload),
-    });
-
-    return response;
-  } catch (error) {
-    console.error('Error sending push:', error);
-    throw error;
-  }
-}
-
-Deno.serve(async (req) => {
-  // Handle CORS preflight
+serve(async (req) => {
+  // CORS kezelés
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  // Check if debug mode is enabled (via query parameter)
-  const url = new URL(req.url);
-  const debugMode = url.searchParams.get('debug') === 'true';
-
   try {
-    // Verify JWT token
-    const authResult = await verifyJWT(req);
+    const payload = await req.json();
 
-    if (!authResult) {
-      console.log('JWT verification failed');
-      return new Response(
-        JSON.stringify({ error: 'Unauthorized' }),
-        { status: 401, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
-
-    console.log('JWT verified for user:', authResult.userId);
-
-    // Parse request body
-    const payload: PushPayload = await req.json();
-
+    // 1. Validáció
     if (!payload.recipientUserId) {
-      return new Response(
-        JSON.stringify({ error: 'recipientUserId is required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+      throw new Error('recipientUserId is required');
     }
 
-    // Initialize Supabase client with service role key
+    console.log('🚀 Processing push for user:', payload.recipientUserId);
+
+    // Admin kliens inicializálása
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    // Get recipient's push subscription from database
-    const { data: subscriptions, error: fetchError } = await supabase
-      .from('push_subscriptions')
-      .select('*')
-      .eq('user_id', payload.recipientUserId);
+    // -----------------------------------------------------------------------
+    // 2. LÉPÉS: BEÁLLÍTÁSOK ELLENŐRZÉSE (Settings Check)
+    // -----------------------------------------------------------------------
+    
+    // Lekérjük a címzett beállításait a settings táblából
+    const { data: settingsData, error: settingsError } = await supabase
+      .from('settings')
+      .select('notifications')
+      .eq('user_id', payload.recipientUserId)
+      .single();
 
-    if (fetchError) {
-      console.error('Error fetching subscriptions:', fetchError);
-      return new Response(
-        JSON.stringify({ error: 'Failed to fetch subscriptions' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
-    }
+    // Alapértelmezett értékek, ha nincs beállítás (fallback)
+    const defaults = {
+      enabled: true,
+      socialEnabled: true,
+      streakEnabled: true,
+      morningEnabled: true,
+      afternoonEnabled: true,
+      eveningEnabled: true
+    };
 
-    if (!subscriptions || subscriptions.length === 0) {
-      console.log('No push subscriptions found for user:', payload.recipientUserId);
+    const userSettings = settingsData?.notifications || defaults;
+    const type = payload.data?.type; // pl. 'ping', 'fire', 'friend_request'
+
+    console.log(`Checking settings for type: ${type}`, userSettings);
+
+    // A) Globális kapcsoló ellenőrzése
+    if (userSettings.enabled === false) {
+      console.log('⛔ Notification skipped: User disabled all notifications.');
       return new Response(
-        JSON.stringify({ error: 'No push subscriptions found for user', sent: 0 }),
+        JSON.stringify({ success: true, skipped: true, message: 'User disabled notifications' }),
         { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
 
-    // Prepare notification payload
-    const notificationPayload = JSON.stringify({
-      title: payload.title,
-      body: payload.body,
-      icon: payload.icon || '/logo.png',
-      badge: payload.badge || '/logo.png',
-      tag: payload.tag || 'ignite-notification',
-      data: payload.data || {},
-    });
+    // B) Kategória szintű szűrés
+    let isAllowed = true;
 
-    // Send to all subscriptions
-    let successCount = 0;
-    let failCount = 0;
-    const results: Array<{
-      endpoint: string;
-      success: boolean;
-      status?: number;
-      statusText?: string;
-      responseBody?: string;
-      error?: string;
-    }> = [];
-
-    for (const sub of subscriptions) {
-      try {
-        const subscription: PushSubscription = {
-          endpoint: sub.endpoint,
-          keys: {
-            p256dh: sub.p256dh,
-            auth: sub.auth,
-          },
-        };
-
-        console.log('Sending push to:', subscription.endpoint);
-        console.log('Payload:', notificationPayload);
-
-        // Try to send the push notification
-        // Note: This is a simplified version - actual sending requires proper VAPID encryption
-        try {
-          const response = await sendWebPush(subscription, notificationPayload);
-
-          const responseBody = await response.text();
-          const result = {
-            endpoint: subscription.endpoint,
-            success: response.ok,
-            status: response.status,
-            statusText: response.statusText,
-            responseBody: responseBody,
-          };
-
-          results.push(result);
-
-          console.log('FCM Response:', {
-            endpoint: subscription.endpoint,
-            status: response.status,
-            statusText: response.statusText,
-            headers: Object.fromEntries(response.headers.entries()),
-            body: responseBody,
-          });
-
-          if (response.ok) {
-            successCount++;
-          } else {
-            failCount++;
-
-            // If subscription is invalid (410 Gone or 404 Not Found), remove it
-            if (response.status === 410 || response.status === 404) {
-              console.log('Removing invalid subscription:', sub.id);
-              await supabase
-                .from('push_subscriptions')
-                .delete()
-                .eq('id', sub.id);
-            }
-          }
-        } catch (fetchError: any) {
-          const errorResult = {
-            endpoint: subscription.endpoint,
-            success: false,
-            error: fetchError.message || String(fetchError),
-          };
-          results.push(errorResult);
-          failCount++;
-          console.error('Error sending push notification:', fetchError);
-        }
-      } catch (error: any) {
-        const errorResult = {
-          endpoint: sub.endpoint,
-          success: false,
-          error: error.message || String(error),
-        };
-        results.push(errorResult);
-        failCount++;
-        console.error('Error processing subscription:', error);
-
-        // If subscription is invalid, remove it
-        if ((error as any).statusCode === 410) {
-          await supabase
-            .from('push_subscriptions')
-            .delete()
-            .eq('id', sub.id);
-        }
+    if (type) {
+      switch (type) {
+        // Közösségi interakciók
+        case 'ping':
+        case 'fire':
+        case 'friend_request':
+        case 'friend_accept':
+          if (userSettings.socialEnabled === false) isAllowed = false;
+          break;
+          
+        // Streak figyelmeztetések
+        case 'streak_warning':
+        case 'streak_last':
+          if (userSettings.streakEnabled === false) isAllowed = false;
+          break;
+          
+        // Időzített emlékeztetők
+        case 'morning':
+          if (userSettings.morningEnabled === false) isAllowed = false;
+          break;
+        case 'afternoon':
+          if (userSettings.afternoonEnabled === false) isAllowed = false;
+          break;
+        case 'evening':
+          if (userSettings.eveningEnabled === false) isAllowed = false;
+          break;
+          
+        // Egyéb típusok (pl. rank_change) alapból engedélyezettek maradnak
       }
     }
 
-    // Also save notification to database for in-app display
-    await supabase.from('notifications').insert({
-      user_id: payload.recipientUserId,
+    if (!isAllowed) {
+      console.log(`⛔ Notification skipped: Type '${type}' is disabled by user.`);
+      return new Response(
+        JSON.stringify({ success: true, skipped: true, message: `Notification type '${type}' disabled` }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // -----------------------------------------------------------------------
+    // 3. LÉPÉS: KÜLDÉS (Sending)
+    // -----------------------------------------------------------------------
+
+    // Feliratkozások lekérése
+    const { data: subscriptions, error: fetchError } = await supabase
+      .from('push_subscriptions')
+      .select('*')
+      .eq('user_id', payload.recipientUserId);
+    
+    if (fetchError || !subscriptions || subscriptions.length === 0) {
+      console.log('⚠️ No active subscriptions found.');
+      return new Response(JSON.stringify({ message: 'No subscriptions' }), { headers: corsHeaders });
+    }
+
+    // Payload összeállítása a Service Worker számára
+    // Fontos: Itt adjuk át a 'data' objektumot is!
+    const notificationPayload = JSON.stringify({
       title: payload.title,
       body: payload.body,
-      type: payload.data?.type || 'general',
+      icon: payload.icon || '/assets/icon-192.png',
+      badge: payload.badge || '/assets/icon-192.png',
+      tag: payload.tag || 'ignite-notification',
+      data: payload.data || {}, // Továbbítjuk a típust és egyéb adatokat
+    });
+
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const sub of subscriptions) {
+      try {
+        // Kulcsok ellenőrzése
+        const p256dh = sub.p256dh;
+        const auth = sub.auth;
+
+        if (!p256dh || !auth) {
+          console.error('❌ Missing keys for subscription. Skipping.');
+          failCount++;
+          continue;
+        }
+
+        const pushSubscription = {
+          endpoint: sub.endpoint,
+          keys: { p256dh, auth }
+        };
+
+        // Küldés a web-push könyvtárral
+        await webpush.sendNotification(pushSubscription, notificationPayload);
+        successCount++;
+
+      } catch (error) {
+        console.error(`❌ Failed to send to endpoint ending in ...${sub.endpoint.slice(-10)}`);
+        
+        // Ha lejárt a feliratkozás (410 Gone vagy 404 Not Found), töröljük
+        if (error.statusCode === 410 || error.statusCode === 404) {
+          console.log('🗑️ Subscription expired/invalid. Deleting from DB...');
+          await supabase.from('push_subscriptions').delete().eq('id', sub.id);
+        }
+        failCount++;
+      }
+    }
+
+    // 4. Mentés az in-app értesítések közé (History)
+    // Csak akkor mentjük el, ha a felhasználó nem tiltotta le
+    // (Bár vitatható: lehet, hogy az appban látni akarja, csak push-t nem kér. 
+    // Jelenleg úgy hagyom, hogy mindig mentődjön az "Értesítések" listába, 
+    // mert a push szűrés a "zavaró tényezőkre" vonatkozik.)
+    await supabase.from('notifications').insert({
+      user_id: payload.recipientUserId,
+      type: type || 'general',
+      title: payload.title,
+      message: payload.body, // Figyelem: a te sémádban 'message' az oszlop neve, nem 'body'!
       data: payload.data || {},
       read: false,
       created_at: new Date().toISOString(),
     });
 
-    const responseData: any = {
-      success: true,
-      sent: successCount,
-      failed: failCount,
-      message: 'Notifications processed',
-    };
-
-    // Include detailed results only in debug mode
-    if (debugMode) {
-      responseData.results = results.map(r => ({
-        endpoint: r.endpoint,
-        success: r.success,
-        status: r.status,
-        statusText: r.statusText,
-        error: r.error,
-        responseBody: r.responseBody,
-      }));
-    }
+    console.log(`✅ Push cycle complete. Sent: ${successCount}, Failed: ${failCount}`);
 
     return new Response(
-      JSON.stringify(responseData),
+      JSON.stringify({ success: true, sent: successCount, failed: failCount }),
       { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
-
+    
   } catch (error) {
-    console.error('Error in send-push function:', error);
+    console.error('🔥 CRITICAL ERROR:', error.message);
     return new Response(
-      JSON.stringify({ error: 'Internal server error' }),
+      JSON.stringify({ error: error.message }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }
