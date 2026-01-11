@@ -62,6 +62,158 @@ export function HabitProvider({ children }: { children: ReactNode }) {
   
   // Track previous pending requests to detect new ones
   const previousPendingRequestsRef = useRef<{ incoming: Friend[]; outgoing: Friend[] }>({ incoming: [], outgoing: [] });
+  // Store subscription references for cleanup
+  const friendshipSubscriptionRef = useRef<any>(null);
+
+  // Define helpers first (using useCallback) so they can be used in useEffect
+  const refreshEntries = useCallback(async () => {
+    if (!authUser) return;
+    
+    const loadedEntries = await supabase.getAllEntries(authUser.id);
+    setEntries(loadedEntries);
+    
+    // Also refresh user for updated streak
+    const loadedProfile = await supabase.getUserProfile(authUser.id);
+    setUser(loadedProfile);
+  }, [authUser]);
+
+  const refreshFriends = useCallback(async () => {
+    if (!authUser) return;
+    
+    const loadedFriends = await supabase.getAllFriends(authUser.id);
+    setFriends(loadedFriends);
+  }, [authUser]);
+
+  const refreshPendingRequests = useCallback(async () => {
+    if (!authUser) return;
+    
+    const loadedPendingRequests = await supabase.getPendingFriendRequests(authUser.id);
+    
+    // Check for new incoming requests and show notification
+    if (showToast) {
+      const settings = await supabase.getNotificationSettings(authUser.id);
+      if (settings.enabled && settings.socialEnabled) {
+        const previousIncoming = previousPendingRequestsRef.current.incoming.map(f => f.id);
+        const newIncoming = loadedPendingRequests.incoming.filter(f => !previousIncoming.includes(f.id));
+        
+        for (const newRequest of newIncoming) {
+          showToast(`Új barátkérelem: ${newRequest.displayName} (@${newRequest.username})`, 'info', 6000);
+        }
+      }
+    }
+    
+    previousPendingRequestsRef.current = loadedPendingRequests;
+    setPendingRequests(loadedPendingRequests);
+  }, [authUser, showToast]);
+
+  const loadUserData = useCallback(async (userId: string) => {
+    try {
+      // Clean up previous subscription if it exists
+      if (friendshipSubscriptionRef.current) {
+        friendshipSubscriptionRef.current.unsubscribe();
+        friendshipSubscriptionRef.current = null;
+      }
+      
+      const [loadedProfile, loadedEntries, loadedFriends, loadedPendingRequests] = await Promise.all([
+        supabase.getUserProfile(userId),
+        supabase.getAllEntries(userId),
+        supabase.getAllFriends(userId),
+        supabase.getPendingFriendRequests(userId),
+      ]);
+      
+      // Initialize push notifications if supported
+      if ('serviceWorker' in navigator && 'PushManager' in window) {
+        try {
+          const { subscribeToPush, requestNotificationPermission } = await import('../lib/push');
+          
+          // Request permission if not already granted
+          let permission = Notification.permission;
+          if (permission === 'default') {
+            permission = await requestNotificationPermission();
+            console.log('Notification permission requested:', permission);
+          }
+          
+          // Subscribe to push if permission is granted
+          if (permission === 'granted') {
+            const subscription = await subscribeToPush();
+            if (subscription) {
+              await supabase.savePushSubscription(subscription);
+              console.log('Push subscription saved');
+            }
+          }
+        } catch (error) {
+          console.error('Error setting up push:', error);
+        }
+      }
+      
+      // Recalculate streak on load to ensure it's up-to-date
+      const updatedStreak = await supabase.updateStreak(userId);
+      
+      // Update profile with fresh streak data
+      if (loadedProfile) {
+        loadedProfile.streak = updatedStreak;
+      }
+      
+      setUser(loadedProfile);
+      setEntries(loadedEntries);
+      setFriends(loadedFriends);
+      setPendingRequests(loadedPendingRequests);
+
+      // Subscribe to real-time updates
+      supabase.subscribeToEntries(userId, (payload) => {
+        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
+          // We can't call refreshEntries directly here if it depends on authUser which might be stale in closure
+          // But since we are reloading mainly the entries list, re-fetching is safer
+          supabase.getAllEntries(userId).then(setEntries);
+          supabase.getUserProfile(userId).then(setUser);
+        } else if (payload.eventType === 'DELETE') {
+          supabase.getAllEntries(userId).then(setEntries);
+          supabase.getUserProfile(userId).then(setUser);
+        }
+      });
+      
+      // Subscribe to friendship changes for notifications
+      friendshipSubscriptionRef.current = supabase.subscribeToFriendships(userId, async (payload) => {
+        // Check notification settings
+        const settings = await supabase.getNotificationSettings(userId);
+        if (!settings.enabled || !settings.socialEnabled) {
+          return;
+        }
+        
+        if (payload.eventType === 'INSERT') {
+          const newRecord = payload.new;
+          // New incoming friend request
+          if (newRecord.friend_id === userId && newRecord.status === 'pending') {
+            const requesterProfile = await supabase.getUserProfile(newRecord.user_id);
+            if (requesterProfile) {
+              showToast(`Új barátkérelem: ${requesterProfile.displayName} (@${requesterProfile.username})`, 'info', 6000);
+            }
+            // Manually refresh pending requests
+            const reqs = await supabase.getPendingFriendRequests(userId);
+            setPendingRequests(reqs);
+          }
+        } else if (payload.eventType === 'UPDATE') {
+          const oldRecord = payload.old;
+          const newRecord = payload.new;
+          
+          // Outgoing request was accepted (status changed from pending to connected)
+          if (oldRecord.status === 'pending' && newRecord.status === 'connected' && newRecord.user_id === userId) {
+            const friendProfile = await supabase.getUserProfile(newRecord.friend_id);
+            if (friendProfile) {
+              showToast(`${friendProfile.displayName} (@${friendProfile.username}) elfogadta a barátkérelmedet! 🎉`, 'success', 6000);
+            }
+            // Manually refresh
+            const frnds = await supabase.getAllFriends(userId);
+            setFriends(frnds);
+            const reqs = await supabase.getPendingFriendRequests(userId);
+            setPendingRequests(reqs);
+          }
+        }
+      });
+    } catch (error) {
+      console.error('Failed to load user data:', error);
+    }
+  }, [showToast]);
 
   // Check auth state on mount
   useEffect(() => {
@@ -99,112 +251,8 @@ export function HabitProvider({ children }: { children: ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, []);
+  }, [loadUserData]);
 
-  // Store subscription references for cleanup
-  const friendshipSubscriptionRef = useRef<any>(null);
-  
-const loadUserData = async (userId: string) => {
-  try {
-    // Clean up previous subscription if it exists
-    if (friendshipSubscriptionRef.current) {
-      friendshipSubscriptionRef.current.unsubscribe();
-      friendshipSubscriptionRef.current = null;
-    }
-    
-    const [loadedProfile, loadedEntries, loadedFriends, loadedPendingRequests] = await Promise.all([
-      supabase.getUserProfile(userId),
-      supabase.getAllEntries(userId),
-      supabase.getAllFriends(userId),
-      supabase.getPendingFriendRequests(userId),
-    ]);
-    
-    // Initialize push notifications if supported
-    if ('serviceWorker' in navigator && 'PushManager' in window) {
-      try {
-        const { subscribeToPush, requestNotificationPermission } = await import('../lib/push');
-        
-        // Request permission if not already granted
-        let permission = Notification.permission;
-        if (permission === 'default') {
-          permission = await requestNotificationPermission();
-          console.log('Notification permission requested:', permission);
-        }
-        
-        // Subscribe to push if permission is granted
-        if (permission === 'granted') {
-          const subscription = await subscribeToPush();
-          if (subscription) {
-            await supabase.savePushSubscription(subscription);
-            console.log('Push subscription saved');
-          }
-        }
-      } catch (error) {
-        console.error('Error setting up push:', error);
-      }
-    }
-    
-    // Recalculate streak on load to ensure it's up-to-date
-    const updatedStreak = await supabase.updateStreak(userId);
-    
-    // Update profile with fresh streak data
-    if (loadedProfile) {
-      loadedProfile.streak = updatedStreak;
-    }
-    
-    setUser(loadedProfile);
-    setEntries(loadedEntries);
-    setFriends(loadedFriends);
-    setPendingRequests(loadedPendingRequests);
-
-      
-      // Subscribe to real-time updates
-      supabase.subscribeToEntries(userId, (payload) => {
-        if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
-          refreshEntries();
-        } else if (payload.eventType === 'DELETE') {
-          refreshEntries();
-        }
-      });
-      
-      // Subscribe to friendship changes for notifications
-      friendshipSubscriptionRef.current = supabase.subscribeToFriendships(userId, async (payload) => {
-        // Check notification settings
-        const settings = await supabase.getNotificationSettings(userId);
-        if (!settings.enabled || !settings.socialEnabled) {
-          return;
-        }
-        
-        if (payload.eventType === 'INSERT') {
-          const newRecord = payload.new;
-          // New incoming friend request
-          if (newRecord.friend_id === userId && newRecord.status === 'pending') {
-            const requesterProfile = await supabase.getUserProfile(newRecord.user_id);
-            if (requesterProfile) {
-              showToast(`Új barátkérelem: ${requesterProfile.displayName} (@${requesterProfile.username})`, 'info', 6000);
-            }
-            await refreshPendingRequests();
-          }
-        } else if (payload.eventType === 'UPDATE') {
-          const oldRecord = payload.old;
-          const newRecord = payload.new;
-          
-          // Outgoing request was accepted (status changed from pending to connected)
-          if (oldRecord.status === 'pending' && newRecord.status === 'connected' && newRecord.user_id === userId) {
-            const friendProfile = await supabase.getUserProfile(newRecord.friend_id);
-            if (friendProfile) {
-              showToast(`${friendProfile.displayName} (@${friendProfile.username}) elfogadta a barátkérelmedet! 🎉`, 'success', 6000);
-            }
-            await refreshFriends();
-            await refreshPendingRequests();
-          }
-        }
-      });
-    } catch (error) {
-      console.error('Failed to load user data:', error);
-    }
-  };
-  
   // Cleanup subscription on unmount
   useEffect(() => {
     return () => {
@@ -231,17 +279,6 @@ const loadUserData = async (userId: string) => {
     setUser(null);
     setFriends([]);
   }, []);
-
-  const refreshEntries = useCallback(async () => {
-    if (!authUser) return;
-    
-    const loadedEntries = await supabase.getAllEntries(authUser.id);
-    setEntries(loadedEntries);
-    
-    // Also refresh user for updated streak
-    const loadedProfile = await supabase.getUserProfile(authUser.id);
-    setUser(loadedProfile);
-  }, [authUser]);
 
   const saveEntry = useCallback(async (entry: HabitEntry) => {
     if (!authUser) return;
@@ -280,14 +317,14 @@ const loadUserData = async (userId: string) => {
     await supabase.addFriend(authUser.id, username);
     await refreshFriends();
     await refreshPendingRequests();
-  }, [authUser]);
+  }, [authUser, refreshFriends, refreshPendingRequests]);
 
   const removeFriend = useCallback(async (friendId: string) => {
     if (!authUser) return;
     
     await supabase.removeFriend(authUser.id, friendId);
     await refreshFriends();
-  }, [authUser]);
+  }, [authUser, refreshFriends]);
 
   const acceptFriendRequest = useCallback(async (requesterId: string) => {
     if (!authUser) return;
@@ -295,50 +332,21 @@ const loadUserData = async (userId: string) => {
     await supabase.acceptFriendRequest(authUser.id, requesterId);
     await refreshFriends();
     await refreshPendingRequests();
-  }, [authUser]);
+  }, [authUser, refreshFriends, refreshPendingRequests]);
 
   const rejectFriendRequest = useCallback(async (requesterId: string) => {
     if (!authUser) return;
     
     await supabase.rejectFriendRequest(authUser.id, requesterId);
     await refreshPendingRequests();
-  }, [authUser]);
+  }, [authUser, refreshPendingRequests]);
 
   const cancelFriendRequest = useCallback(async (friendId: string) => {
     if (!authUser) return;
     
     await supabase.cancelFriendRequest(authUser.id, friendId);
     await refreshPendingRequests();
-  }, [authUser]);
-
-  const refreshFriends = useCallback(async () => {
-    if (!authUser) return;
-    
-    const loadedFriends = await supabase.getAllFriends(authUser.id);
-    setFriends(loadedFriends);
-  }, [authUser]);
-
-  const refreshPendingRequests = useCallback(async () => {
-    if (!authUser) return;
-    
-    const loadedPendingRequests = await supabase.getPendingFriendRequests(authUser.id);
-    
-    // Check for new incoming requests and show notification
-    if (showToast) {
-      const settings = await supabase.getNotificationSettings(authUser.id);
-      if (settings.enabled && settings.socialEnabled) {
-        const previousIncoming = previousPendingRequestsRef.current.incoming.map(f => f.id);
-        const newIncoming = loadedPendingRequests.incoming.filter(f => !previousIncoming.includes(f.id));
-        
-        for (const newRequest of newIncoming) {
-          showToast(`Új barátkérelem: ${newRequest.displayName} (@${newRequest.username})`, 'info', 6000);
-        }
-      }
-    }
-    
-    previousPendingRequestsRef.current = loadedPendingRequests;
-    setPendingRequests(loadedPendingRequests);
-  }, [authUser, showToast]);
+  }, [authUser, refreshPendingRequests]);
 
   const getLeaderboard = useCallback(async (period: 'today' | 'week' | 'month') => {
     if (!authUser) return [];
