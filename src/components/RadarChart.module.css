@@ -1,0 +1,184 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100%;
+  position: relative;
+  padding: 10px 0;
+}
+
+/* Eredményjelző (Dominancia) */
+.scoreboard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 20px;
+  background-color: var(--color-background);
+  padding: 8px 16px;
+  border-radius: 20px;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.scoreItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.scoreDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  box-shadow: 0 0 8px currentColor; /* Izzó effekt */
+}
+
+.scoreValue {
+  font-size: 18px;
+  font-weight: 800;
+}
+
+.vsLabel {
+  font-size: 12px;
+  color: var(--color-muted);
+  font-weight: 600;
+  text-transform: uppercase;
+}
+
+/* Diagram */
+.chartWrapper {
+  position: relative;
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+  filter: drop-shadow(0 0 10px rgba(0,0,0,0.5));
+}
+
+/* Poligonok stílusa */
+.gridPolygon {
+  fill: none;
+  stroke: var(--color-border);
+  stroke-width: 1;
+  opacity: 0.3;
+}
+
+.axisLine {
+  stroke: var(--color-border);
+  stroke-width: 1;
+  opacity: 0.3;
+  stroke-dasharray: 4 2;
+}
+
+.dataPolygon {
+  stroke-width: 2.5;
+  stroke-linejoin: round;
+  transition: all 0.5s ease-out;
+  filter: drop-shadow(0 0 4px currentColor); /* Neon ragyogás */
+}
+
+.dataPoint {
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.dataPoint:hover {
+  r: 6;
+  filter: drop-shadow(0 0 6px currentColor);
+}
+
+/* Címkék és Ikonok */
+.labelGroup {
+  cursor: pointer;
+  transition: transform 0.2s;
+}
+
+.labelGroup:active {
+  transform: scale(1.1);
+}
+
+.labelIcon {
+  font-size: 16px;
+}
+
+.labelTitle {
+  font-size: 10px;
+  font-weight: 700;
+  fill: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  transition: fill 0.2s;
+}
+
+.labelGroup:hover .labelTitle {
+  fill: var(--color-foreground);
+}
+
+/* Tooltip (Interaktivitás) */
+.tooltip {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  padding: 12px;
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  pointer-events: none;
+  z-index: 10;
+  text-align: center;
+  min-width: 140px;
+  animation: popIn 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.tooltipTitle {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-foreground);
+  margin-bottom: 8px;
+  display: block;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  border-bottom: 1px solid var(--color-border);
+  padding-bottom: 4px;
+}
+
+.tooltipRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 13px;
+  margin-bottom: 4px;
+}
+
+.tooltipRow:last-child {
+  margin-bottom: 0;
+}
+
+.tooltipLabel {
+  font-weight: 600;
+}
+
+.tooltipValue {
+  font-weight: 800;
+}
+
+@keyframes popIn {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -40%) scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1);
+  }
+}
