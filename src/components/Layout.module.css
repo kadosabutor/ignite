@@ -1,20 +1,26 @@
 .container {
   display: flex;
   flex-direction: column;
-  min-height: 100vh;
+  /* min-height helyett fix magasságot használunk */
+  height: 100vh; 
+  height: 100dvh; /* Dynamic viewport height iOS-hez */
   max-width: 480px;
   margin: 0 auto;
   background-color: var(--color-background);
+  overflow: hidden; /* Ez akadályozza meg, hogy az egész oldal görgessen */
+  position: relative;
 }
 
 .main {
   flex: 1;
+  /* A görgetés mostantól itt történik, nem az egész oldalon */
   overflow-y: auto;
-  padding-bottom: 80px;
+  -webkit-overflow-scrolling: touch; /* Simább görgetés iOS-en */
+  padding-bottom: 100px; /* Hely a tab bar számára */
 }
 
 .tabBar {
-  position: fixed;
+  position: absolute; /* Fixed helyett absolute a containerhez képest */
   bottom: 0;
   left: 0;
   right: 0;
@@ -22,7 +28,8 @@
   background-color: var(--color-surface);
   border-top: 1px solid var(--color-border);
   padding: 8px 0;
-  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0));
+  /* Ez a rész kezeli a fekete doboz/Notch területét */
+  padding-bottom: calc(8px + env(safe-area-inset-bottom, 20px));
   max-width: 480px;
   margin: 0 auto;
   z-index: 100;
@@ -65,5 +72,7 @@
   .container {
     border-left: 1px solid var(--color-border);
     border-right: 1px solid var(--color-border);
+    /* Asztali nézetben legyen egy kis margó felül/alul ha nem teljes képernyő */
+    height: 100vh; 
   }
 }
