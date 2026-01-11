@@ -14,6 +14,35 @@ const POINTS = {
   SLEEP_TARGET_MINUTES: 480, // 8 hours
 };
 
+// Kategória magyarázatok (Kiszerevezve a Profile oldalakról)
+export const CATEGORY_EXPLANATIONS = {
+  business: {
+    name: 'Business Idő',
+    description: 'Produktív munkaórák száma. Minél több időt töltesz fókuszált munkával, annál magasabb a pontszámod.',
+    calculation: 'Napi business percek átlaga / 480 perc (8 óra) × 100'
+  },
+  discipline: {
+    name: 'Fegyelem', // Egységesítve: FriendProfile-ban "Diszciplína" volt, Profile-ban "Fegyelem". Legyen Fegyelem.
+    description: 'Tisztaság és önkontroll. A satisfaction, dopamine content és gaming szokások alapján.',
+    calculation: 'Tiszta napok aránya × 100'
+  },
+  body: {
+    name: 'Test',
+    description: 'Fizikai egészség: edzés és egészséges étkezés kombinációja.',
+    calculation: '(Edzés napok + Tiszta étkezés napok) / (Összes nap × 2) × 100'
+  },
+  mind: {
+    name: 'Elme',
+    description: 'Mentális fejlődés és tanulás. Paradigma shift és tudatos döntések.',
+    calculation: 'Paradigma napok aránya × 100'
+  },
+  sleep: {
+    name: 'Alvás',
+    description: 'Alvás minősége és mennyisége. Optimális: 7-9 óra.',
+    calculation: 'Alvás percek átlaga / 480 perc (8 óra) × 100, max 100'
+  }
+};
+
 /**
  * Calculate sleep minutes from bed time and wake up time
  */
