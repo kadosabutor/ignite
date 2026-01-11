@@ -63,8 +63,8 @@ export function Friends() {
       const targetUser = searchResults.find(u => u.username === username);
       if (targetUser && user) {
         try {
-          const { sendPushNotification } = await import('../lib/supabase');
-          await sendPushNotification(
+          // MÓDOSÍTVA: Statikus import használata a dinamikus helyett
+          await supabase.sendPushNotification(
             targetUser.id,
             '👋 Új Barátkérelem!',
             `${user.displayName || user.username} barátkérelmet küldött neked!`,
@@ -97,8 +97,8 @@ export function Friends() {
       // Send notification to the requester
       if (user) {
         try {
-          const { sendPushNotification } = await import('../lib/supabase');
-          await sendPushNotification(
+          // MÓDOSÍTVA: Statikus import használata
+          await supabase.sendPushNotification(
             requesterId,
             '✅ Barátkérelem Elfogadva!',
             `${user.displayName || user.username} elfogadta a barátkérelmedet!`,
