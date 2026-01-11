@@ -4,6 +4,8 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
+  /* Extra padding alulra, hogy a navigáció ne takarja ki a tartalmat */
+  padding-bottom: 100px;
 }
 
 .header {
@@ -31,6 +33,34 @@
 
 .settingsButton {
   font-size: 20px;
+}
+
+/* View Toggle */
+.viewToggle {
+  display: flex;
+  background-color: var(--color-surface);
+  padding: 4px;
+  border-radius: 12px;
+  gap: 4px;
+}
+
+.toggleButton {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.toggleActive {
+  background-color: var(--color-primary);
+  color: #121212;
+  font-weight: 700;
 }
 
 /* Form */
@@ -312,4 +342,69 @@
   border: 2px solid var(--color-background);
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
   z-index: 1;
+}
+
+/* Radar & Analysis */
+.radarCard {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.radarTitle {
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-foreground);
+  margin: 0 0 16px 0;
+  text-align: center;
+}
+
+.explanationCard {
+  padding: 20px;
+}
+
+.explanationTitle {
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--color-foreground);
+  margin: 0 0 16px 0;
+}
+
+.explanationList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.explanationItem {
+  padding: 12px;
+  background: var(--color-background);
+  border-radius: 8px;
+}
+
+.explanationHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.explanationName {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.explanationDesc {
+  font-size: 13px;
+  color: var(--color-foreground);
+  margin: 0 0 8px 0;
+  line-height: 1.5;
+}
+
+.explanationCalc {
+  font-size: 11px;
+  color: var(--color-muted);
+  font-style: italic;
 }
