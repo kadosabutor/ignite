@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
 import { Button, TimeInput, Toggle } from '../components/ui';
 import { calculateSleepMinutes, calculateTotalScore, getTodayString } from '../lib/scoring';
-import { createNewEntry } from '../lib/storage';
+import { createNewEntry } from '../lib/supabase'; // JAVÍTVA: storage helyett supabase
 import type { HabitEntry } from '../types';
 import styles from './Wizard.module.css';
 
