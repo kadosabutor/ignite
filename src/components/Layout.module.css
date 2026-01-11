@@ -10,32 +10,38 @@
 .main {
   flex: 1;
   overflow-y: auto;
-  /* Fontos: A padding-bottom-nak nagyobbnak kell lennie, mint a nav bar magassága,
-     hogy a tartalom alja is olvasható legyen */
-  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0));
-  scroll-behavior: smooth; /* Simább görgetés */
+  /* Helyet hagyunk alul, hogy a lebegő nav bar ne takarja ki a tartalmat */
+  padding-bottom: calc(100px + env(safe-area-inset-bottom, 0));
+  scroll-behavior: smooth;
+  /* A tartalom görgethető maradjon */
+  -webkit-overflow-scrolling: touch;
 }
 
 .tabBar {
   position: fixed;
-  bottom: 20px; /* Lebegő hatás miatt elemeltük az aljától */
+  bottom: 24px;
   left: 50%;
   transform: translateX(-50%);
-  width: calc(100% - 32px); /* Oldalsó margók */
-  max-width: 448px; /* container max-width - margók */
+  width: calc(100% - 32px);
+  max-width: 448px;
   
   display: flex;
-  justify-content: space-around; /* Egyenletes elosztás */
+  justify-content: space-between;
   align-items: center;
   
-  background-color: rgba(30, 30, 30, 0.95); /* Enyhén átlátszó háttér */
-  backdrop-filter: blur(10px); /* Homályosítás a modern hatásért */
+  /* --- APPLE LIQUID GLASS EFFECT --- */
+  background-color: rgba(30, 30, 30, 0.65); /* Átlátszóbb sötét háttér */
+  backdrop-filter: blur(25px) saturate(180%); /* Erős blur és telítettség */
+  -webkit-backdrop-filter: blur(25px) saturate(180%); /* Safari támogatás */
+  border: 1px solid rgba(255, 255, 255, 0.12); /* Finom, üveges keret */
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5); /* Mély árnyék */
   
-  border: 1px solid var(--color-border);
-  border-radius: 24px; /* Kerekített sarkok a lebegő hatáshoz */
-  padding: 8px 4px;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  border-radius: 28px;
+  padding: 10px 16px;
   z-index: 1000;
+
+  /* JAVÍTÁS: Megakadályozza, hogy a nav bar érintése görgetést indítson a háttérben */
+  touch-action: none;
 }
 
 .tabButton {
@@ -45,13 +51,16 @@
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 4px 0; /* Csökkentett padding, hogy kiférjen */
+  padding: 4px 0;
   background: none;
   border: none;
   color: var(--color-muted);
   cursor: pointer;
-  transition: all 0.2s ease;
-  min-width: 0; /* Fontos: engedi a flex itemet összemenni, ha a szöveg túl hosszú */
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 0; /* Engedi a zsugorodást */
+  
+  /* Hogy ne legyen kék kijelölés mobilon */
+  -webkit-tap-highlight-color: transparent;
 }
 
 .tabButton:hover {
@@ -60,34 +69,50 @@
 
 .tabActive {
   color: var(--color-primary);
+  /* Finom ragyogás az aktív ikon körül */
+  text-shadow: 0 0 12px rgba(255, 112, 51, 0.4);
 }
 
 .tabIcon {
-  font-size: 20px;
+  font-size: 22px;
   margin-bottom: 2px;
-  transition: transform 0.2s;
+  transition: transform 0.3s ease;
 }
 
 .tabActive .tabIcon {
-  transform: translateY(-2px); /* Kicsit megemeljük az aktív ikont */
+  transform: translateY(-3px);
 }
 
 .tabLabel {
-  font-size: 9px; /* Kisebb betűméret a hosszú szavak miatt */
-  font-weight: 600;
+  font-size: 9px;
+  font-weight: 700;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
-  white-space: nowrap; /* Megakadályozza a tördelést */
-  overflow: hidden; /* Ha még így is túl hosszú lenne */
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
   text-overflow: ellipsis;
   max-width: 100%;
+  opacity: 0.8;
 }
 
-/* Ha nagyon kicsi a képernyő (pl. iPhone SE), még kisebb betű */
-@media (max-width: 360px) {
+.tabActive .tabLabel {
+  opacity: 1;
+}
+
+/* Kisebb képernyőkre (iPhone SE, régebbi modellek) */
+@media (max-width: 370px) {
+  .tabBar {
+    width: calc(100% - 16px);
+    padding: 8px 8px;
+  }
+  
   .tabLabel {
     font-size: 8px;
     letter-spacing: 0;
+  }
+  
+  .tabIcon {
+    font-size: 20px;
   }
 }
 
