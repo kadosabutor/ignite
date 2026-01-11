@@ -1,41 +1,49 @@
+import { useEffect, useRef } from 'react';
 import { Outlet, useLocation, useNavigate } from 'react-router-dom';
-import { TabBar } from './ui'; // Updated TabBar import
-import { useHabits } from '../context/HabitContext';
 import styles from './Layout.module.css';
+
+const TABS = [
+  { id: '/', label: 'Főoldal', icon: '🏠' },
+  { id: '/arena', label: 'Aréna', icon: '⚔️' },
+  { id: '/stats', label: 'Statisztika', icon: '📊' },
+  { id: '/history', label: 'Előzmények', icon: '📅' },
+  { id: '/profile', label: 'Profil', icon: '👤' },
+];
 
 export function Layout() {
   const location = useLocation();
   const navigate = useNavigate();
-  const { pendingRequests } = useHabits();
+  const mainRef = useRef<HTMLDivElement>(null);
   
   // Hide tab bar on wizard pages
   const hideTabBar = location.pathname.startsWith('/wizard') || location.pathname.startsWith('/summary');
 
-  const TABS = [
-    { id: '/', label: 'Főoldal', icon: '🏠' },
-    { id: '/arena', label: 'Aréna', icon: '⚔️' },
-    { id: '/stats', label: 'Statisztika', icon: '📊' },
-    { id: '/history', label: 'Előzmények', icon: '📅' },
-    { 
-      id: '/profile', 
-      label: 'Profil', 
-      icon: '👤',
-      badge: pendingRequests.incoming.length // Pass badge count
-    },
-  ];
+  // Scroll to top when location changes
+  useEffect(() => {
+    if (mainRef.current) {
+      mainRef.current.scrollTo(0, 0);
+    }
+  }, [location.pathname]);
 
   return (
     <div className={styles.container}>
-      <main className={styles.main}>
+      <main className={styles.main} ref={mainRef}>
         <Outlet />
       </main>
       
       {!hideTabBar && (
-        <TabBar 
-          tabs={TABS} 
-          activeTab={location.pathname} 
-          onChange={(id) => navigate(id)} 
-        />
+        <nav className={styles.tabBar}>
+          {TABS.map((tab) => (
+            <button
+              key={tab.id}
+              className={`${styles.tabButton} ${location.pathname === tab.id ? styles.tabActive : ''}`}
+              onClick={() => navigate(tab.id)}
+            >
+              <span className={styles.tabIcon}>{tab.icon}</span>
+              <span className={styles.tabLabel}>{tab.label}</span>
+            </button>
+          ))}
+        </nav>
       )}
     </div>
   );
