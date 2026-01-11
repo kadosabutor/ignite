@@ -112,8 +112,6 @@ serve(async (req) => {
         case 'evening':
           if (userSettings.eveningEnabled === false) isAllowed = false;
           break;
-          
-        // Egyéb típusok (pl. rank_change) alapból engedélyezettek maradnak
       }
     }
 
@@ -141,7 +139,6 @@ serve(async (req) => {
     }
 
     // Payload összeállítása a Service Worker számára
-    // Fontos: Itt adjuk át a 'data' objektumot is!
     const notificationPayload = JSON.stringify({
       title: payload.title,
       body: payload.body,
@@ -156,7 +153,6 @@ serve(async (req) => {
 
     for (const sub of subscriptions) {
       try {
-        // Kulcsok ellenőrzése
         const p256dh = sub.p256dh;
         const auth = sub.auth;
 
@@ -188,15 +184,11 @@ serve(async (req) => {
     }
 
     // 4. Mentés az in-app értesítések közé (History)
-    // Csak akkor mentjük el, ha a felhasználó nem tiltotta le
-    // (Bár vitatható: lehet, hogy az appban látni akarja, csak push-t nem kér. 
-    // Jelenleg úgy hagyom, hogy mindig mentődjön az "Értesítések" listába, 
-    // mert a push szűrés a "zavaró tényezőkre" vonatkozik.)
     await supabase.from('notifications').insert({
       user_id: payload.recipientUserId,
       type: type || 'general',
       title: payload.title,
-      message: payload.body, // Figyelem: a te sémádban 'message' az oszlop neve, nem 'body'!
+      message: payload.body,
       data: payload.data || {},
       read: false,
       created_at: new Date().toISOString(),
