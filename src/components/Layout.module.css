@@ -1,38 +1,41 @@
 .container {
   display: flex;
   flex-direction: column;
-  /* min-height helyett fix magasságot használunk */
-  height: 100vh; 
-  height: 100dvh; /* Dynamic viewport height iOS-hez */
+  min-height: 100vh;
   max-width: 480px;
   margin: 0 auto;
   background-color: var(--color-background);
-  overflow: hidden; /* Ez akadályozza meg, hogy az egész oldal görgessen */
-  position: relative;
 }
 
 .main {
   flex: 1;
-  /* A görgetés mostantól itt történik, nem az egész oldalon */
   overflow-y: auto;
-  -webkit-overflow-scrolling: touch; /* Simább görgetés iOS-en */
-  padding-bottom: 100px; /* Hely a tab bar számára */
+  /* Fontos: A padding-bottom-nak nagyobbnak kell lennie, mint a nav bar magassága,
+     hogy a tartalom alja is olvasható legyen */
+  padding-bottom: calc(80px + env(safe-area-inset-bottom, 0));
+  scroll-behavior: smooth; /* Simább görgetés */
 }
 
 .tabBar {
-  position: absolute; /* Fixed helyett absolute a containerhez képest */
-  bottom: 0;
-  left: 0;
-  right: 0;
+  position: fixed;
+  bottom: 20px; /* Lebegő hatás miatt elemeltük az aljától */
+  left: 50%;
+  transform: translateX(-50%);
+  width: calc(100% - 32px); /* Oldalsó margók */
+  max-width: 448px; /* container max-width - margók */
+  
   display: flex;
-  background-color: var(--color-surface);
-  border-top: 1px solid var(--color-border);
-  padding: 8px 0;
-  /* Ez a rész kezeli a fekete doboz/Notch területét */
-  padding-bottom: calc(8px + env(safe-area-inset-bottom, 20px));
-  max-width: 480px;
-  margin: 0 auto;
-  z-index: 100;
+  justify-content: space-around; /* Egyenletes elosztás */
+  align-items: center;
+  
+  background-color: rgba(30, 30, 30, 0.95); /* Enyhén átlátszó háttér */
+  backdrop-filter: blur(10px); /* Homályosítás a modern hatásért */
+  
+  border: 1px solid var(--color-border);
+  border-radius: 24px; /* Kerekített sarkok a lebegő hatáshoz */
+  padding: 8px 4px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  z-index: 1000;
 }
 
 .tabButton {
@@ -40,13 +43,15 @@
   display: flex;
   flex-direction: column;
   align-items: center;
+  justify-content: center;
   gap: 4px;
-  padding: 8px 4px;
+  padding: 4px 0; /* Csökkentett padding, hogy kiférjen */
   background: none;
   border: none;
   color: var(--color-muted);
   cursor: pointer;
-  transition: color 0.2s;
+  transition: all 0.2s ease;
+  min-width: 0; /* Fontos: engedi a flex itemet összemenni, ha a szöveg túl hosszú */
 }
 
 .tabButton:hover {
@@ -59,20 +64,36 @@
 
 .tabIcon {
   font-size: 20px;
+  margin-bottom: 2px;
+  transition: transform 0.2s;
+}
+
+.tabActive .tabIcon {
+  transform: translateY(-2px); /* Kicsit megemeljük az aktív ikont */
 }
 
 .tabLabel {
-  font-size: 9px;
+  font-size: 9px; /* Kisebb betűméret a hosszú szavak miatt */
   font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.03em;
+  letter-spacing: 0.02em;
+  white-space: nowrap; /* Megakadályozza a tördelést */
+  overflow: hidden; /* Ha még így is túl hosszú lenne */
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+/* Ha nagyon kicsi a képernyő (pl. iPhone SE), még kisebb betű */
+@media (max-width: 360px) {
+  .tabLabel {
+    font-size: 8px;
+    letter-spacing: 0;
+  }
 }
 
 @media (min-width: 481px) {
   .container {
     border-left: 1px solid var(--color-border);
     border-right: 1px solid var(--color-border);
-    /* Asztali nézetben legyen egy kis margó felül/alul ha nem teljes képernyő */
-    height: 100vh; 
   }
 }
