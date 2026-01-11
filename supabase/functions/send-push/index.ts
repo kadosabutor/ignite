@@ -7,11 +7,28 @@
 
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+import { ApplicationServer } from 'jsr:@negrel/webpush@^0.1.0';
 
 // VAPID keys for Web Push
 const VAPID_PUBLIC_KEY = 'BKzPGSS5yEJp0Fk42IN8sOsAuQweLpNscwDEaIbumFJXUNfeQY7nta1AI49E4CKsmR5gBXZP503O-FuxU7v8fOQ';
 const VAPID_PRIVATE_KEY = Deno.env.get('VAPID_PRIVATE_KEY') || '6KYwugwMyKWz3RFBi5JY9NRtNm0BUzgOEyZu8mmkTfA';
-const VAPID_SUBJECT = 'mailto:ignite@example.com';
+const VAPID_SUBJECT = Deno.env.get('VAPID_SUBJECT') || 'mailto:ignite@example.com';
+
+// Initialize ApplicationServer for sending push notifications
+let appServer: ApplicationServer | null = null;
+
+async function getApplicationServer(): Promise<ApplicationServer> {
+  if (!appServer) {
+    appServer = await ApplicationServer.new({
+      contactInformation: VAPID_SUBJECT,
+      vapidKeys: {
+        publicKey: VAPID_PUBLIC_KEY,
+        privateKey: VAPID_PRIVATE_KEY,
+      },
+    });
+  }
+  return appServer;
+}
 
 // Supabase client
 const supabaseUrl = Deno.env.get('SUPABASE_URL') || 'https://thibewmulezvjenwowmh.supabase.co';
@@ -98,38 +115,34 @@ async function verifyJWT(req: Request): Promise<{ userId: string } | null> {
 }
 
 /**
- * Send a Web Push notification
+ * Send a Web Push notification using VAPID
  */
 async function sendWebPush(
   subscription: PushSubscription,
   payload: string
-): Promise<Response> {
-  // Import web-push compatible library for Deno
-  // For now, we'll use a simplified approach with fetch
-  
-  const endpoint = subscription.endpoint;
-  
-  // Create the push message
-  const pushPayload = {
-    title: 'IGNITE',
-    body: payload,
-  };
-  
+): Promise<void> {
   try {
-    // Use the Web Push protocol
-    // Note: This is a simplified version. For production, use a proper web-push library.
-    const response = await fetch(endpoint, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'TTL': '86400', // 24 hours
-      },
-      body: JSON.stringify(pushPayload),
-    });
+    const server = await getApplicationServer();
     
-    return response;
+    // Convert base64url keys to Uint8Array
+    const p256dh = base64UrlToUint8Array(subscription.keys.p256dh);
+    const auth = base64UrlToUint8Array(subscription.keys.auth);
+    
+    // Create subscription object with proper key format
+    const pushSubscription = {
+      endpoint: subscription.endpoint,
+      keys: {
+        p256dh: p256dh,
+        auth: auth,
+      },
+    };
+    
+    // Send the notification
+    await server.sendNotification(pushSubscription, payload);
+    
+    console.log('Push notification sent successfully to:', subscription.endpoint);
   } catch (error) {
-    console.error('Error sending push:', error);
+    console.error('Error sending push notification:', error);
     throw error;
   }
 }
@@ -213,20 +226,20 @@ serve(async (req) => {
           },
         };
         
-        // For now, log the notification (actual sending requires web-push library)
         console.log('Sending push to:', subscription.endpoint);
-        console.log('Payload:', notificationPayload);
         
-        // TODO: Implement actual web-push sending with VAPID
-        // This requires importing a web-push compatible Deno library
+        // Send the actual push notification
+        await sendWebPush(subscription, notificationPayload);
         
         successCount++;
-      } catch (error) {
+      } catch (error: any) {
         console.error('Error sending to subscription:', error);
         failCount++;
         
-        // If subscription is invalid, remove it
-        if ((error as any).statusCode === 410) {
+        // If subscription is invalid (410 Gone), remove it from database
+        const statusCode = error?.statusCode || error?.status || error?.response?.status;
+        if (statusCode === 410 || statusCode === 404) {
+          console.log('Removing invalid subscription:', sub.id);
           await supabase
             .from('push_subscriptions')
             .delete()

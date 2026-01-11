@@ -14,10 +14,10 @@ export async function signUp(email: string, password: string, username: string, 
     email,
     password,
   });
-  
+
   if (error) throw error;
   if (!data.user) throw new Error('Regisztráció sikertelen');
-  
+
   // Create user profile
   const { error: profileError } = await supabase.from('users').insert({
     id: data.user.id,
@@ -28,9 +28,9 @@ export async function signUp(email: string, password: string, username: string, 
     rank: 'sleepwalker',
     monthly_average: 0,
   });
-  
+
   if (profileError) throw profileError;
-  
+
   // Create streak record
   const { error: streakError } = await supabase.from('streaks').insert({
     user_id: data.user.id,
@@ -39,9 +39,9 @@ export async function signUp(email: string, password: string, username: string, 
     level: 'frozen',
     cryo_freeze_count: 0,
   });
-  
+
   if (streakError) throw streakError;
-  
+
   return data;
 }
 
@@ -50,7 +50,7 @@ export async function signIn(email: string, password: string) {
     email,
     password,
   });
-  
+
   if (error) throw error;
   return data;
 }
@@ -79,15 +79,15 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
     .select('*')
     .eq('id', userId)
     .single();
-  
+
   if (userError || !userData) return null;
-  
+
   const { data: streakData } = await supabase
     .from('streaks')
     .select('*')
     .eq('user_id', userId)
     .single();
-  
+
   return {
     id: userData.id,
     username: userData.username,
@@ -131,7 +131,7 @@ export async function saveUserProfile(profile: Partial<UserProfile> & { id: stri
       updated_at: new Date().toISOString(),
     })
     .eq('id', profile.id);
-  
+
   if (error) throw error;
 }
 
@@ -141,9 +141,9 @@ export async function searchUsers(query: string): Promise<UserProfile[]> {
     .select('*')
     .or(`username.ilike.%${query}%,display_name.ilike.%${query}%`)
     .limit(20);
-  
+
   if (error) throw error;
-  
+
   return (data || []).map(u => ({
     id: u.id,
     username: u.username,
@@ -174,9 +174,9 @@ export async function getAllEntries(userId: string): Promise<HabitEntry[]> {
     .select('*')
     .eq('user_id', userId)
     .order('date', { ascending: false });
-  
+
   if (error) throw error;
-  
+
   return (data || []).map(e => ({
     id: e.id,
     date: e.date,
@@ -206,9 +206,9 @@ export async function getEntryByDate(userId: string, date: string): Promise<Habi
     .eq('user_id', userId)
     .eq('date', date)
     .single();
-  
+
   if (error || !data) return null;
-  
+
   return {
     id: data.id,
     date: data.date,
@@ -233,7 +233,7 @@ export async function getEntryByDate(userId: string, date: string): Promise<Habi
 
 export async function saveEntry(userId: string, entry: HabitEntry): Promise<void> {
   const score = calculateTotalScore(entry);
-  
+
   const { error } = await supabase
     .from('entries')
     .upsert({
@@ -256,9 +256,9 @@ export async function saveEntry(userId: string, entry: HabitEntry): Promise<void
       score,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id,date' });
-  
+
   if (error) throw error;
-  
+
   // Update streak after saving
   await updateStreak(userId);
 }
@@ -269,9 +269,9 @@ export async function deleteEntry(userId: string, date: string): Promise<void> {
     .delete()
     .eq('user_id', userId)
     .eq('date', date);
-  
+
   if (error) throw error;
-  
+
   await updateStreak(userId);
 }
 
@@ -283,7 +283,7 @@ export async function getStreak(userId: string): Promise<StreakData> {
     .select('*')
     .eq('user_id', userId)
     .single();
-  
+
   if (error || !data) {
     return {
       currentStreak: 0,
@@ -296,7 +296,7 @@ export async function getStreak(userId: string): Promise<StreakData> {
       phoenixStartStreak: 0,
     };
   }
-  
+
   return {
     currentStreak: data.current_streak,
     longestStreak: data.longest_streak,
@@ -311,7 +311,7 @@ export async function getStreak(userId: string): Promise<StreakData> {
 
 export async function updateStreak(userId: string): Promise<StreakData> {
   const entries = await getAllEntries(userId);
-  
+
   if (entries.length === 0) {
     const defaultStreak: StreakData = {
       currentStreak: 0,
@@ -323,7 +323,7 @@ export async function updateStreak(userId: string): Promise<StreakData> {
       phoenixDaysRemaining: 0,
       phoenixStartStreak: 0,
     };
-    
+
     await supabase.from('streaks').upsert({
       user_id: userId,
       ...defaultStreak,
@@ -335,25 +335,25 @@ export async function updateStreak(userId: string): Promise<StreakData> {
       phoenix_days_remaining: 0,
       phoenix_start_streak: 0,
     }, { onConflict: 'user_id' });
-    
+
     return defaultStreak;
   }
-  
+
   // Calculate current streak
   let streak = 0;
   const today = getTodayString();
   let checkDate = new Date(today);
-  
+
   // Check if we're before 4 AM - if so, yesterday is still valid
   const now = new Date();
   if (now.getHours() < 4) {
     checkDate.setDate(checkDate.getDate() - 1);
   }
-  
+
   for (let i = 0; i < 365; i++) {
     const dateStr = checkDate.toISOString().split('T')[0];
     const entry = entries.find(e => e.date === dateStr);
-    
+
     if (entry) {
       streak++;
       checkDate.setDate(checkDate.getDate() - 1);
@@ -361,18 +361,18 @@ export async function updateStreak(userId: string): Promise<StreakData> {
       break;
     }
   }
-  
+
   // Get current streak data
   const { data: currentData } = await supabase
     .from('streaks')
     .select('*')
     .eq('user_id', userId)
     .single();
-  
+
   const longestStreak = Math.max(currentData?.longest_streak || 0, streak);
   const cryoEarned = Math.min(3, Math.floor(streak / 7));
   const level = getStreakLevel(streak, false, currentData?.phoenix_active || false);
-  
+
   const streakData: StreakData = {
     currentStreak: streak,
     longestStreak,
@@ -383,7 +383,7 @@ export async function updateStreak(userId: string): Promise<StreakData> {
     phoenixDaysRemaining: currentData?.phoenix_days_remaining || 0,
     phoenixStartStreak: currentData?.phoenix_start_streak || 0,
   };
-  
+
   await supabase.from('streaks').upsert({
     user_id: userId,
     current_streak: streakData.currentStreak,
@@ -396,20 +396,20 @@ export async function updateStreak(userId: string): Promise<StreakData> {
     phoenix_start_streak: streakData.phoenixStartStreak,
     updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id' });
-  
+
   // Update user rank based on 30-day average
   const last30Days = entries.slice(0, 30);
   if (last30Days.length > 0) {
     const avg = last30Days.reduce((sum, e) => sum + e.score, 0) / last30Days.length;
     const rank = getRankFromScore(avg);
-    
+
     await supabase.from('users').update({
       monthly_average: Math.round(avg * 10) / 10,
       rank,
       updated_at: new Date().toISOString(),
     }).eq('id', userId);
   }
-  
+
   return streakData;
 }
 
@@ -432,22 +432,22 @@ export async function getAllFriends(userId: string): Promise<Friend[]> {
     `)
     .eq('user_id', userId)
     .eq('status', 'connected'); // Only return connected friends
-  
+
   if (error) throw error;
-  
+
   const friends: Friend[] = [];
-  
+
   for (const f of data || []) {
     const friend = f.friend as any;
     if (!friend) continue;
-    
+
     // Get friend's streak
     const { data: streakData } = await supabase
       .from('streaks')
       .select('*')
       .eq('user_id', friend.id)
       .single();
-    
+
     // Get friend's today entry with full details for ProfileCard
     const { data: todayEntry } = await supabase
       .from('entries')
@@ -455,7 +455,7 @@ export async function getAllFriends(userId: string): Promise<Friend[]> {
       .eq('user_id', friend.id)
       .eq('date', getTodayString())
       .single();
-    
+
     friends.push({
       id: friend.id,
       username: friend.username,
@@ -498,7 +498,7 @@ export async function getAllFriends(userId: string): Promise<Friend[]> {
       } : undefined,
     });
   }
-  
+
   return friends;
 }
 
@@ -510,16 +510,16 @@ export async function addFriend(userId: string, friendUsername: string): Promise
     .select('id')
     .eq('username', friendUsername)
     .single();
-  
+
   console.log('[addFriend] User lookup result:', { friendData, findError });
   if (findError || !friendData) {
     throw new Error('Felhasználó nem található');
   }
-  
+
   if (friendData.id === userId) {
     throw new Error('Nem adhatod hozzá magadat');
   }
-  
+
   // Check if already friends or request already exists
   console.log('[addFriend] Checking for existing friendship...');
   const { data: existing } = await supabase
@@ -527,7 +527,7 @@ export async function addFriend(userId: string, friendUsername: string): Promise
     .select('id, status')
     .or(`and(user_id.eq.${userId},friend_id.eq.${friendData.id}),and(user_id.eq.${friendData.id},friend_id.eq.${userId})`)
     .maybeSingle();
-  
+
   console.log('[addFriend] Existing friendship check:', existing);
   if (existing) {
     if (existing.status === 'connected') {
@@ -536,7 +536,7 @@ export async function addFriend(userId: string, friendUsername: string): Promise
       throw new Error('Barátkérelem már küldve');
     }
   }
-  
+
   // Create pending friend request (only one direction)
   console.log('[addFriend] Inserting friend request:', { user_id: userId, friend_id: friendData.id, status: 'pending' });
   const { error } = await supabase.from('friendships').insert({
@@ -544,7 +544,7 @@ export async function addFriend(userId: string, friendUsername: string): Promise
     friend_id: friendData.id,
     status: 'pending',
   });
-  
+
   console.log('[addFriend] Insert result:', { error });
   if (error) throw error;
   console.log('[addFriend] Friend request created successfully');
@@ -572,10 +572,10 @@ export async function getPendingFriendRequests(userId: string): Promise<{
     `)
     .eq('friend_id', userId)
     .eq('status', 'pending');
-  
+
   console.log('[getPendingFriendRequests] Incoming data:', { incomingData, incomingError });
   if (incomingError) throw incomingError;
-  
+
   // Get outgoing requests (where user_id = userId and status = pending)
   const { data: outgoingData, error: outgoingError } = await supabase
     .from('friendships')
@@ -593,25 +593,25 @@ export async function getPendingFriendRequests(userId: string): Promise<{
     `)
     .eq('user_id', userId)
     .eq('status', 'pending');
-  
+
   console.log('[getPendingFriendRequests] Outgoing data:', { outgoingData, outgoingError });
   if (outgoingError) throw outgoingError;
-  
+
   const incoming: Friend[] = [];
   const outgoing: Friend[] = [];
-  
+
   // Process incoming requests
   console.log('[getPendingFriendRequests] Processing incoming requests, count:', incomingData?.length || 0);
   for (const f of incomingData || []) {
     const user = f.user as any;
     if (!user) continue;
-    
+
     const { data: streakData } = await supabase
       .from('streaks')
       .select('*')
       .eq('user_id', user.id)
       .single();
-    
+
     incoming.push({
       id: user.id,
       username: user.username,
@@ -644,19 +644,19 @@ export async function getPendingFriendRequests(userId: string): Promise<{
       lastPingedAt: null,
     });
   }
-  
+
   // Process outgoing requests
   console.log('[getPendingFriendRequests] Processing outgoing requests, count:', outgoingData?.length || 0);
   for (const f of outgoingData || []) {
     const friend = f.friend as any;
     if (!friend) continue;
-    
+
     const { data: streakData } = await supabase
       .from('streaks')
       .select('*')
       .eq('user_id', friend.id)
       .single();
-    
+
     outgoing.push({
       id: friend.id,
       username: friend.username,
@@ -689,7 +689,7 @@ export async function getPendingFriendRequests(userId: string): Promise<{
       lastPingedAt: null,
     });
   }
-  
+
   return { incoming, outgoing };
 }
 
@@ -702,19 +702,19 @@ export async function acceptFriendRequest(userId: string, requesterId: string): 
     .eq('friend_id', userId)
     .eq('status', 'pending')
     .single();
-  
+
   if (findError || !request) {
     throw new Error('Barátkérelem nem található');
   }
-  
+
   // Update the request to connected
   const { error: updateError } = await supabase
     .from('friendships')
     .update({ status: 'connected' })
     .eq('id', request.id);
-  
+
   if (updateError) throw updateError;
-  
+
   // Create the reverse friendship record
   const { error: insertError } = await supabase
     .from('friendships')
@@ -723,7 +723,7 @@ export async function acceptFriendRequest(userId: string, requesterId: string): 
       friend_id: requesterId,
       status: 'connected',
     });
-  
+
   if (insertError) throw insertError;
 }
 
@@ -735,7 +735,7 @@ export async function rejectFriendRequest(userId: string, requesterId: string): 
     .eq('user_id', requesterId)
     .eq('friend_id', userId)
     .eq('status', 'pending');
-  
+
   if (error) throw error;
 }
 
@@ -747,7 +747,7 @@ export async function cancelFriendRequest(userId: string, friendId: string): Pro
     .eq('user_id', userId)
     .eq('friend_id', friendId)
     .eq('status', 'pending');
-  
+
   if (error) throw error;
 }
 
@@ -757,7 +757,7 @@ export async function removeFriend(userId: string, friendId: string): Promise<vo
     .from('friendships')
     .delete()
     .or(`and(user_id.eq.${userId},friend_id.eq.${friendId}),and(user_id.eq.${friendId},friend_id.eq.${userId})`);
-  
+
   if (error) throw error;
 }
 
@@ -773,11 +773,11 @@ export async function getLeaderboard(userId: string, period: 'today' | 'week' | 
   const friends = await getAllFriends(userId);
   const friendIds = friends.map(f => f.id);
   friendIds.push(userId); // Include self
-  
+
   // Get entries based on period
   let startDate: string;
   const today = getTodayString();
-  
+
   if (period === 'today') {
     startDate = today;
   } else if (period === 'week') {
@@ -789,7 +789,7 @@ export async function getLeaderboard(userId: string, period: 'today' | 'week' | 
     d.setDate(d.getDate() - 30);
     startDate = d.toISOString().split('T')[0];
   }
-  
+
   // Get all entries for the period
   const { data: entries, error } = await supabase
     .from('entries')
@@ -797,9 +797,9 @@ export async function getLeaderboard(userId: string, period: 'today' | 'week' | 
     .in('user_id', friendIds)
     .gte('date', startDate)
     .lte('date', today);
-  
+
   if (error) throw error;
-  
+
   // Calculate average scores per user
   const userScores: Record<string, { total: number; count: number }> = {};
   for (const entry of entries || []) {
@@ -809,13 +809,13 @@ export async function getLeaderboard(userId: string, period: 'today' | 'week' | 
     userScores[entry.user_id].total += entry.score;
     userScores[entry.user_id].count++;
   }
-  
+
   // Get user profiles
   const { data: users } = await supabase
     .from('users')
     .select('id, username, display_name, avatar, rank')
     .in('id', friendIds);
-  
+
   // Build leaderboard
   const leaderboard = (users || []).map(u => ({
     user: {
@@ -828,10 +828,10 @@ export async function getLeaderboard(userId: string, period: 'today' | 'week' | 
     score: userScores[u.id] ? Math.round(userScores[u.id].total / userScores[u.id].count) : 0,
     isCurrentUser: u.id === userId,
   }));
-  
+
   // Sort by score
   leaderboard.sort((a, b) => b.score - a.score);
-  
+
   // Add positions
   return leaderboard.map((entry, index) => ({
     position: index + 1,
@@ -859,7 +859,7 @@ export async function getNotificationSettings(userId: string): Promise<Notificat
     .select('notifications')
     .eq('user_id', userId)
     .single();
-  
+
   return data?.notifications || DEFAULT_NOTIFICATION_SETTINGS;
 }
 
@@ -871,7 +871,7 @@ export async function saveNotificationSettings(userId: string, settings: Notific
       notifications: settings,
       updated_at: new Date().toISOString(),
     }, { onConflict: 'user_id' });
-  
+
   if (error) throw error;
 }
 
@@ -885,15 +885,15 @@ export async function getMonthlyStats(userId: string, year: number, month: numbe
   best: number;
 }> {
   const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
-  
+
   const { data, error } = await supabase
     .from('entries')
     .select('*')
     .eq('user_id', userId)
     .like('date', `${monthStr}%`);
-  
+
   if (error) throw error;
-  
+
   const entries = (data || []).map(e => ({
     id: e.id,
     date: e.date,
@@ -911,14 +911,14 @@ export async function getMonthlyStats(userId: string, year: number, month: numbe
     createdAt: e.created_at,
     updatedAt: e.updated_at,
   })) as HabitEntry[];
-  
+
   if (entries.length === 0) {
     return { entries: [], average: 0, total: 0, count: 0, best: 0 };
   }
-  
+
   const total = entries.reduce((sum, e) => sum + e.score, 0);
   const best = Math.max(...entries.map(e => e.score));
-  
+
   return {
     entries,
     average: total / entries.length,
@@ -932,18 +932,18 @@ export async function getWeeklyScores(userId: string, days: number = 7): Promise
   const entries = await getAllEntries(userId);
   const dates: string[] = [];
   const scores: number[] = [];
-  
+
   const today = new Date();
   for (let i = days - 1; i >= 0; i--) {
     const date = new Date(today);
     date.setDate(date.getDate() - i);
     const dateStr = date.toISOString().split('T')[0];
     dates.push(dateStr);
-    
+
     const entry = entries.find(e => e.date === dateStr);
     scores.push(entry?.score ?? 0);
   }
-  
+
   return { dates, scores };
 }
 
@@ -999,10 +999,10 @@ export async function getFriendEntries(friendId: string, days: number = 30): Pro
   const endDate = new Date();
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
-  
+
   const startDateStr = startDate.toISOString().split('T')[0];
   const endDateStr = endDate.toISOString().split('T')[0];
-  
+
   const { data, error } = await supabase
     .from('entries')
     .select('*')
@@ -1010,9 +1010,9 @@ export async function getFriendEntries(friendId: string, days: number = 30): Pro
     .gte('date', startDateStr)
     .lte('date', endDateStr)
     .order('date', { ascending: true });
-  
+
   if (error) throw error;
-  
+
   return (data || []).map(e => ({
     id: e.id,
     date: e.date,
@@ -1040,11 +1040,11 @@ export async function getFriendEntries(friendId: string, days: number = 30): Pro
  */
 export async function savePushSubscription(subscription: any) {
   const { data: { user } } = await supabase.auth.getUser();
-  
+
   if (!user) throw new Error('User not authenticated');
-  
+
   const subscriptionData = subscription.toJSON ? subscription.toJSON() : subscription;
-  
+
   const { error } = await supabase.from('push_subscriptions').upsert({
     user_id: user.id,
     endpoint: subscriptionData.endpoint,
@@ -1053,7 +1053,7 @@ export async function savePushSubscription(subscription: any) {
   }, {
     onConflict: 'endpoint',
   });
-  
+
   if (error) throw error;
 }
 
@@ -1062,14 +1062,14 @@ export async function savePushSubscription(subscription: any) {
  */
 export async function getPushSubscriptions() {
   const { data: { user } } = await supabase.auth.getUser();
-  
+
   if (!user) throw new Error('User not authenticated');
-  
+
   const { data, error } = await supabase
     .from('push_subscriptions')
     .select('*')
     .eq('user_id', user.id);
-  
+
   if (error) throw error;
   return data || [];
 }
@@ -1082,7 +1082,7 @@ export async function deletePushSubscription(endpoint: string) {
     .from('push_subscriptions')
     .delete()
     .eq('endpoint', endpoint);
-  
+
   if (error) throw error;
 }
 
@@ -1091,16 +1091,16 @@ export async function deletePushSubscription(endpoint: string) {
  */
 export async function getNotifications(limit: number = 20) {
   const { data: { user } } = await supabase.auth.getUser();
-  
+
   if (!user) throw new Error('User not authenticated');
-  
+
   const { data, error } = await supabase
     .from('notifications')
     .select('*')
     .eq('user_id', user.id)
     .order('created_at', { ascending: false })
     .limit(limit);
-  
+
   if (error) throw error;
   return data || [];
 }
@@ -1113,7 +1113,7 @@ export async function markNotificationAsRead(notificationId: string) {
     .from('notifications')
     .update({ read: true, read_at: new Date().toISOString() })
     .eq('id', notificationId);
-  
+
   if (error) throw error;
 }
 
@@ -1122,15 +1122,15 @@ export async function markNotificationAsRead(notificationId: string) {
  */
 export async function getUnreadNotificationCount() {
   const { data: { user } } = await supabase.auth.getUser();
-  
+
   if (!user) throw new Error('User not authenticated');
-  
+
   const { count, error } = await supabase
     .from('notifications')
     .select('*', { count: 'exact', head: true })
     .eq('user_id', user.id)
     .eq('read', false);
-  
+
   if (error) throw error;
   return count || 0;
 }
@@ -1147,16 +1147,16 @@ export async function sendPushNotification(
   data?: Record<string, any>
 ) {
   const { data: { session } } = await supabase.auth.getSession();
-  
+
   if (!session) throw new Error('User not authenticated');
-  
+
   const response = await fetch(
     'https://thibewmulezvjenwowmh.supabase.co/functions/v1/send-push',
     {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabaseKey}`,
+        'Authorization': `Bearer ${session.access_token}`,
       },
       body: JSON.stringify({
         recipientUserId,
@@ -1166,12 +1166,12 @@ export async function sendPushNotification(
       }),
     }
   );
-  
+
   if (!response.ok) {
     const error = await response.text();
     throw new Error(`Push notification failed: ${error}`);
   }
-  
+
   return await response.json();
 }
 
