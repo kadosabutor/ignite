@@ -5,6 +5,7 @@ import { Button, Card } from '../components/ui';
 import { StreakIcon } from '../components/StreakIcon';
 import { AVATARS, RANKS } from '../types';
 import { getScoreColor } from '../lib/scoring';
+import { getRandomPingMessage, getRandomFireMessage } from '../lib/push';
 import styles from './Arena.module.css';
 
 type TabType = 'feed' | 'leaderboard' | 'friends';
@@ -50,10 +51,12 @@ export function Arena() {
     e.stopPropagation();
     try {
       const { sendPushNotification } = await import('../lib/supabase');
+      const randomMessage = getRandomPingMessage();
+      const randomBody = getRandomFireMessage();
       await sendPushNotification(
         friendId,
-        '🔔 Ping!',
-        `${user?.displayName || 'Valaki'} pingelted! Mutasd meg, hogy még aktív vagy!`,
+        randomMessage,
+        `${user?.displayName || 'Valaki'} üzeni: ${randomBody} 🎉`,
         'ping',
         { senderId: user?.id }
       );
@@ -68,10 +71,12 @@ export function Arena() {
     e.stopPropagation();
     try {
       const { sendPushNotification } = await import('../lib/supabase');
+      const randomTitle = getRandomPingMessage();
+      const randomBody = getRandomFireMessage();
       await sendPushNotification(
         friendId,
-        '🔥 Tűz Elismerés!',
-        `${user?.displayName || 'Valaki'} elismerésben részesített! Fantasztikus munka! 🎉`,
+        randomTitle,
+        `${user?.displayName || 'Valaki'} üzeni: ${randomBody} 🎉`,
         'fire',
         { senderId: user?.id }
       );

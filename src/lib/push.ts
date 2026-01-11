@@ -47,7 +47,7 @@ export async function requestNotificationPermission(): Promise<NotificationPermi
     console.warn('Notifications not supported');
     return 'denied';
   }
-  
+
   try {
     const permission = await Notification.requestPermission();
     console.log('Notification permission:', permission);
@@ -66,10 +66,10 @@ function urlBase64ToUint8Array(base64String: string): BufferSource {
   const base64 = (base64String + padding)
     .replace(/-/g, '+')
     .replace(/_/g, '/');
-  
+
   const rawData = window.atob(base64);
   const outputArray = new Uint8Array(rawData.length);
-  
+
   for (let i = 0; i < rawData.length; ++i) {
     outputArray[i] = rawData.charCodeAt(i);
   }
@@ -85,25 +85,25 @@ export async function subscribeToPush(): Promise<any | null> {
     console.warn('Push notifications not supported');
     return null;
   }
-  
+
   try {
     // Get service worker registration
     const registration = await navigator.serviceWorker.ready;
-    
+
     // Check for existing subscription
     let subscription = await registration.pushManager.getSubscription();
-    
+
     if (subscription) {
       console.log('Existing push subscription found');
       return subscription;
     }
-    
+
     // Create new subscription
     subscription = await registration.pushManager.subscribe({
       userVisibleOnly: true,
       applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY),
     });
-    
+
     console.log('New push subscription created:', subscription.endpoint);
     return subscription;
   } catch (error) {
@@ -119,7 +119,7 @@ export async function unsubscribeFromPush(): Promise<boolean> {
   try {
     const registration = await navigator.serviceWorker.ready;
     const subscription = await registration.pushManager.getSubscription();
-    
+
     if (subscription) {
       await subscription.unsubscribe();
       console.log('Unsubscribed from push notifications');
@@ -139,7 +139,7 @@ export async function getCurrentSubscription(): Promise<PushSubscription | null>
   if (!isPushSupported()) {
     return null;
   }
-  
+
   try {
     const registration = await navigator.serviceWorker.ready;
     return await registration.pushManager.getSubscription();
@@ -174,13 +174,13 @@ export async function sendPushNotification(
         data,
       }),
     });
-    
+
     if (!response.ok) {
       const error = await response.text();
       console.error('Push notification failed:', error);
       return false;
     }
-    
+
     console.log('Push notification sent successfully');
     return true;
   } catch (error) {
@@ -192,7 +192,7 @@ export async function sendPushNotification(
 /**
  * Notification types for IGNITE
  */
-export type NotificationType = 
+export type NotificationType =
   | 'ping'           // Friend pinged you
   | 'fire'           // Friend gave you fire
   | 'friend_request' // New friend request
@@ -224,6 +224,27 @@ export function getRandomPingMessage(): string {
 }
 
 /**
+ * Random fire recognition messages
+ */
+const FIRE_MESSAGES = [
+  "Elismerték a mai teljesítményedet! 🔥",
+  "Fantasztikus munka! Tűz vagy! 💪",
+  "Valaki elismerésben részesített! 🎉",
+  "Tűz elismerés érkezett! Te vagy a hős! ⚔️",
+  "Elismerésben részesítettek! Csillogsz! ✨",
+  "Valaki tüzet adott neked! Fantasztikus! 🔥",
+  "Elismerés érkezett! Folytasd így! 💥",
+  "Tűz elismerés! Te vagy a legjobb! 🏆",
+];
+
+/**
+ * Get a random fire message
+ */
+export function getRandomFireMessage(): string {
+  return FIRE_MESSAGES[Math.floor(Math.random() * FIRE_MESSAGES.length)];
+}
+
+/**
  * Format notification for different types
  */
 export function formatNotification(
@@ -237,49 +258,49 @@ export function formatNotification(
         title: `${senderName || 'Valaki'} pingelt! 🔔`,
         body: getRandomPingMessage(),
       };
-    
+
     case 'fire':
       return {
         title: `${senderName || 'Valaki'} tüzet adott! 🔥`,
         body: 'Elismerték a mai teljesítményedet!',
       };
-    
+
     case 'friend_request':
       return {
         title: 'Új barátkérelem! 👋',
         body: `${senderName || 'Valaki'} szeretne a barátod lenni.`,
       };
-    
+
     case 'friend_accept':
       return {
         title: 'Barátkérelem elfogadva! 🎉',
         body: `${senderName || 'Valaki'} elfogadta a barátkérelmedet.`,
       };
-    
+
     case 'rank_up':
       return {
         title: 'Ranglétra emelkedés! 🚀',
         body: `Gratulálunk! Új rangod: ${data?.rank || 'Ismeretlen'}`,
       };
-    
+
     case 'rank_down':
       return {
         title: 'Rang csökkenés 📉',
         body: 'Dolgozz keményebben, hogy visszaszerezd a rangod!',
       };
-    
+
     case 'streak_warning':
       return {
         title: 'Streak veszélyben! ⚠️',
         body: 'Még nem rögzítetted a mai napot. Ne hagyd kialudni a tüzet!',
       };
-    
+
     case 'daily_reminder':
       return {
         title: 'Napi emlékeztető 📝',
         body: 'Ideje rögzíteni a mai napodat!',
       };
-    
+
     default:
       return {
         title: 'IGNITE értesítés',
