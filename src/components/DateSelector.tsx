@@ -29,13 +29,14 @@ export function DateSelector({ entries, onSelectDate, onCancel, maxMissedDays = 
       const dateStr = checkDate.toISOString().split('T')[0];
       
       if (!entryDates.has(dateStr)) {
-        const dayNames = ['Vasárnap', 'Hétfő', 'Kedd', 'Szerda', 'Csütörtök', 'Péntek', 'Szombat'];
-        const monthNames = ['jan.', 'feb.', 'márc.', 'ápr.', 'máj.', 'jún.', 'júl.', 'aug.', 'szept.', 'okt.', 'nov.', 'dec.'];
+        const label = checkDate.toLocaleDateString('hu-HU', { month: 'short', day: 'numeric' }) + '.';
+        const dayName = checkDate.toLocaleDateString('hu-HU', { weekday: 'long' });
+        const capitalizedDayName = dayName.charAt(0).toUpperCase() + dayName.slice(1);
         
         missed.push({
           date: dateStr,
-          label: `${monthNames[checkDate.getMonth()]} ${checkDate.getDate()}.`,
-          dayName: dayNames[checkDate.getDay()],
+          label: label,
+          dayName: capitalizedDayName,
         });
       }
     }
@@ -60,8 +61,8 @@ export function DateSelector({ entries, onSelectDate, onCancel, maxMissedDays = 
   // Format today's date for display
   const todayLabel = useMemo(() => {
     const date = new Date();
-    const monthNames = ['jan.', 'feb.', 'márc.', 'ápr.', 'máj.', 'jún.', 'júl.', 'aug.', 'szept.', 'okt.', 'nov.', 'dec.'];
-    return `${monthNames[date.getMonth()]} ${date.getDate()}.`;
+    const label = date.toLocaleDateString('hu-HU', { month: 'short', day: 'numeric' }) + '.';
+    return label;
   }, []);
 
   return (
