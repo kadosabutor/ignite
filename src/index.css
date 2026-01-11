@@ -35,29 +35,21 @@
   box-sizing: border-box;
 }
 
-html {
+html, body, #root {
   height: 100%;
   width: 100%;
-  overflow: hidden;
-  background-color: var(--color-background);
+  overflow-x: hidden;
+  /* JAVÍTÁS: Ez akadályozza meg, hogy az egész app "rugózzon" iOS-en */
+  overscroll-behavior-y: none;
 }
 
 body {
-  height: 100%;
-  width: 100%;
   font-family: 'Montserrat', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
   background-color: var(--color-background);
   color: var(--color-foreground);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.5;
-  overscroll-behavior-y: none;
-}
-
-#root {
-  height: 100%;
-  width: 100%;
-  isolation: isolate;
 }
 
 /* Scrollbar styling */
@@ -149,14 +141,4 @@ button:disabled {
 @keyframes flame {
   0%, 100% { transform: scale(1) rotate(-2deg); }
   50% { transform: scale(1.05) rotate(2deg); }
-}
-
-@keyframes glowPulse {
-  0%, 100% { box-shadow: 0 0 15px rgba(255, 112, 51, 0.2); }
-  50% { box-shadow: 0 0 25px rgba(255, 112, 51, 0.5); }
-}
-
-@keyframes zoomInOut {
-  0%, 100% { transform: scale(1); }
-  50% { transform: scale(1.1); }
 }
