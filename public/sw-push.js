@@ -1,7 +1,6 @@
 /**
  * IGNITE Push Notification Service Worker
- * 
- * This service worker handles push notifications for the IGNITE app.
+ * * This service worker handles push notifications for the IGNITE app.
  * It receives push events and displays notifications to the user.
  */
 
@@ -20,6 +19,7 @@ self.addEventListener('push', (event) => {
     badge: BADGE_URL,
     tag: 'ignite-notification',
     data: {},
+    actions: []
   };
   
   // Parse push data if available
@@ -33,6 +33,10 @@ self.addEventListener('push', (event) => {
         badge: payload.badge || BADGE_URL,
         tag: payload.tag || 'ignite-notification',
         data: payload.data || {},
+        actions: payload.actions || [
+          { action: 'open', title: 'Megnyitás' },
+          { action: 'dismiss', title: 'Bezárás' }
+        ]
       };
     } catch (e) {
       // If not JSON, use text
@@ -48,17 +52,8 @@ self.addEventListener('push', (event) => {
     tag: data.tag,
     data: data.data,
     vibrate: [100, 50, 100],
-    requireInteraction: false,
-    actions: [
-      {
-        action: 'open',
-        title: 'Megnyitás',
-      },
-      {
-        action: 'dismiss',
-        title: 'Bezárás',
-      },
-    ],
+    requireInteraction: true, // Keep it visible until interaction
+    actions: data.actions
   });
   
   event.waitUntil(promiseChain);
@@ -75,17 +70,27 @@ self.addEventListener('notificationclick', (event) => {
     return;
   }
   
-  // Get the URL to open
+  // Determine URL based on action or data
   let urlToOpen = '/';
   
-  if (event.notification.data) {
+  // Specific action handling
+  if (event.action === 'record_now') {
+    // Direct link to wizard
+    urlToOpen = '/wizard?date=' + new Date().toISOString().split('T')[0];
+  } else if (event.action === 'view_friends') {
+    urlToOpen = '/friends?tab=requests';
+  } else if (event.action === 'open_arena') {
+    urlToOpen = '/arena';
+  } else if (event.notification.data) {
     const data = event.notification.data;
     
-    // Navigate based on notification type
+    // Fallback based on type if no specific action button was used
     if (data.type === 'friend_request') {
-      urlToOpen = '/profile?tab=friends';
+      urlToOpen = '/friends?tab=requests';
     } else if (data.type === 'ping' || data.type === 'fire') {
       urlToOpen = '/arena';
+    } else if (data.type === 'streak_warning' || data.type === 'daily_reminder') {
+      urlToOpen = '/wizard?date=' + new Date().toISOString().split('T')[0];
     } else if (data.friendId) {
       urlToOpen = `/friend/${data.friendId}`;
     }
@@ -96,12 +101,13 @@ self.addEventListener('notificationclick', (event) => {
     clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clientList) => {
       // Check if app is already open
       for (const client of clientList) {
+        // If exact match or base match
         if (client.url.includes(self.location.origin) && 'focus' in client) {
           client.navigate(urlToOpen);
           return client.focus();
         }
       }
-      // Open new window
+      // Open new window if not open
       if (clients.openWindow) {
         return clients.openWindow(urlToOpen);
       }
@@ -123,7 +129,9 @@ self.addEventListener('pushsubscriptionchange', (event) => {
     self.registration.pushManager.subscribe(event.oldSubscription.options)
       .then((subscription) => {
         console.log('[SW] Re-subscribed:', subscription.endpoint);
-        // TODO: Send new subscription to server
+        // Best practice: Send new subscription to server here
+        // Since we can't easily import the API logic here, 
+        // the app will handle it on next launch if we save it to storage or similar logic
       })
       .catch((error) => {
         console.error('[SW] Re-subscription failed:', error);
@@ -131,4 +139,4 @@ self.addEventListener('pushsubscriptionchange', (event) => {
   );
 });
 
-console.log('[SW] IGNITE Push Service Worker loaded');
+console.log('[SW] IGNITE Push Service Worker loaded v2');
