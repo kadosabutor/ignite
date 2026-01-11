@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Card } from './ui';
 import { StreakIcon } from './StreakIcon';
 import { AVATARS, RANKS, type AvatarType, type RankType, type StreakData } from '../types';
+import { calculatePurityScore, formatMinutes } from '../lib/scoring';
 import styles from './ProfileCard.module.css';
 
 // View types for the profile card
@@ -48,24 +49,6 @@ interface ProfileCardProps {
   
   // Expandable detail view
   expandable?: boolean;
-}
-
-// Calculate purity score (how many of 3 negative habits were avoided)
-function calculatePurityScore(satisfaction: boolean, dopamineContent: boolean, gaming: boolean): { score: number; total: number } {
-  let avoided = 0;
-  if (!satisfaction) avoided++;
-  if (!dopamineContent) avoided++;
-  if (!gaming) avoided++;
-  return { score: avoided, total: 3 };
-}
-
-// Format minutes to hours and minutes
-function formatMinutes(minutes: number): string {
-  const hours = Math.floor(minutes / 60);
-  const mins = minutes % 60;
-  if (hours === 0) return `${mins}p`;
-  if (mins === 0) return `${hours}ó`;
-  return `${hours}ó ${mins}p`;
 }
 
 export function ProfileCard({
