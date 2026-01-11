@@ -40,12 +40,9 @@ function getRandomMessage(type: 'morning' | 'evening' | 'afternoon') {
 serve(async (req) => {
   try {
     // 1. Idő meghatározása (Budapest időzóna: UTC+1 télen, UTC+2 nyáron)
-    // Egyszerűsítés: Most feltételezzük, hogy a szerver UTC-ben van, és +1 órát adunk hozzá (téli időszámítás)
-    // A settings-ben a felhasználók pl. "07:00"-t mentenek el.
+    // Egyszerűsítés: Most feltételezzük, hogy a szerver UTC-ben van, és +1 órát adunk hozzá
     const now = new Date();
-    // UTC óra lekérése
     const currentHour = now.getUTCHours(); 
-    // Magyar óra (kb. UTC+1) - Finomhangolható
     const localHour = (currentHour + 1) % 24;
     
     // Formátum: "07:00" (mindig két számjegy)
@@ -59,21 +56,18 @@ serve(async (req) => {
     // Megkeressük azokat a felhasználókat, akiknek a beállított ideje egyezik a mostanival
     // ÉS engedélyezve van az adott típus.
     
-    // Reggeli ellenőrzés
     const { data: morningUsers } = await supabase
       .from('settings')
       .select('user_id')
       .eq('notifications->>morningTime', timeString)
       .eq('notifications->>morningEnabled', true);
 
-    // Esti ellenőrzés
     const { data: eveningUsers } = await supabase
       .from('settings')
       .select('user_id')
       .eq('notifications->>eveningTime', timeString)
       .eq('notifications->>eveningEnabled', true);
 
-    // Délutáni ellenőrzés
     const { data: afternoonUsers } = await supabase
       .from('settings')
       .select('user_id')
@@ -82,7 +76,7 @@ serve(async (req) => {
 
     const tasks = [];
 
-    // Segédfüggvény a küldéshez (meghívja a send-push function-t)
+    // Segédfüggvény a küldéshez
     const schedulePush = async (userId: string, type: 'morning' | 'evening' | 'afternoon') => {
       const msg = getRandomMessage(type);
       
@@ -104,15 +98,9 @@ serve(async (req) => {
     };
 
     // 3. Feladatok összegyűjtése
-    if (morningUsers) {
-      morningUsers.forEach(u => tasks.push(schedulePush(u.user_id, 'morning')));
-    }
-    if (eveningUsers) {
-      eveningUsers.forEach(u => tasks.push(schedulePush(u.user_id, 'evening')));
-    }
-    if (afternoonUsers) {
-      afternoonUsers.forEach(u => tasks.push(schedulePush(u.user_id, 'afternoon')));
-    }
+    if (morningUsers) morningUsers.forEach(u => tasks.push(schedulePush(u.user_id, 'morning')));
+    if (eveningUsers) eveningUsers.forEach(u => tasks.push(schedulePush(u.user_id, 'evening')));
+    if (afternoonUsers) afternoonUsers.forEach(u => tasks.push(schedulePush(u.user_id, 'afternoon')));
 
     // 4. Minden kiküldése egyszerre
     if (tasks.length > 0) {
