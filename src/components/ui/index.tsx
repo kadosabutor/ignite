@@ -34,14 +34,14 @@ interface CardProps {
   children: ReactNode;
   className?: string;
   onClick?: () => void;
-  variant?: 'default' | 'interactive';
+  variant?: 'default' | 'interactive' | 'glow';
 }
 
 export function Card({ children, className = '', onClick, variant = 'default' }: CardProps) {
   const Component = onClick ? 'button' : 'div';
   return (
     <Component
-      className={`${styles.card} ${variant === 'interactive' ? styles.cardInteractive : ''} ${className}`}
+      className={`${styles.card} ${variant === 'interactive' ? styles.cardInteractive : ''} ${variant === 'glow' ? styles.cardGlow : ''} ${className}`}
       onClick={onClick}
     >
       {children}
@@ -219,7 +219,7 @@ interface ProgressRingProps {
   max: number;
   size?: number;
   strokeWidth?: number;
-  color?: string;
+  color?: string; // This can now be ignored if using gradient, or used as fallback
   children?: ReactNode;
 }
 
@@ -228,7 +228,6 @@ export function ProgressRing({
   max,
   size = 120,
   strokeWidth = 8,
-  color = 'var(--color-primary)',
   children,
 }: ProgressRingProps) {
   const radius = (size - strokeWidth) / 2;
@@ -239,13 +238,23 @@ export function ProgressRing({
   return (
     <div className={styles.progressRing} style={{ width: size, height: size }}>
       <svg width={size} height={size}>
+        <defs>
+          <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="0%">
+            <stop offset="0%" stopColor="#ff7033" />
+            <stop offset="100%" stopColor="#FFCC00" />
+          </linearGradient>
+        </defs>
+        
+        {/* Background Track (Faint ring) */}
         <circle
-          className={styles.progressRingBg}
+          className={styles.progressRingTrack}
           strokeWidth={strokeWidth}
           r={radius}
           cx={size / 2}
           cy={size / 2}
         />
+        
+        {/* Progress Value (Gradient ring) */}
         <circle
           className={styles.progressRingFg}
           strokeWidth={strokeWidth}
@@ -254,7 +263,7 @@ export function ProgressRing({
           r={radius}
           cx={size / 2}
           cy={size / 2}
-          style={{ stroke: color }}
+          style={{ stroke: 'url(#scoreGradient)' }}
         />
       </svg>
       <div className={styles.progressRingContent}>{children}</div>
@@ -287,6 +296,7 @@ interface Tab {
   id: string;
   label: string;
   icon?: ReactNode;
+  badge?: number; // Added badge support
 }
 
 interface TabBarProps {
@@ -298,16 +308,23 @@ interface TabBarProps {
 export function TabBar({ tabs, activeTab, onChange }: TabBarProps) {
   return (
     <nav className={styles.tabBar}>
-      {tabs.map((tab) => (
-        <button
-          key={tab.id}
-          className={`${styles.tabButton} ${activeTab === tab.id ? styles.tabActive : ''}`}
-          onClick={() => onChange(tab.id)}
-        >
-          {tab.icon && <span className={styles.tabIcon}>{tab.icon}</span>}
-          <span className={styles.tabLabel}>{tab.label}</span>
-        </button>
-      ))}
+      <div className={styles.tabBarInner}>
+        {tabs.map((tab) => (
+          <button
+            key={tab.id}
+            className={`${styles.tabButton} ${activeTab === tab.id ? styles.tabActive : ''}`}
+            onClick={() => onChange(tab.id)}
+          >
+            <div className={styles.tabIconWrapper}>
+              {tab.icon && <span className={styles.tabIcon}>{tab.icon}</span>}
+              {tab.badge !== undefined && tab.badge > 0 && (
+                <span className={styles.tabBadge}>{tab.badge > 9 ? '9+' : tab.badge}</span>
+              )}
+            </div>
+            <span className={styles.tabLabel}>{tab.label}</span>
+          </button>
+        ))}
+      </div>
     </nav>
   );
 }
