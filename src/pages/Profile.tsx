@@ -1,15 +1,48 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
 import { Button, Card, Input, Switch } from '../components/ui';
 import { StreakIcon } from '../components/StreakIcon';
+import { RadarChart } from '../components/RadarChart'; // ÚJ IMPORT
 import { RANKS, AVATARS, type AvatarType } from '../types';
+import { calculateRadarStats } from '../lib/scoring'; // ÚJ IMPORT
 import * as supabase from '../lib/supabase';
 import styles from './Profile.module.css';
 
+// Kategória magyarázatok (Ugyanaz, mint a FriendProfile-ban)
+const CATEGORY_EXPLANATIONS = {
+  business: {
+    name: 'Business Idő',
+    description: 'Produktív munkaórák száma. Minél több időt töltesz fókuszált munkával, annál magasabb a pontszámod.',
+    calculation: 'Napi business percek átlaga / 480 perc (8 óra) × 100'
+  },
+  discipline: {
+    name: 'Fegyelem',
+    description: 'Tisztaság és önkontroll. A satisfaction, dopamine content és gaming szokások alapján.',
+    calculation: 'Tiszta napok aránya × 100'
+  },
+  body: {
+    name: 'Test',
+    description: 'Fizikai egészség: edzés és egészséges étkezés kombinációja.',
+    calculation: '(Edzés napok + Tiszta étkezés napok) / (Összes nap × 2) × 100'
+  },
+  mind: {
+    name: 'Elme',
+    description: 'Mentális fejlődés és tanulás. Paradigma shift és tudatos döntések.',
+    calculation: 'Paradigma napok aránya × 100'
+  },
+  sleep: {
+    name: 'Alvás',
+    description: 'Alvás minősége és mennyisége. Optimális: 7-9 óra.',
+    calculation: 'Alvás percek átlaga / 480 perc (8 óra) × 100, max 100'
+  }
+};
+
 export function Profile() {
   const navigate = useNavigate();
-  const { user, streak, saveUser, monthlyAverage, signOut, authUser, pendingRequests } = useHabits();
+  const { user, streak, saveUser, monthlyAverage, signOut, authUser, pendingRequests, entries } = useHabits(); // entries hozzáadva
+  
+  const [viewMode, setViewMode] = useState<'overview' | 'analysis'>('overview'); // ÚJ STATE
   const [isEditing, setIsEditing] = useState(false);
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [selectedAvatar, setSelectedAvatar] = useState<AvatarType>(user?.avatar || 'lion');
@@ -23,6 +56,12 @@ export function Profile() {
     streakEnabled: true,
     socialEnabled: true,
   });
+
+  // Calculate radar stats
+  const radarStats = useMemo(() => {
+    const last30Days = entries.slice(0, 30);
+    return calculateRadarStats(last30Days);
+  }, [entries]);
 
   // Load notification settings
   useEffect(() => {
@@ -150,7 +189,7 @@ export function Profile() {
       <header className={styles.header}>
         <h1 className={styles.title}>Profil</h1>
         <button className={styles.settingsButton} onClick={() => setShowSettings(!showSettings)}>
-          ⚙️
+          {showSettings ? '✕' : '⚙️'}
         </button>
       </header>
 
@@ -212,92 +251,138 @@ export function Profile() {
         </div>
       ) : (
         <>
-          {/* Profile card */}
-          <Card className={styles.profileCard}>
-            <div className={styles.profileHeader}>
-              <img
-                src={AVATARS[user.avatar].icon}
-                alt={AVATARS[user.avatar].name}
-                className={styles.profileAvatar}
-              />
-              <div className={styles.profileInfo}>
-                <h2 className={styles.profileName}>{user.displayName}</h2>
-                <span className={styles.profileUsername}>@{user.username}</span>
-              </div>
-              <button className={styles.editButton} onClick={() => setIsEditing(true)}>
-                ✏️
-              </button>
-            </div>
-            
-            {user.bio && <p className={styles.profileBio}>{user.bio}</p>}
-            
-            <div className={styles.profileStats}>
-              <div className={styles.profileStat}>
-                <StreakIcon level={streak.level} days={streak.currentStreak} size="sm" />
-              </div>
-              <div className={styles.profileStat}>
-                <span className={styles.statValue}>{Math.round(monthlyAverage)}</span>
-                <span className={styles.statLabel}>Havi átlag</span>
-              </div>
-              <div className={styles.profileStat}>
-                <span className={styles.rankBadge} style={{ color: rankData.color }}>
-                  {rankData.emoji} {rankData.name}
-                </span>
-              </div>
-            </div>
-          </Card>
-
-          {/* Streak details */}
-          <Card className={styles.streakCard}>
-            <h3 className={styles.sectionTitle}>Streak részletek</h3>
-            <div className={styles.streakDetails}>
-              <div className={styles.streakItem}>
-                <span className={styles.streakLabel}>Jelenlegi sorozat</span>
-                <span className={styles.streakValue}>{streak.currentStreak} nap</span>
-              </div>
-              <div className={styles.streakItem}>
-                <span className={styles.streakLabel}>Leghosszabb sorozat</span>
-                <span className={styles.streakValue}>{streak.longestStreak} nap</span>
-              </div>
-              <div className={styles.streakItem}>
-                <span className={styles.streakLabel}>Cryo-Freeze készlet</span>
-                <span className={styles.streakValue}>🧊 {streak.cryoFreezeCount}/3</span>
-              </div>
-            </div>
-          </Card>
-
-          {/* Rank info */}
-          <Card className={styles.rankCard}>
-            <h3 className={styles.sectionTitle}>Rang</h3>
-            <div className={styles.rankInfo}>
-              <span className={styles.rankEmoji}>{rankData.emoji}</span>
-              <div className={styles.rankDetails}>
-                <span className={styles.rankName} style={{ color: rankData.color }}>
-                  {rankData.name}
-                </span>
-                <span className={styles.rankRange}>
-                  {rankData.minScore} - {rankData.maxScore === 100 ? '100' : rankData.maxScore.toFixed(1)} pont átlag
-                </span>
-              </div>
-            </div>
-          </Card>
-
-          {/* Friends button */}
-          <div className={styles.friendsButtonWrapper}>
-            <Button variant="secondary" fullWidth onClick={() => navigate('/friends')}>
-              👥 Barátok kezelése
-            </Button>
-            {pendingRequests.incoming.length > 0 && (
-              <span className={styles.notificationDot} title={`${pendingRequests.incoming.length} bejövő barátkérelem`}>
-                {pendingRequests.incoming.length}
-              </span>
-            )}
+          {/* View Toggle */}
+          <div className={styles.viewToggle}>
+            <button
+              className={`${styles.toggleButton} ${viewMode === 'overview' ? styles.toggleActive : ''}`}
+              onClick={() => setViewMode('overview')}
+            >
+              Áttekintés
+            </button>
+            <button
+              className={`${styles.toggleButton} ${viewMode === 'analysis' ? styles.toggleActive : ''}`}
+              onClick={() => setViewMode('analysis')}
+            >
+              Elemzés
+            </button>
           </div>
 
-          {/* Sign out button */}
-          <Button variant="danger" fullWidth onClick={handleSignOut}>
-            Kijelentkezés
-          </Button>
+          {viewMode === 'overview' ? (
+            <>
+              {/* Profile card */}
+              <Card className={styles.profileCard}>
+                <div className={styles.profileHeader}>
+                  <img
+                    src={AVATARS[user.avatar].icon}
+                    alt={AVATARS[user.avatar].name}
+                    className={styles.profileAvatar}
+                  />
+                  <div className={styles.profileInfo}>
+                    <h2 className={styles.profileName}>{user.displayName}</h2>
+                    <span className={styles.profileUsername}>@{user.username}</span>
+                  </div>
+                  <button className={styles.editButton} onClick={() => setIsEditing(true)}>
+                    ✏️
+                  </button>
+                </div>
+                
+                {user.bio && <p className={styles.profileBio}>{user.bio}</p>}
+                
+                <div className={styles.profileStats}>
+                  <div className={styles.profileStat}>
+                    <StreakIcon level={streak.level} days={streak.currentStreak} size="sm" />
+                  </div>
+                  <div className={styles.profileStat}>
+                    <span className={styles.statValue}>{Math.round(monthlyAverage)}</span>
+                    <span className={styles.statLabel}>Havi átlag</span>
+                  </div>
+                  <div className={styles.profileStat}>
+                    <span className={styles.rankBadge} style={{ color: rankData.color }}>
+                      {rankData.emoji} {rankData.name}
+                    </span>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Streak details */}
+              <Card className={styles.streakCard}>
+                <h3 className={styles.sectionTitle}>Streak részletek</h3>
+                <div className={styles.streakDetails}>
+                  <div className={styles.streakItem}>
+                    <span className={styles.streakLabel}>Jelenlegi sorozat</span>
+                    <span className={styles.streakValue}>{streak.currentStreak} nap</span>
+                  </div>
+                  <div className={styles.streakItem}>
+                    <span className={styles.streakLabel}>Leghosszabb sorozat</span>
+                    <span className={styles.streakValue}>{streak.longestStreak} nap</span>
+                  </div>
+                  <div className={styles.streakItem}>
+                    <span className={styles.streakLabel}>Cryo-Freeze készlet</span>
+                    <span className={styles.streakValue}>🧊 {streak.cryoFreezeCount}/3</span>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Rank info */}
+              <Card className={styles.rankCard}>
+                <h3 className={styles.sectionTitle}>Rang</h3>
+                <div className={styles.rankInfo}>
+                  <span className={styles.rankEmoji}>{rankData.emoji}</span>
+                  <div className={styles.rankDetails}>
+                    <span className={styles.rankName} style={{ color: rankData.color }}>
+                      {rankData.name}
+                    </span>
+                    <span className={styles.rankRange}>
+                      {rankData.minScore} - {rankData.maxScore === 100 ? '100' : rankData.maxScore.toFixed(1)} pont átlag
+                    </span>
+                  </div>
+                </div>
+              </Card>
+
+              {/* Friends button */}
+              <div className={styles.friendsButtonWrapper}>
+                <Button variant="secondary" fullWidth onClick={() => navigate('/friends')}>
+                  👥 Barátok kezelése
+                </Button>
+                {pendingRequests.incoming.length > 0 && (
+                  <span className={styles.notificationDot} title={`${pendingRequests.incoming.length} bejövő barátkérelem`}>
+                    {pendingRequests.incoming.length}
+                  </span>
+                )}
+              </div>
+
+              {/* Sign out button */}
+              <Button variant="danger" fullWidth onClick={handleSignOut}>
+                Kijelentkezés
+              </Button>
+            </>
+          ) : (
+            <>
+              {/* Analysis View */}
+              <Card className={styles.radarCard}>
+                <h3 className={styles.radarTitle}>Képességek</h3>
+                <RadarChart 
+                  stats={radarStats}
+                  primaryLabel="Te"
+                />
+              </Card>
+
+              <Card className={styles.explanationCard}>
+                <h3 className={styles.explanationTitle}>Magyarázatok</h3>
+                <div className={styles.explanationList}>
+                  {Object.entries(CATEGORY_EXPLANATIONS).map(([key, cat]) => (
+                    <div key={key} className={styles.explanationItem}>
+                      <div className={styles.explanationHeader}>
+                        <span className={styles.explanationName}>{cat.name}</span>
+                      </div>
+                      <p className={styles.explanationDesc}>{cat.description}</p>
+                      <span className={styles.explanationCalc}>{cat.calculation}</span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            </>
+          )}
         </>
       )}
     </div>
