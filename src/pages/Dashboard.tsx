@@ -77,6 +77,7 @@ export function Dashboard() {
         </div>
         {user && (
           <div className={styles.userBadge}>
+            <span className={styles.rankName}>{RANKS[user.rank].name}</span>
             <span className={styles.rankEmoji}>{RANKS[user.rank].emoji}</span>
           </div>
         )}
@@ -102,7 +103,7 @@ export function Dashboard() {
       </section>
 
       {/* Today's Score */}
-      <Card className={styles.scoreCard}>
+      <Card className={styles.scoreCard} variant="glow">
         <div className={styles.scoreHeader}>
           <h3 className={styles.sectionTitle}>Mai nap</h3>
           <span className={styles.dateLabel}>
@@ -114,14 +115,18 @@ export function Dashboard() {
           <ProgressRing
             value={todayScore}
             max={100}
-            size={140}
-            strokeWidth={10}
-            color={hasLoggedToday ? colorMap[scoreColor] : 'var(--color-border)'}
+            size={160}
+            strokeWidth={12}
           >
-            <span className={styles.scoreValue} style={{ color: hasLoggedToday ? colorMap[scoreColor] : 'var(--color-muted)' }}>
-              {hasLoggedToday ? Math.round(todayScore) : '—'}
-            </span>
-            <span className={styles.scoreUnit}>pont</span>
+            <div className={styles.scoreInner}>
+              <span className={styles.scoreValue} style={{ 
+                color: hasLoggedToday ? colorMap[scoreColor] : 'var(--color-muted)',
+                opacity: hasLoggedToday ? 1 : 0.5 
+              }}>
+                {hasLoggedToday ? Math.round(todayScore) : '0'}
+              </span>
+              <span className={styles.scoreUnit}>pont</span>
+            </div>
           </ProgressRing>
           
           {hasLoggedToday && todayEntry && (
@@ -147,8 +152,9 @@ export function Dashboard() {
           fullWidth
           size="lg"
           onClick={handleStartWizard}
+          className={styles.actionButton}
         >
-          {hasLoggedToday ? (hasMissedDays ? 'Nap rögzítése' : 'Szerkesztés') : 'Nap rögzítése'}
+          {hasLoggedToday ? (hasMissedDays ? 'NAP RÖGZÍTÉSE' : 'SZERKESZTÉS') : 'NAP RÖGZÍTÉSE'}
         </Button>
       </Card>
 
@@ -161,21 +167,32 @@ export function Dashboard() {
         
         <div className={styles.weekChart}>
           {last7Days.map((day) => {
-            const height = day.hasEntry ? Math.max(10, (day.score / 100) * 100) : 10;
-            const color = day.hasEntry ? colorMap[getScoreColor(day.score)] : 'var(--color-border)';
             const isToday = day.date === getTodayString();
+            const isMissed = !day.hasEntry && !isToday && new Date(day.date) < new Date();
+            
+            const height = day.hasEntry ? Math.max(10, (day.score / 100) * 100) : 10;
+            // Ha ma van és nincs entry, akkor halvány szürke, ha kihagyott, akkor pirosas
+            const color = day.hasEntry 
+              ? colorMap[getScoreColor(day.score)] 
+              : isMissed 
+                ? 'rgba(248, 113, 113, 0.15)' // Halvány piros háttér a kihagyottnak
+                : 'var(--color-surface-light)';
             
             return (
-              <div key={day.date} className={styles.chartBar}>
+              <div key={day.date} className={styles.chartBarWrapper}>
                 <div
-                  className={styles.bar}
+                  className={`${styles.bar} ${isMissed ? styles.missedBar : ''}`}
                   style={{
-                    height: `${height}%`,
-                    backgroundColor: color,
-                    opacity: day.hasEntry ? 1 : 0.3,
+                    height: isMissed ? '100%' : `${height}%`,
+                    backgroundColor: isMissed ? 'rgba(248, 113, 113, 0.1)' : color,
+                    border: isMissed ? '1px solid rgba(248, 113, 113, 0.3)' : 'none',
                   }}
-                />
-                <span className={`${styles.dayLabel} ${isToday ? styles.today : ''}`}>
+                >
+                  {isMissed && (
+                    <span className={styles.missedLabel}>KIHAGYOTT</span>
+                  )}
+                </div>
+                <span className={`${styles.dayLabel} ${isToday ? styles.todayLabel : ''}`}>
                   {['V', 'H', 'K', 'Sz', 'Cs', 'P', 'Sz'][new Date(day.date).getDay()]}
                 </span>
               </div>
