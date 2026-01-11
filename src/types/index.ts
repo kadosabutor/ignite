@@ -164,7 +164,7 @@ export const STREAK_LEVELS: Record<StreakLevel, { name: string; minDays: number;
   inferno: { name: 'Inferno', minDays: 31, maxDays: 90, color: '#33CCFF', icon: '/assets/streaks/Inferno(Streaklv3).svg' },
   plasma: { name: 'Plasma', minDays: 91, maxDays: Infinity, color: '#B833FF', icon: '/assets/streaks/plasma(Streaklv4).svg' },
   frozen: { name: 'Frozen', minDays: 0, maxDays: 0, color: '#87CEEB', icon: '/assets/streaks/frozen(StreakLost).svg' },
-  phoenix: { name: 'Phoenix', minDays: 0, maxDays: 0, color: '#FF6B6B', icon: '/assets/streaks/pheonix(StreakTrial).svg' },
+  phoenix: { name: 'Phoenix', minDays: 0, maxDays: 0, color: '#FF6B6B', icon: '/assets/streaks/phoenix(StreakTrial).svg' }, // JAVÍTVA: pheonix -> phoenix
 };
 
 // Avatar definitions
