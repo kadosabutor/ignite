@@ -109,7 +109,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
     .from('streaks')
     .select('*')
     .eq('user_id', userId)
-    .single();
+    .maybeSingle(); // JAVÍTVA: single() -> maybeSingle()
 
   return {
     id: userData.id,
@@ -228,7 +228,7 @@ export async function getEntryByDate(userId: string, date: string): Promise<Habi
     .select('*')
     .eq('user_id', userId)
     .eq('date', date)
-    .single();
+    .maybeSingle(); // JAVÍTVA: single() -> maybeSingle()
 
   if (error || !data) return null;
 
@@ -305,7 +305,7 @@ export async function getStreak(userId: string): Promise<StreakData> {
     .from('streaks')
     .select('*')
     .eq('user_id', userId)
-    .single();
+    .maybeSingle(); // JAVÍTVA: single() -> maybeSingle()
 
   if (error || !data) {
     return {
@@ -390,17 +390,19 @@ export async function updateStreak(userId: string): Promise<StreakData> {
     .from('streaks')
     .select('*')
     .eq('user_id', userId)
-    .single();
+    .maybeSingle();
 
-  const longestStreak = Math.max(currentData?.longest_streak || 0, streak);
+  // JAVÍTVA: Ensure numbers are actually numbers, prevent NaN
+  const safeCurrentLongest = (currentData?.longest_streak && !isNaN(currentData.longest_streak)) ? currentData.longest_streak : 0;
+  const longestStreak = Math.max(safeCurrentLongest, streak);
   const cryoEarned = Math.min(3, Math.floor(streak / 7));
   const level = getStreakLevel(streak, false, currentData?.phoenix_active || false);
 
   const streakData: StreakData = {
-    currentStreak: streak,
-    longestStreak,
+    currentStreak: streak || 0,
+    longestStreak: longestStreak || 0,
     level,
-    cryoFreezeCount: cryoEarned,
+    cryoFreezeCount: cryoEarned || 0,
     lastEntryDate: entries[0]?.date || null,
     phoenixActive: currentData?.phoenix_active || false,
     phoenixDaysRemaining: currentData?.phoenix_days_remaining || 0,
@@ -469,15 +471,16 @@ export async function getAllFriends(userId: string): Promise<Friend[]> {
       .from('streaks')
       .select('*')
       .eq('user_id', friend.id)
-      .single();
+      .maybeSingle();
 
     // Get friend's today entry with full details for ProfileCard
+    // JAVÍTVA: single() -> maybeSingle() hogy elkerüljük a 406-os hibát ha nincs bejegyzés
     const { data: todayEntry } = await supabase
       .from('entries')
       .select('score, business_minutes, sleep_minutes, exercise, clean_eating, satisfaction, dopamine_content, gaming')
       .eq('user_id', friend.id)
       .eq('date', getTodayString())
-      .single();
+      .maybeSingle();
 
     friends.push({
       id: friend.id,
@@ -633,7 +636,7 @@ export async function getPendingFriendRequests(userId: string): Promise<{
       .from('streaks')
       .select('*')
       .eq('user_id', user.id)
-      .single();
+      .maybeSingle();
 
     incoming.push({
       id: user.id,
@@ -678,7 +681,7 @@ export async function getPendingFriendRequests(userId: string): Promise<{
       .from('streaks')
       .select('*')
       .eq('user_id', friend.id)
-      .single();
+      .maybeSingle();
 
     outgoing.push({
       id: friend.id,
@@ -881,7 +884,7 @@ export async function getNotificationSettings(userId: string): Promise<Notificat
     .from('settings')
     .select('notifications')
     .eq('user_id', userId)
-    .single();
+    .maybeSingle();
 
   return data?.notifications || DEFAULT_NOTIFICATION_SETTINGS;
 }
@@ -1179,7 +1182,7 @@ export async function sendPushNotification(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${supabaseKey}`,
+        'Authorization': `Bearer ${session.access_token}`, // Fix: Use session token instead of anon key for proper auth
       },
       body: JSON.stringify({
         recipientUserId,
