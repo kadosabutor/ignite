@@ -105,8 +105,13 @@ export async function subscribeToPush(): Promise<any | null> {
 
     console.log('New push subscription created:', subscription.endpoint);
     return subscription;
-  } catch (error) {
-    console.error('Error subscribing to push:', error);
+  } catch (error: any) {
+    // Silently handle AbortError (user denied) or other common errors
+    if (error.name === 'AbortError' || error.message.includes('Registration failed')) {
+        console.log('Push subscription aborted or denied by user.');
+    } else {
+        console.error('Error subscribing to push:', error);
+    }
     return null;
   }
 }
@@ -132,6 +137,23 @@ export async function unsubscribeFromPush(): Promise<boolean> {
 }
 
 /**
+ * Get current push subscription
+ */
+export async function getCurrentSubscription(): Promise<PushSubscription | null> {
+  if (!isPushSupported()) {
+    return null;
+  }
+
+  try {
+    const registration = await navigator.serviceWorker.ready;
+    return await registration.pushManager.getSubscription();
+  } catch (error) {
+    console.error('Error getting subscription:', error);
+    return null;
+  }
+}
+
+/**
  * Send a push notification to a specific user
  * This calls the Supabase Edge Function
  */
@@ -139,7 +161,6 @@ export async function sendPushNotification(
   recipientUserId: string,
   title: string,
   body: string,
-  type: string = 'general',
   data?: Record<string, any>,
   authToken?: string
 ): Promise<boolean> {
@@ -154,7 +175,7 @@ export async function sendPushNotification(
         recipientUserId,
         title,
         body,
-        data: { type, ...data }, // Include type in data payload
+        data,
       }),
     });
 
@@ -172,10 +193,9 @@ export async function sendPushNotification(
   }
 }
 
-// ==========================================
-// 🔔 ÉRTESÍTÉSI SABLONOK (TEMPLATES)
-// ==========================================
-
+/**
+ * Notification types for IGNITE
+ */
 export type NotificationType =
   | 'ping'           // Friend pinged you
   | 'fire'           // Friend gave you fire
@@ -184,139 +204,111 @@ export type NotificationType =
   | 'rank_up'        // You ranked up
   | 'rank_down'      // You ranked down
   | 'streak_warning' // Streak about to break
-  | 'streak_last'    // Last chance warning
-  | 'morning'        // Daily morning motivation
-  | 'afternoon'      // Afternoon check-in
-  | 'evening'        // Evening reminder
-  | 'daily_reminder';// Generic daily reminder
-
-interface MessageTemplate {
-  title: string;
-  body: string;
-}
-
-const NOTIFICATION_TEMPLATES: Record<NotificationType, MessageTemplate[]> = {
-  // --- REGGEL (07:00) ---
-  morning: [
-    { title: "Jó reggelt, Harcos! 🌅", body: "Róma sem egy nap alatt épült, de minden nap raktak le téglát. Kezdjük a napot!" },
-    { title: "Wakey wakey! ⚡", body: "Main character energy only today. Mutasd meg, mit tudsz!" },
-    { title: "Napindító 🔥", body: "Új nap, új lehetőség a dominanciára. Ne hagyd ki!" },
-    { title: "Ébresztő! ⚔️", body: "A történelem a győztesekre emlékszik. Légy ma te a győztes!" },
-    { title: "Rise and Grind 💪", body: "A lustaság az ellenség. Győzd le már reggel!" },
-  ],
-
-  // --- DÉLUTÁN (15:00) ---
-  afternoon: [
-    { title: "Délutáni Check-in 📍", body: "Hogy állsz a célokkal? Hannibál sem állt meg az Alpok felénél." },
-    { title: "Ne aludj be! ☕", body: "Délutáni slump? Nem hiszem. Let's get this bread!" },
-    { title: "Félúton vagyunk! 🚀", body: "Nyomd meg a nap második felét! A dicsőség vár." },
-    { title: "Fókusz! 🎯", body: "Ne hagyd, hogy a figyelemelterelés győzzön. Maradj a pályán!" },
-  ],
-
-  // --- ESTE (21:00) ---
-  evening: [
-    { title: "Napzárás 🌙", body: "A nap lenyugodott. Itt az ideje az elszámolásnak. Rögzíts!" },
-    { title: "Last call, fam! ⏳", body: "Zárjuk a napot, no cap. Rögzítsd az eredményeidet!" },
-    { title: "Nagy Sándor is pihent... ⚔️", body: "...de előtte rögzítette a hódításait. Te se felejtsd el!" },
-    { title: "Esti emlékeztető 📝", body: "Ne feküdj le anélkül, hogy értékelted volna a mai teljesítményedet." },
-  ],
-
-  // --- STREAK WARNING (Ha veszélyben a sorozat) ---
-  streak_warning: [
-    { title: "Veszélyzóna! ⚠️", body: "A sorozatod veszélyben van! Ne hagyd kialudni a tüzet!" },
-    { title: "Bro, a streak-ed RIP lesz! 💀", body: "Ne légy NPC. Lépj be és mentsd meg a sorozatot!" },
-    { title: "Védd a Birodalmat! 🛡️", body: "A lángod pislákol. Tegyél rá fát, mielőtt késő lenne!" },
-    { title: "Ne törd meg a láncot! ⛓️", body: "Túl sokat dolgoztál érte. Ne hagyd veszni!" },
-  ],
-
-  streak_last: [
-    { title: "🚨 UTOLSÓ ESÉLY! 🚨", body: "1 órád maradt megmenteni a streaket! FUTÁS!" },
-    { title: "CODE RED 🔥", body: "Azonnal rögzíts, vagy mindennek vége! Nem viccelünk." },
-  ],
-
-  // --- PING (Barátoktól) ---
-  ping: [
-    { title: "{name} pingelt! 🔔", body: "Hé, mikor lesz már bejegyzés? 🔥" },
-    { title: "{name} üzeni: ⚔️", body: "Egy igazi harcos nem hagy ki napot! Hol vagy?" },
-    { title: "{name} ghostingolva érzi magát 👻", body: "Ne hagyd lógva a haverodat. Rögzíts!" },
-    { title: "{name} hív! 📞", body: "Ébresztő! A streak nem tartja magát!" },
-    { title: "{name} rázza a kerítést! 🚧", body: "WYA? (Where You At?) Gyere már!" },
-  ],
-
-  // --- FIRE (Elismerés) ---
-  fire: [
-    { title: "{name} tüzet adott! 🔥", body: "Sheeesh! Ez nagyon adja! Csak így tovább!" },
-    { title: "{name} elismerte a napodat! 🤝", body: "Tisztelet a harcosnak. Szép munka volt!" },
-    { title: "Bumm! 💥 {name} küldött egy tüzet!", body: "Látják a kemény munkádat. Büszke lehetsz!" },
-    { title: "{name}: Ez igen! 🏆", body: "Király vagy! A ranglétra csúcsa vár." },
-  ],
-
-  // --- SOCIAL (Egyéb) ---
-  friend_request: [
-    { title: "👋 Új Barátkérelem!", body: "{name} szeretne a szövetségesed lenni." },
-    { title: "Új bestie alert! 👯", body: "{name} bejelölt. Csekkold le a profilt!" },
-    { title: "Kihívó érkezett! ⚔️", body: "{name} barátnak jelölt. Fogadd el és küzdjetek meg!" },
-  ],
-
-  friend_accept: [
-    { title: "✅ Kérelem Elfogadva!", body: "{name} mostantól a köröd része." },
-    { title: "A Szövetség megköttetett! 🤝", body: "{name} elfogadta a jelölésedet." },
-    { title: "Let's gooo! 🚀", body: "{name} visszajelölt. Indulhat a verseny!" },
-  ],
-
-  // --- RANK (Ranglépés) ---
-  rank_up: [
-    { title: "LEVEL UP! 🚀", body: "Gratulálunk! Új rangod: {rank}. Ez igen, King/Queen!" },
-    { title: "Előléptetés! ⭐", body: "Kemény munkád gyümölcse beérett. Üdv a {rank} szinten!" },
-    { title: "Új Rang: {rank} 🏆", body: "A legendák közé emelkedtél. Csak így tovább!" },
-  ],
-
-  rank_down: [
-    { title: "Rang Csökkenés 📉", body: "Vigyázz! Visszaestél. Kapd össze magad és szerezd vissza!" },
-    { title: "Ember a vízben! 🌊", body: "elvesztetted a rangodat. Dolgozz keményebben!" },
-  ],
-
-  daily_reminder: [
-    { title: "Napi emlékeztető 📝", body: "Ideje rögzíteni a mai napodat!" },
-  ]
-};
+  | 'daily_reminder';// Daily reminder to log
 
 /**
- * Get a random message from template
+ * Random ping messages
  */
-function getRandomTemplate(type: NotificationType): MessageTemplate {
-  const templates = NOTIFICATION_TEMPLATES[type] || NOTIFICATION_TEMPLATES.daily_reminder;
-  return templates[Math.floor(Math.random() * templates.length)];
+const PING_MESSAGES = [
+  "Hé, mikor lesz már bejegyzés? 🔥",
+  "Ne aludj el, haver! ⚡",
+  "Gyerünk, ma is megcsináljuk! 💪",
+  "Ébresztő! Ideje rögzíteni! 🌅",
+  "A streak nem tartja magát! 🔥",
+  "Egy igazi harcos nem hagy ki napot! ⚔️",
+  "Tick-tock... a nap véget ér! ⏰",
+  "Mutasd meg, miből vagy! 💥",
+];
+
+/**
+ * Get a random ping message
+ */
+export function getRandomPingMessage(): string {
+  return PING_MESSAGES[Math.floor(Math.random() * PING_MESSAGES.length)];
 }
 
 /**
- * Format notification and replace placeholders
+ * Random fire recognition messages
+ */
+const FIRE_MESSAGES = [
+  "Elismerték a mai teljesítményedet! 🔥",
+  "Fantasztikus munka! Tűz vagy! 💪",
+  "Valaki elismerésben részesített! 🎉",
+  "Tűz elismerés érkezett! Te vagy a hős! ⚔️",
+  "Elismerésben részesítettek! Csillogsz! ✨",
+  "Valaki tüzet adott neked! Fantasztikus! 🔥",
+  "Elismerés érkezett! Folytasd így! 💥",
+  "Tűz elismerés! Te vagy a legjobb! 🏆",
+];
+
+/**
+ * Get a random fire message
+ */
+export function getRandomFireMessage(): string {
+  return FIRE_MESSAGES[Math.floor(Math.random() * FIRE_MESSAGES.length)];
+}
+
+/**
+ * Format notification for different types
  */
 export function formatNotification(
   type: NotificationType,
   senderName?: string,
   data?: Record<string, any>
 ): { title: string; body: string } {
-  
-  const template = getRandomTemplate(type);
-  let title = template.title;
-  let body = template.body;
+  switch (type) {
+    case 'ping':
+      return {
+        title: `${senderName || 'Valaki'} pingelt! 🔔`,
+        body: getRandomPingMessage(),
+      };
 
-  // Replace placeholders
-  const name = senderName || 'Valaki';
-  const rank = data?.rank || 'Ismeretlen';
+    case 'fire':
+      return {
+        title: `${senderName || 'Valaki'} tüzet adott! 🔥`,
+        body: 'Elismerték a mai teljesítményedet!',
+      };
 
-  title = title.replace('{name}', name).replace('{rank}', rank);
-  body = body.replace('{name}', name).replace('{rank}', rank);
+    case 'friend_request':
+      return {
+        title: 'Új barátkérelem! 👋',
+        body: `${senderName || 'Valaki'} szeretne a barátod lenni.`,
+      };
 
-  return { title, body };
-}
+    case 'friend_accept':
+      return {
+        title: 'Barátkérelem elfogadva! 🎉',
+        body: `${senderName || 'Valaki'} elfogadta a barátkérelmedet.`,
+      };
 
-// Export simple getters for random messages (used in Arena.tsx manually)
-export function getRandomPingMessage(): string {
-  return getRandomTemplate('ping').title.replace('{name} ', ''); // Return just the punchline for manual sending
-}
+    case 'rank_up':
+      return {
+        title: 'Ranglétra emelkedés! 🚀',
+        body: `Gratulálunk! Új rangod: ${data?.rank || 'Ismeretlen'}`,
+      };
 
-export function getRandomFireMessage(): string {
-  return getRandomTemplate('fire').body.replace('{name}', 'Valaki');
+    case 'rank_down':
+      return {
+        title: 'Rang csökkenés 📉',
+        body: 'Dolgozz keményebben, hogy visszaszerezd a rangod!',
+      };
+
+    case 'streak_warning':
+      return {
+        title: 'Streak veszélyben! ⚠️',
+        body: 'Még nem rögzítetted a mai napot. Ne hagyd kialudni a tüzet!',
+      };
+
+    case 'daily_reminder':
+      return {
+        title: 'Napi emlékeztető 📝',
+        body: 'Ideje rögzíteni a mai napodat!',
+      };
+
+    default:
+      return {
+        title: 'IGNITE értesítés',
+        body: 'Van egy új értesítésed.',
+      };
+  }
 }
