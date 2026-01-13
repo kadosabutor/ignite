@@ -109,7 +109,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
     .from('streaks')
     .select('*')
     .eq('user_id', userId)
-    .maybeSingle(); // JAVÍTVA: single() -> maybeSingle()
+    .maybeSingle(); 
 
   return {
     id: userData.id,
@@ -228,7 +228,7 @@ export async function getEntryByDate(userId: string, date: string): Promise<Habi
     .select('*')
     .eq('user_id', userId)
     .eq('date', date)
-    .maybeSingle(); // JAVÍTVA: single() -> maybeSingle()
+    .maybeSingle();
 
   if (error || !data) return null;
 
@@ -255,7 +255,9 @@ export async function getEntryByDate(userId: string, date: string): Promise<Habi
 }
 
 export async function saveEntry(userId: string, entry: HabitEntry): Promise<void> {
-  const score = calculateTotalScore(entry);
+  // JAVÍTÁS: Kerekítjük a pontszámot, mert az adatbázis INT típust vár
+  // Ez okozta a "semmi sem történik" hibát, mert a Supabase visszadobta a 85.4-et
+  const score = Math.round(calculateTotalScore(entry));
 
   const { error } = await supabase
     .from('entries')
@@ -305,7 +307,7 @@ export async function getStreak(userId: string): Promise<StreakData> {
     .from('streaks')
     .select('*')
     .eq('user_id', userId)
-    .maybeSingle(); // JAVÍTVA: single() -> maybeSingle()
+    .maybeSingle();
 
   if (error || !data) {
     return {
@@ -392,7 +394,7 @@ export async function updateStreak(userId: string): Promise<StreakData> {
     .eq('user_id', userId)
     .maybeSingle();
 
-  // JAVÍTVA: Ensure numbers are actually numbers, prevent NaN
+  // Ensure numbers are actually numbers, prevent NaN
   const safeCurrentLongest = (currentData?.longest_streak && !isNaN(currentData.longest_streak)) ? currentData.longest_streak : 0;
   const longestStreak = Math.max(safeCurrentLongest, streak);
   const cryoEarned = Math.min(3, Math.floor(streak / 7));
@@ -474,7 +476,6 @@ export async function getAllFriends(userId: string): Promise<Friend[]> {
       .maybeSingle();
 
     // Get friend's today entry with full details for ProfileCard
-    // JAVÍTVA: single() -> maybeSingle() hogy elkerüljük a 406-os hibát ha nincs bejegyzés
     const { data: todayEntry } = await supabase
       .from('entries')
       .select('score, business_minutes, sleep_minutes, exercise, clean_eating, satisfaction, dopamine_content, gaming')
