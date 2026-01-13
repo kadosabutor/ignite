@@ -29,6 +29,7 @@ export function Wizard() {
   );
   const [showMinuteInput, setShowMinuteInput] = useState(false);
   const [customMinutes, setCustomMinutes] = useState('');
+  const [isSaving, setIsSaving] = useState(false); // ÚJ STATE: Mentés folyamatban
 
   // Refs for auto-focus
   const wakeMinutesRef = useRef<HTMLInputElement>(null);
@@ -62,9 +63,21 @@ export function Wizard() {
   };
 
   const handleSave = async () => {
-    const finalEntry = { ...entry, score: calculateTotalScore(entry) };
-    await saveEntry(finalEntry);
-    navigate(`/summary?date=${dateParam}`);
+    if (isSaving) return; // Prevent double clicks
+    
+    setIsSaving(true);
+    try {
+      // Megjegyzés: A calculateTotalScore itt csak a lokális objektumhoz kell,
+      // a saveEntry (supabase.ts) újra kiszámolja és kerekíti majd.
+      const finalEntry = { ...entry, score: calculateTotalScore(entry) };
+      await saveEntry(finalEntry);
+      navigate(`/summary?date=${dateParam}`);
+    } catch (error) {
+      console.error('Mentési hiba:', error);
+      alert('Nem sikerült elmenteni az adatokat. Kérlek próbáld újra!');
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   const handleWorkHourSelect = (hours: number) => {
@@ -437,23 +450,23 @@ export function Wizard() {
       {/* Footer */}
       <footer className={styles.footer}>
         {currentStep > 0 && (
-          <Button variant="ghost" onClick={handlePrev}>
+          <Button variant="ghost" onClick={handlePrev} disabled={isSaving}>
             Előző
           </Button>
         )}
         
         {currentStep < STEPS.length - 1 ? (
           <>
-            <Button variant="ghost" onClick={handleSkip}>
+            <Button variant="ghost" onClick={handleSkip} disabled={isSaving}>
               Kihagyás
             </Button>
-            <Button onClick={handleNext}>
+            <Button onClick={handleNext} disabled={isSaving}>
               Következő
             </Button>
           </>
         ) : (
-          <Button onClick={handleSave} size="lg">
-            Mentés
+          <Button onClick={handleSave} size="lg" disabled={isSaving}>
+            {isSaving ? 'Mentés...' : 'Mentés'}
           </Button>
         )}
       </footer>
