@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
 import { Button, Card } from '../components/ui';
 import { StreakIcon } from '../components/StreakIcon';
+import { LeaderboardPodium } from '../components/LeaderboardPodium'; // ÚJ IMPORT
 import { AVATARS, RANKS } from '../types';
 import { getScoreColor } from '../lib/scoring';
 import { getRandomPingMessage, getRandomFireMessage } from '../lib/push';
@@ -10,6 +11,22 @@ import styles from './Arena.module.css';
 
 type TabType = 'feed' | 'leaderboard' | 'friends';
 type LeaderboardPeriod = 'today' | 'week' | 'month';
+
+// ÚJ: Aktivitás ikon komponens
+const ActivityIcons = ({ entry }: { entry: any }) => {
+  if (!entry) return null;
+  return (
+    <div className={styles.activityRow}>
+      {entry.exercise && <span title="Edzés">💪</span>}
+      {entry.cleanEating && <span title="Tiszta étkezés">🍎</span>}
+      {entry.paradigm && <span title="Paradigma">🧠</span>}
+      {!entry.satisfaction && !entry.dopamineContent && !entry.gaming && (
+        <span title="Tiszta elme">✨</span>
+      )}
+      {entry.sleepMinutes > 420 && <span title="Jó alvás">🌙</span>}
+    </div>
+  );
+};
 
 export function Arena() {
   const navigate = useNavigate();
@@ -25,10 +42,8 @@ export function Arena() {
     error: 'var(--color-error)',
   };
 
-  // Check if it's after 18:00 for ping feature
   const canPing = new Date().getHours() >= 18;
 
-  // Load leaderboard when tab or period changes
   useEffect(() => {
     if (activeTab === 'leaderboard') {
       loadLeaderboard();
@@ -44,6 +59,37 @@ export function Arena() {
       console.error('Failed to load leaderboard:', error);
     } finally {
       setIsLoadingLeaderboard(false);
+    }
+  };
+
+  // ÚJ: Tűz effekt animáció
+  const triggerFireEffect = (e: React.MouseEvent) => {
+    const button = e.currentTarget;
+    const rect = button.getBoundingClientRect();
+    
+    // 8 láng létrehozása
+    for (let i = 0; i < 8; i++) {
+      const flame = document.createElement('div');
+      flame.innerText = '🔥';
+      flame.style.position = 'fixed';
+      flame.style.left = `${rect.left + rect.width / 2}px`;
+      flame.style.top = `${rect.top}px`;
+      flame.style.fontSize = '20px';
+      flame.style.pointerEvents = 'none';
+      flame.style.transition = `all 1s ease-out`;
+      flame.style.zIndex = '1000';
+      
+      const randomX = (Math.random() - 0.5) * 100;
+      const randomY = -50 - Math.random() * 100;
+      
+      document.body.appendChild(flame);
+      
+      requestAnimationFrame(() => {
+        flame.style.transform = `translate(${randomX}px, ${randomY}px) scale(0)`;
+        flame.style.opacity = '0';
+      });
+      
+      setTimeout(() => flame.remove(), 1000);
     }
   };
 
@@ -69,6 +115,8 @@ export function Arena() {
 
   const handleFire = async (e: React.MouseEvent, friendId: string) => {
     e.stopPropagation();
+    triggerFireEffect(e); // Effekt indítása
+    
     try {
       const { sendPushNotification } = await import('../lib/supabase');
       const randomTitle = getRandomPingMessage();
@@ -80,15 +128,14 @@ export function Arena() {
         'fire',
         { senderId: user?.id }
       );
-      alert('🔥 Tűz elismerés elküldve!');
+      // alert kivéve, mert az effekt vizuálisan elég visszajelzés
     } catch (error) {
       console.error('Error sending fire:', error);
-      alert('Hiba a tűz küldésekor');
     }
   };
 
   const handleVS = (e: React.MouseEvent, friendId: string) => {
-    e.stopPropagation(); // Prevent double navigation
+    e.stopPropagation();
     navigate(`/friend/${friendId}?mode=vs`);
   };
 
@@ -100,14 +147,22 @@ export function Arena() {
     if (isCurrentUser) {
       navigate('/profile');
     } else {
-      // Check if this user is a friend
       const isFriend = friends.some(f => f.id === userId);
       if (isFriend) {
         navigate(`/friend/${userId}`);
       }
-      // If not a friend, we can't view their profile (privacy)
     }
   };
+
+  // Dobogósok előkészítése
+  const podiumData = leaderboardData.slice(0, 3).map(entry => ({
+    id: entry.user.id,
+    username: entry.user.displayName,
+    avatar: entry.user.avatar,
+    score: entry.score,
+    rank: entry.position,
+    color: RANKS[entry.user.rank as keyof typeof RANKS]?.color || '#888'
+  }));
 
   if (!user) {
     return (
@@ -182,6 +237,8 @@ export function Arena() {
                     <div className={styles.feedInfo}>
                       <span className={styles.feedName}>{friend.displayName}</span>
                       <span className={styles.feedUsername}>@{friend.username}</span>
+                      {/* ÚJ: Aktivitás ikonok */}
+                      {hasLoggedToday && <ActivityIcons entry={friend.todayEntry} />}
                     </div>
                     <StreakIcon level={friend.streak.level} days={friend.streak.currentStreak} size="sm" />
                   </div>
@@ -245,6 +302,11 @@ export function Arena() {
               </button>
             ))}
           </div>
+
+          {/* ÚJ: Dobogó megjelenítése (ha vannak adatok) */}
+          {!isLoadingLeaderboard && leaderboardData.length > 0 && (
+            <LeaderboardPodium top3={podiumData} />
+          )}
 
           {/* Leaderboard list */}
           <div className={styles.leaderboardList}>
