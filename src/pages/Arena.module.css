@@ -1,412 +1,370 @@
 .container {
-  padding: 20px;
-  padding-top: calc(20px + env(safe-area-inset-top, 0));
+  padding-top: calc(10px + env(safe-area-inset-top, 0)); /* Kisebb felső padding */
+  padding-bottom: 100px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
-  padding-bottom: 100px;
+  gap: 24px;
+  min-height: 100vh;
+  background-color: var(--color-background);
 }
 
+/* 1. Header */
 .header {
+  padding: 0 20px;
   display: flex;
   justify-content: space-between;
   align-items: center;
 }
 
 .title {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 800;
   color: var(--color-foreground);
   margin: 0;
+  letter-spacing: -0.5px;
 }
 
-/* Empty state */
-.empty {
+.friendsButton {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  color: var(--color-foreground);
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
   display: flex;
-  flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 16px;
-  padding: 60px 20px;
-  text-align: center;
-}
-
-.emptyIcon {
-  font-size: 48px;
-}
-
-.emptyTitle {
   font-size: 20px;
-  font-weight: 700;
-  color: var(--color-foreground);
-  margin: 0;
-}
-
-.emptyText {
-  font-size: 14px;
-  color: var(--color-muted);
-  margin: 0;
-}
-
-.emptyCard {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 12px;
-  text-align: center;
-  color: var(--color-muted);
-}
-
-/* Tabs */
-.tabs {
-  display: flex;
-  background-color: var(--color-surface);
-  border-radius: 12px;
-  padding: 4px;
-}
-
-.tab {
-  flex: 1;
-  padding: 12px;
-  border-radius: 10px;
-  background: none;
-  border: none;
-  color: var(--color-muted);
-  font-size: 14px;
-  font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
 }
 
-.tabActive {
-  background-color: var(--color-primary);
-  color: #121212;
-}
-
-/* Feed */
-.feed {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.feedCard {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  cursor: pointer;
-  transition: transform 0.2s, opacity 0.2s;
-}
-
-.feedCard:active {
-  transform: scale(0.98);
-}
-
-.sleepingAgent {
-  opacity: 0.6;
-}
-
-.feedHeader {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.feedAvatar {
-  width: 48px;
-  height: 48px;
-  object-fit: contain;
-  border-radius: 50%;
-  border: 3px solid;
-}
-
-.feedInfo {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-}
-
-.feedName {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-foreground);
-}
-
-.feedUsername {
-  font-size: 12px;
-  color: var(--color-muted);
-}
-
-/* ÚJ: Aktivitás ikonok sor */
-.activityRow {
-  display: flex;
-  gap: 4px;
-  margin-top: 4px;
-  font-size: 14px;
-  background: rgba(255, 255, 255, 0.05);
-  padding: 2px 6px;
-  border-radius: 8px;
-  width: fit-content;
-}
-
-.feedScore {
-  display: flex;
-  align-items: baseline;
-  gap: 8px;
-  padding: 12px;
-  background-color: var(--color-background);
-  border-radius: 12px;
-}
-
-.scoreValue {
-  font-size: 32px;
-  font-weight: 800;
-}
-
-.scoreLabel {
-  font-size: 14px;
-  color: var(--color-muted);
-}
-
-.feedPending {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 12px;
-  background-color: var(--color-background);
-  border-radius: 12px;
-}
-
-.pendingText {
-  font-size: 14px;
-  color: var(--color-muted);
-}
-
-.feedActions {
-  display: flex;
-  justify-content: flex-end;
-  align-items: center;
-  gap: 8px;
-}
-
-.vsButton {
-  padding: 8px 16px;
-  border-radius: 8px;
-  background-color: var(--color-surface);
-  border: none;
-  font-size: 14px;
-  font-weight: 600;
-  cursor: pointer;
-  transition: transform 0.2s, background-color 0.2s;
-  color: var(--color-foreground);
-}
-
-.vsButton:active {
+.friendsButton:active {
   transform: scale(0.95);
-  background-color: var(--color-primary);
+  background: var(--color-surface-light);
 }
 
-.fireButton {
-  width: 48px;
-  height: 48px;
-  border-radius: 50%;
-  background-color: var(--color-background);
-  border: none;
-  font-size: 24px;
+/* 2. Story Rail */
+.storyRailWrapper {
+  width: 100%;
+  overflow-x: auto;
+  padding: 0 20px;
+  /* Hide scrollbar */
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.storyRailWrapper::-webkit-scrollbar {
+  display: none;
+}
+
+.storyRail {
+  display: flex;
+  gap: 16px;
+  min-width: min-content; /* Fontos a görgetéshez */
+}
+
+.storyItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
   cursor: pointer;
+  width: 72px; /* Fix szélesség */
+}
+
+.storyRing {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  padding: 3px; /* A keret vastagsága */
+  position: relative;
   transition: transform 0.2s;
 }
 
-.fireButton:active {
-  animation: explode 0.4s ease-out;
+.storyItem:active .storyRing {
+  transform: scale(0.95);
 }
 
-@keyframes explode {
-  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 112, 51, 0.7); }
-  50% { transform: scale(1.4); box-shadow: 0 0 20px 10px rgba(255, 112, 51, 0); }
-  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(255, 112, 51, 0); }
+/* Aktív: Gradiens keret + animáció */
+.ringActive {
+  background: linear-gradient(45deg, #ff7033, #FFD700);
+  animation: pulse 3s infinite;
 }
 
-/* Leaderboard */
-.leaderboard {
+/* Inaktív: Szürke keret */
+.ringInactive {
+  background: var(--color-border);
+  opacity: 0.7;
+}
+
+.storyAvatar {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  background-color: var(--color-background);
+  border: 2px solid var(--color-background); /* Belső térköz */
+  object-fit: contain;
+}
+
+.fireBadge {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  font-size: 16px;
+  background-color: var(--color-background);
+  border-radius: 50%;
+  width: 20px;
+  height: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid var(--color-surface);
+}
+
+.storyName {
+  font-size: 11px;
+  color: var(--color-foreground);
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  width: 100%;
+}
+
+/* 3. Leaderboard Section */
+.leaderboardSection {
+  background-color: var(--color-surface);
+  border-radius: 24px 24px 0 0; /* Lekerekített felső sarkok */
+  padding: 24px 20px;
+  flex: 1; /* Kitölti a maradék helyet */
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.sectionTitle {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
 }
 
 .periodSelector {
   display: flex;
-  gap: 8px;
+  background-color: var(--color-background);
+  border-radius: 20px;
+  padding: 2px;
 }
 
-.periodButton {
-  flex: 1;
-  padding: 10px;
-  border-radius: 8px;
-  background-color: var(--color-surface);
-  border: none;
-  color: var(--color-muted);
-  font-size: 14px;
+.periodTab {
+  padding: 6px 12px;
+  font-size: 11px;
   font-weight: 600;
+  color: var(--color-muted);
+  background: none;
+  border: none;
+  border-radius: 18px;
   cursor: pointer;
   transition: all 0.2s;
+  text-transform: uppercase;
 }
 
 .periodActive {
   background-color: var(--color-primary);
   color: #121212;
+  box-shadow: 0 2px 8px rgba(255, 112, 51, 0.3);
 }
 
+/* Podium */
+.podium {
+  display: flex;
+  justify-content: center;
+  align-items: flex-end;
+  gap: 12px;
+  height: 180px;
+  margin-bottom: 12px;
+}
+
+.podiumItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  max-width: 100px;
+}
+
+.podiumAvatarWrapper {
+  position: relative;
+  margin-bottom: 8px;
+}
+
+.podiumAvatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  border: 2px solid;
+  background-color: var(--color-background);
+}
+
+.medal {
+  position: absolute;
+  top: -10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 20px;
+  z-index: 1;
+}
+
+.podiumInfo {
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.podiumName {
+  display: block;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-foreground);
+}
+
+.podiumScore {
+  font-size: 11px;
+  color: var(--color-muted);
+}
+
+.podiumBar {
+  width: 100%;
+  border-radius: 8px 8px 0 0;
+  background: linear-gradient(180deg, var(--color-surface-light) 0%, rgba(255,255,255,0.05) 100%);
+}
+
+.first .podiumAvatar { width: 64px; height: 64px; border-color: #FFD700 !important; }
+.first .podiumBar { height: 100px; background: linear-gradient(180deg, #FFD700 0%, rgba(255, 215, 0, 0.1) 100%); opacity: 0.8; }
+
+.second .podiumAvatar { width: 56px; height: 56px; border-color: #C0C0C0 !important; }
+.second .podiumBar { height: 70px; }
+
+.third .podiumAvatar { width: 56px; height: 56px; border-color: #CD7F32 !important; }
+.third .podiumBar { height: 50px; }
+
+/* List */
 .leaderboardList {
   display: flex;
   flex-direction: column;
   gap: 8px;
 }
 
-.leaderboardCard {
+.listItem {
   display: flex;
   align-items: center;
-  gap: 12px;
   padding: 12px 16px;
+  gap: 12px;
+  background-color: var(--color-background) !important; /* Kártya a kártyán */
+  border: 1px solid var(--color-border);
 }
 
-.currentUser {
-  border: 2px solid var(--color-primary);
-}
-
-.position {
-  min-width: 32px;
-  font-size: 16px;
+.listPosition {
+  font-size: 14px;
   font-weight: 700;
   color: var(--color-muted);
+  width: 24px;
 }
 
-.leaderboardAvatar {
-  width: 40px;
-  height: 40px;
-  object-fit: contain;
-  border-radius: 50%;
-  border: 2px solid;
-}
-
-.clickable {
-  cursor: pointer;
-}
-
-.clickable:active {
-  transform: scale(0.98);
-}
-
-.leaderboardRight {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.miniVsButton {
+.listAvatar {
   width: 32px;
   height: 32px;
-  border-radius: 8px;
-  background-color: var(--color-surface);
-  border: none;
-  font-size: 14px;
-  cursor: pointer;
-  transition: transform 0.2s;
+  border-radius: 50%;
 }
 
-.miniVsButton:active {
-  transform: scale(0.9);
-}
-
-.leaderboardRank {
-  font-size: 12px;
-  font-weight: 600;
-}
-
-.leaderboardInfo {
+.listInfo {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
 }
 
-.leaderboardName {
+.listName {
   font-size: 14px;
   font-weight: 600;
-  color: var(--color-foreground);
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .youBadge {
-  font-size: 10px;
-  padding: 2px 6px;
+  font-size: 9px;
+  padding: 1px 6px;
   background-color: var(--color-primary);
   color: #121212;
   border-radius: 4px;
-  font-weight: 700;
+  text-transform: uppercase;
 }
 
-.leaderboardStreak {
-  font-size: 12px;
+.listRank {
+  font-size: 10px;
   color: var(--color-muted);
 }
 
-.leaderboardScore {
-  font-size: 24px;
-  font-weight: 800;
-  color: var(--color-primary);
-}
-
-/* Friends list */
-.friendsList {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.friendCard {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 12px 16px;
-}
-
-.friendAvatar {
-  width: 48px;
-  height: 48px;
-  object-fit: contain;
-  border-radius: 50%;
-  border: 3px solid;
-}
-
-.friendRight {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.friendInfo {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.friendName {
+.listScore {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-foreground);
 }
 
-.friendRank {
-  font-size: 12px;
-  font-weight: 600;
+/* Modal */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+  padding: 20px;
+  backdrop-filter: blur(5px);
+  animation: fadeIn 0.2s ease-out;
 }
 
-.loading {
-  text-align: center;
-  color: var(--color-muted);
-  padding: 20px;
+.modalContent {
+  width: 100%;
+  max-width: 360px;
+  animation: slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.modalActions {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.fireAction {
+  background: linear-gradient(135deg, #ff7033 0%, #ff4500 100%);
+  border: none;
+  font-size: 16px;
+  padding: 14px;
+}
+
+@keyframes pulse {
+  0% { box-shadow: 0 0 0 0 rgba(255, 112, 51, 0.7); }
+  70% { box-shadow: 0 0 0 6px rgba(255, 112, 51, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 112, 51, 0); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(20px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
 }
