@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Card } from './ui';
 import { StreakIcon } from './StreakIcon';
-import { AVATARS, RANKS, type AvatarType, type RankType, type StreakData } from '../types';
+import { RANKS, getAvatarSrc, type AvatarType, type RankType, type StreakData } from '../types'; // getAvatarSrc importálása
 import { calculatePurityScore, formatMinutes } from '../lib/scoring';
 import styles from './ProfileCard.module.css';
 
@@ -52,7 +52,6 @@ interface ProfileCardProps {
 }
 
 export function ProfileCard({
-  // id is available for future use (e.g., navigation)
   id: _id,
   username,
   displayName,
@@ -75,13 +74,11 @@ export function ProfileCard({
   const [isExpanded, setIsExpanded] = useState(false);
   
   const rankData = RANKS[rank];
-  const avatarData = AVATARS[avatar] || AVATARS.lion;
+  // TÖRÖLVE: const avatarData = AVATARS[avatar] || AVATARS.lion;
   
-  // Determine what stats to show based on view type
   const showStats = viewType === 'friend' || viewType === 'self';
   const showDetailedStats = viewType === 'friend' && expandable && isExpanded;
   
-  // Calculate purity if we have today's entry
   const purity = todayEntry 
     ? calculatePurityScore(todayEntry.satisfaction, todayEntry.dopamineContent, todayEntry.gaming)
     : null;
@@ -99,7 +96,7 @@ export function ProfileCard({
           style={{ borderColor: rankData.color }}
         >
           <img
-            src={avatarData.icon}
+            src={getAvatarSrc(avatar)} /* JAVÍTVA: getAvatarSrc használata */
             alt={displayName}
             className={styles.avatar}
           />
