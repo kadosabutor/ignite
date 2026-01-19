@@ -41,7 +41,6 @@ export async function signUp(email: string, password: string, username: string, 
   if (error) throw error;
   if (!data.user) throw new Error('Regisztráció sikertelen');
 
-  // Create user profile
   const { error: profileError } = await supabase.from('users').insert({
     id: data.user.id,
     email,
@@ -54,7 +53,6 @@ export async function signUp(email: string, password: string, username: string, 
 
   if (profileError) throw profileError;
 
-  // Create streak record
   const { error: streakError } = await supabase.from('streaks').insert({
     user_id: data.user.id,
     current_streak: 0,
@@ -158,13 +156,10 @@ export async function saveUserProfile(profile: Partial<UserProfile> & { id: stri
   if (error) throw error;
 }
 
-// ÚJ FÜGGVÉNY: Kép feltöltése a Storage-ba
 export async function uploadAvatar(userId: string, file: File): Promise<string> {
-  // Egyedi fájlnév generálása: userId + timestamp + kiterjesztés
   const fileExt = file.name.split('.').pop();
   const fileName = `${userId}-${Date.now()}.${fileExt}`;
   
-  // Feltöltés a 'avatars' bucket-be
   const { error: uploadError } = await supabase.storage
     .from('avatars')
     .upload(fileName, file, {
@@ -176,7 +171,6 @@ export async function uploadAvatar(userId: string, file: File): Promise<string> 
     throw uploadError;
   }
 
-  // Nyilvános URL lekérése
   const { data } = supabase.storage
     .from('avatars')
     .getPublicUrl(fileName);
@@ -226,7 +220,8 @@ export async function getAllEntries(userId: string): Promise<HabitEntry[]> {
 
   if (error) throw error;
 
-  return (data || []).map(e => ({
+  // JAVÍTVA: Explicit 'any' típus a map-ben
+  return (data || []).map((e: any) => ({
     id: e.id,
     date: e.date,
     wakeUpTime: e.wake_up_time,
@@ -235,7 +230,7 @@ export async function getAllEntries(userId: string): Promise<HabitEntry[]> {
     sleepMinutes: e.sleep_minutes,
     cleanEating: e.clean_eating,
     exercise: e.exercise,
-    paradigm: (e.paradigm ?? 0) >= 1, // Convert INT to boolean
+    paradigm: (e.paradigm ?? 0) >= 1,
     satisfaction: e.satisfaction,
     dopamineContent: e.dopamine_content,
     gaming: e.gaming,
@@ -258,25 +253,28 @@ export async function getEntryByDate(userId: string, date: string): Promise<Habi
 
   if (error || !data) return null;
 
+  // JAVÍTVA: Explicit 'any' cast
+  const d = data as any;
+
   return {
-    id: data.id,
-    date: data.date,
-    wakeUpTime: data.wake_up_time,
-    bedTime: data.bed_time,
-    businessMinutes: data.business_minutes,
-    sleepMinutes: data.sleep_minutes,
-    cleanEating: data.clean_eating,
-    exercise: data.exercise,
-    paradigm: (data.paradigm ?? 0) >= 1, // Convert INT to boolean
-    satisfaction: data.satisfaction,
-    dopamineContent: data.dopamine_content,
-    gaming: data.gaming,
-    approachedGoal: data.reflection_goal,
-    businessObstacle: data.reflection_obstacle,
-    personalObstacle: data.reflection_personal,
-    score: data.score,
-    createdAt: data.created_at,
-    updatedAt: data.updated_at,
+    id: d.id,
+    date: d.date,
+    wakeUpTime: d.wake_up_time,
+    bedTime: d.bed_time,
+    businessMinutes: d.business_minutes,
+    sleepMinutes: d.sleep_minutes,
+    cleanEating: d.clean_eating,
+    exercise: d.exercise,
+    paradigm: (d.paradigm ?? 0) >= 1,
+    satisfaction: d.satisfaction,
+    dopamineContent: d.dopamine_content,
+    gaming: d.gaming,
+    approachedGoal: d.reflection_goal,
+    businessObstacle: d.reflection_obstacle,
+    personalObstacle: d.reflection_personal,
+    score: d.score,
+    createdAt: d.created_at,
+    updatedAt: d.updated_at,
   };
 }
 
@@ -295,9 +293,9 @@ export async function saveEntry(userId: string, entry: HabitEntry): Promise<void
       sleep_minutes: entry.sleepMinutes,
       clean_eating: entry.cleanEating,
       exercise: entry.exercise,
-      paradigm: entry.paradigm ? 1 : 0, // Convert boolean to INT
+      paradigm: entry.paradigm ? 1 : 0,
       satisfaction: entry.satisfaction,
-      dopamine_content: entry.dopamine_content,
+      dopamine_content: entry.dopamineContent,
       gaming: entry.gaming,
       reflection_goal: entry.approachedGoal,
       reflection_obstacle: entry.businessObstacle,
@@ -308,7 +306,6 @@ export async function saveEntry(userId: string, entry: HabitEntry): Promise<void
 
   if (error) throw error;
 
-  // Update streak after saving
   await updateStreak(userId);
 }
 
@@ -388,12 +385,10 @@ export async function updateStreak(userId: string): Promise<StreakData> {
     return defaultStreak;
   }
 
-  // Calculate current streak
   let streak = 0;
   const today = getTodayString();
   let checkDate = new Date(today);
 
-  // Check if we're before 4 AM - if so, yesterday is still valid
   const now = new Date();
   if (now.getHours() < 4) {
     checkDate.setDate(checkDate.getDate() - 1);
@@ -411,7 +406,6 @@ export async function updateStreak(userId: string): Promise<StreakData> {
     }
   }
 
-  // Get current streak data
   const { data: currentData } = await supabase
     .from('streaks')
     .select('*')
@@ -446,7 +440,6 @@ export async function updateStreak(userId: string): Promise<StreakData> {
     updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id' });
 
-  // Update user rank based on 30-day average
   const last30Days = entries.slice(0, 30);
   if (last30Days.length > 0) {
     const avg = last30Days.reduce((sum, e) => sum + e.score, 0) / last30Days.length;
@@ -480,7 +473,7 @@ export async function getAllFriends(userId: string): Promise<Friend[]> {
       )
     `)
     .eq('user_id', userId)
-    .eq('status', 'connected'); // Only return connected friends
+    .eq('status', 'connected');
 
   if (error) throw error;
 
@@ -490,14 +483,12 @@ export async function getAllFriends(userId: string): Promise<Friend[]> {
     const friend = f.friend as any;
     if (!friend) continue;
 
-    // Get friend's streak
     const { data: streakData } = await supabase
       .from('streaks')
       .select('*')
       .eq('user_id', friend.id)
       .single();
 
-    // Get friend's today entry with full details for ProfileCard
     const { data: todayEntry } = await supabase
       .from('entries')
       .select('score, business_minutes, sleep_minutes, exercise, clean_eating, satisfaction, dopamine_content, gaming')
@@ -542,7 +533,8 @@ export async function getAllFriends(userId: string): Promise<Friend[]> {
         exercise: todayEntry.exercise,
         cleanEating: todayEntry.clean_eating,
         satisfaction: todayEntry.satisfaction,
-        dopamineContent: todayEntry.dopamine_content,
+        // JAVÍTVA: Explicit 'any' cast vagy direkt hozzáférés
+        dopamineContent: (todayEntry as any).dopamine_content,
         gaming: todayEntry.gaming,
       } : undefined,
     });
@@ -552,15 +544,12 @@ export async function getAllFriends(userId: string): Promise<Friend[]> {
 }
 
 export async function addFriend(userId: string, friendUsername: string): Promise<void> {
-  console.log('[addFriend] Starting - userId:', userId, 'friendUsername:', friendUsername);
-  // Find friend by username
   const { data: friendData, error: findError } = await supabase
     .from('users')
     .select('id')
     .eq('username', friendUsername)
     .single();
 
-  console.log('[addFriend] User lookup result:', { friendData, findError });
   if (findError || !friendData) {
     throw new Error('Felhasználó nem található');
   }
@@ -569,15 +558,12 @@ export async function addFriend(userId: string, friendUsername: string): Promise
     throw new Error('Nem adhatod hozzá magadat');
   }
 
-  // Check if already friends or request already exists
-  console.log('[addFriend] Checking for existing friendship...');
   const { data: existing } = await supabase
     .from('friendships')
     .select('id, status')
     .or(`and(user_id.eq.${userId},friend_id.eq.${friendData.id}),and(user_id.eq.${friendData.id},friend_id.eq.${userId})`)
     .maybeSingle();
 
-  console.log('[addFriend] Existing friendship check:', existing);
   if (existing) {
     if (existing.status === 'connected') {
       throw new Error('Már barátok vagytok');
@@ -586,25 +572,19 @@ export async function addFriend(userId: string, friendUsername: string): Promise
     }
   }
 
-  // Create pending friend request (only one direction)
-  console.log('[addFriend] Inserting friend request:', { user_id: userId, friend_id: friendData.id, status: 'pending' });
   const { error } = await supabase.from('friendships').insert({
     user_id: userId,
     friend_id: friendData.id,
     status: 'pending',
   });
 
-  console.log('[addFriend] Insert result:', { error });
   if (error) throw error;
-  console.log('[addFriend] Friend request created successfully');
 }
 
 export async function getPendingFriendRequests(userId: string): Promise<{
   incoming: Friend[];
   outgoing: Friend[];
 }> {
-  console.log('[getPendingFriendRequests] Starting for userId:', userId);
-  // Get incoming requests (where friend_id = userId and status = pending)
   const { data: incomingData, error: incomingError } = await supabase
     .from('friendships')
     .select(`
@@ -622,10 +602,8 @@ export async function getPendingFriendRequests(userId: string): Promise<{
     .eq('friend_id', userId)
     .eq('status', 'pending');
 
-  console.log('[getPendingFriendRequests] Incoming data:', { incomingData, incomingError });
   if (incomingError) throw incomingError;
 
-  // Get outgoing requests (where user_id = userId and status = pending)
   const { data: outgoingData, error: outgoingError } = await supabase
     .from('friendships')
     .select(`
@@ -643,14 +621,11 @@ export async function getPendingFriendRequests(userId: string): Promise<{
     .eq('user_id', userId)
     .eq('status', 'pending');
 
-  console.log('[getPendingFriendRequests] Outgoing data:', { outgoingData, outgoingError });
   if (outgoingError) throw outgoingError;
 
   const incoming: Friend[] = [];
   const outgoing: Friend[] = [];
 
-  // Process incoming requests
-  console.log('[getPendingFriendRequests] Processing incoming requests, count:', incomingData?.length || 0);
   for (const f of incomingData || []) {
     const user = f.user as any;
     if (!user) continue;
@@ -694,8 +669,6 @@ export async function getPendingFriendRequests(userId: string): Promise<{
     });
   }
 
-  // Process outgoing requests
-  console.log('[getPendingFriendRequests] Processing outgoing requests, count:', outgoingData?.length || 0);
   for (const f of outgoingData || []) {
     const friend = f.friend as any;
     if (!friend) continue;
@@ -743,7 +716,6 @@ export async function getPendingFriendRequests(userId: string): Promise<{
 }
 
 export async function acceptFriendRequest(userId: string, requesterId: string): Promise<void> {
-  // Find the pending request
   const { data: request, error: findError } = await supabase
     .from('friendships')
     .select('id')
@@ -756,7 +728,6 @@ export async function acceptFriendRequest(userId: string, requesterId: string): 
     throw new Error('Barátkérelem nem található');
   }
 
-  // Update the request to connected
   const { error: updateError } = await supabase
     .from('friendships')
     .update({ status: 'connected' })
@@ -764,7 +735,6 @@ export async function acceptFriendRequest(userId: string, requesterId: string): 
 
   if (updateError) throw updateError;
 
-  // Create the reverse friendship record
   const { error: insertError } = await supabase
     .from('friendships')
     .insert({
@@ -777,7 +747,6 @@ export async function acceptFriendRequest(userId: string, requesterId: string): 
 }
 
 export async function rejectFriendRequest(userId: string, requesterId: string): Promise<void> {
-  // Delete the pending request
   const { error } = await supabase
     .from('friendships')
     .delete()
@@ -789,7 +758,6 @@ export async function rejectFriendRequest(userId: string, requesterId: string): 
 }
 
 export async function cancelFriendRequest(userId: string, friendId: string): Promise<void> {
-  // Delete the pending request
   const { error } = await supabase
     .from('friendships')
     .delete()
@@ -801,7 +769,6 @@ export async function cancelFriendRequest(userId: string, friendId: string): Pro
 }
 
 export async function removeFriend(userId: string, friendId: string): Promise<void> {
-  // Remove both directions
   const { error } = await supabase
     .from('friendships')
     .delete()
@@ -818,12 +785,10 @@ export async function getLeaderboard(userId: string, period: 'today' | 'week' | 
   score: number;
   isCurrentUser: boolean;
 }[]> {
-  // Get friends
   const friends = await getAllFriends(userId);
   const friendIds = friends.map(f => f.id);
-  friendIds.push(userId); // Include self
+  friendIds.push(userId);
 
-  // Get entries based on period
   let startDate: string;
   const today = getTodayString();
 
@@ -839,7 +804,6 @@ export async function getLeaderboard(userId: string, period: 'today' | 'week' | 
     startDate = d.toISOString().split('T')[0];
   }
 
-  // Get all entries for the period
   const { data: entries, error } = await supabase
     .from('entries')
     .select('user_id, score')
@@ -849,7 +813,6 @@ export async function getLeaderboard(userId: string, period: 'today' | 'week' | 
 
   if (error) throw error;
 
-  // Calculate average scores per user
   const userScores: Record<string, { total: number; count: number }> = {};
   for (const entry of entries || []) {
     if (!userScores[entry.user_id]) {
@@ -859,13 +822,11 @@ export async function getLeaderboard(userId: string, period: 'today' | 'week' | 
     userScores[entry.user_id].count++;
   }
 
-  // Get user profiles
   const { data: users } = await supabase
     .from('users')
     .select('id, username, display_name, avatar, rank')
     .in('id', friendIds);
 
-  // Build leaderboard
   const leaderboard = (users || []).map(u => ({
     user: {
       id: u.id,
@@ -878,10 +839,8 @@ export async function getLeaderboard(userId: string, period: 'today' | 'week' | 
     isCurrentUser: u.id === userId,
   }));
 
-  // Sort by score
   leaderboard.sort((a, b) => b.score - a.score);
 
-  // Add positions
   return leaderboard.map((entry, index) => ({
     position: index + 1,
     ...entry,
@@ -943,7 +902,8 @@ export async function getMonthlyStats(userId: string, year: number, month: numbe
 
   if (error) throw error;
 
-  const entries = (data || []).map(e => ({
+  // JAVÍTVA: Explicit 'any' cast
+  const entries = (data || []).map((e: any) => ({
     id: e.id,
     date: e.date,
     wakeUpTime: e.wake_up_time,
@@ -952,7 +912,7 @@ export async function getMonthlyStats(userId: string, year: number, month: numbe
     sleepMinutes: e.sleep_minutes,
     cleanEating: e.clean_eating,
     exercise: e.exercise,
-    paradigm: (e.paradigm ?? 0) >= 1, // Convert INT to boolean
+    paradigm: (e.paradigm ?? 0) >= 1,
     satisfaction: e.satisfaction,
     dopamineContent: e.dopamine_content,
     gaming: e.gaming,
@@ -1044,7 +1004,6 @@ export function subscribeToFriendships(userId: string, callback: (payload: any) 
 // ============ FRIEND ENTRIES FOR VS MODE ============
 
 export async function getFriendEntries(friendId: string, days: number = 30): Promise<HabitEntry[]> {
-  // Calculate date range
   const endDate = new Date();
   const startDate = new Date();
   startDate.setDate(startDate.getDate() - days);
@@ -1062,7 +1021,8 @@ export async function getFriendEntries(friendId: string, days: number = 30): Pro
 
   if (error) throw error;
 
-  return (data || []).map(e => ({
+  // JAVÍTVA: Explicit 'any' cast
+  return (data || []).map((e: any) => ({
     id: e.id,
     date: e.date,
     wakeUpTime: e.wake_up_time,
@@ -1084,9 +1044,6 @@ export async function getFriendEntries(friendId: string, days: number = 30): Pro
 
 // ============ PUSH NOTIFICATIONS ============
 
-/**
- * Save push subscription to database
- */
 export async function savePushSubscription(subscription: any) {
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -1106,9 +1063,6 @@ export async function savePushSubscription(subscription: any) {
   if (error) throw error;
 }
 
-/**
- * Get user's push subscriptions
- */
 export async function getPushSubscriptions() {
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -1123,9 +1077,6 @@ export async function getPushSubscriptions() {
   return data || [];
 }
 
-/**
- * Delete push subscription
- */
 export async function deletePushSubscription(endpoint: string) {
   const { error } = await supabase
     .from('push_subscriptions')
@@ -1135,9 +1086,6 @@ export async function deletePushSubscription(endpoint: string) {
   if (error) throw error;
 }
 
-/**
- * Get user's notifications
- */
 export async function getNotifications(limit: number = 20) {
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -1154,9 +1102,6 @@ export async function getNotifications(limit: number = 20) {
   return data || [];
 }
 
-/**
- * Mark notification as read
- */
 export async function markNotificationAsRead(notificationId: string) {
   const { error } = await supabase
     .from('notifications')
@@ -1166,9 +1111,6 @@ export async function markNotificationAsRead(notificationId: string) {
   if (error) throw error;
 }
 
-/**
- * Get unread notification count
- */
 export async function getUnreadNotificationCount() {
   const { data: { user } } = await supabase.auth.getUser();
 
@@ -1184,10 +1126,6 @@ export async function getUnreadNotificationCount() {
   return count || 0;
 }
 
-/**
- * Send push notification to a user
- * This calls the Supabase Edge Function
- */
 export async function sendPushNotification(
   recipientUserId: string,
   title: string,
@@ -1224,7 +1162,6 @@ export async function sendPushNotification(
   return await response.json();
 }
 
-// Type for PushSubscription (from Web Push API)
 export interface PushSubscriptionData {
   endpoint: string;
   keys: {
