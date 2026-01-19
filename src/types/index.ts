@@ -38,7 +38,8 @@ export interface StreakData {
 }
 
 // User types
-export type AvatarType = 'lion' | 'wolf' | 'bull';
+// MÓDOSÍTÁS: Az AvatarType most már string, hogy URL-t is fogadjon
+export type AvatarType = string;
 export type RankType = 'sleepwalker' | 'grinder' | 'operator' | 'highperformer' | 'monkmode' | 'titan';
 
 export interface UserProfile {
@@ -81,13 +82,6 @@ export interface Friend {
   };
 }
 
-// Arena types
-export interface ArenaCard {
-  friend: Friend;
-  todayEntry: Partial<HabitEntry> | null;
-  fireCount: number;
-}
-
 // VS Mode types
 export interface VSComparison {
   user: UserProfile;
@@ -121,9 +115,7 @@ export interface LeaderboardEntry {
 }
 
 // Notification types
-export type NotificationType = 'morning' | 'afternoon' | 'evening' | 'streak_warning' | 'streak_last' | 'ping' | 'fire' | 'rank_change' | 'cryo_used' | 'phoenix_start' | 'phoenix_success' | 'phoenix_fail';
-
-export interface NotificationSettings {
+export type NotificationSettings {
   enabled: boolean;
   morningEnabled: boolean;
   afternoonEnabled: boolean;
@@ -134,18 +126,6 @@ export interface NotificationSettings {
   afternoonTime: string;
   eveningTime: string;
 }
-
-// Wizard types
-export const WIZARD_STEPS = [
-  { id: 'sleep', title: 'Alvás', icon: '🌙' },
-  { id: 'work', title: 'Business', icon: '💼' },
-  { id: 'health', title: 'Egészség', icon: '💪' },
-  { id: 'mind', title: 'Szellem', icon: '🧠' },
-  { id: 'purity', title: 'Tisztaság', icon: '✨' },
-  { id: 'summary', title: 'Összegzés', icon: '📊' },
-] as const;
-
-export type WizardStepId = typeof WIZARD_STEPS[number]['id'];
 
 // Rank definitions
 export const RANKS: Record<RankType, { name: string; emoji: string; minScore: number; maxScore: number; color: string }> = {
@@ -164,12 +144,20 @@ export const STREAK_LEVELS: Record<StreakLevel, { name: string; minDays: number;
   inferno: { name: 'Inferno', minDays: 31, maxDays: 90, color: '#33CCFF', icon: '/assets/streaks/Inferno(Streaklv3).svg' },
   plasma: { name: 'Plasma', minDays: 91, maxDays: Infinity, color: '#B833FF', icon: '/assets/streaks/plasma(Streaklv4).svg' },
   frozen: { name: 'Frozen', minDays: 0, maxDays: 0, color: '#87CEEB', icon: '/assets/streaks/frozen(StreakLost).svg' },
-  phoenix: { name: 'Phoenix', minDays: 0, maxDays: 0, color: '#FF6B6B', icon: '/assets/streaks/phoenix(StreakTrial).svg' }, // JAVÍTVA: pheonix -> phoenix
+  phoenix: { name: 'Phoenix', minDays: 0, maxDays: 0, color: '#FF6B6B', icon: '/assets/streaks/phoenix(StreakTrial).svg' },
 };
 
 // Avatar definitions
-export const AVATARS: Record<AvatarType, { name: string; icon: string }> = {
+export const AVATARS: Record<string, { name: string; icon: string }> = {
   lion: { name: 'Oroszlán', icon: '/assets/avatars/LionAvatar.svg' },
   wolf: { name: 'Farkas', icon: '/assets/avatars/wolfavatar.svg' },
   bull: { name: 'Bika', icon: '/assets/avatars/bullavatar.svg' },
+};
+
+// ÚJ SEGÉDFÜGGVÉNY: Eldönti, hogy URL-t vagy beépített ikont használjon
+export const getAvatarSrc = (avatar: string) => {
+  if (avatar && avatar in AVATARS) {
+    return AVATARS[avatar].icon;
+  }
+  return avatar || AVATARS.lion.icon; // Ha URL, akkor visszaadja azt, ha üres, akkor Lion
 };
