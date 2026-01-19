@@ -1,6 +1,15 @@
 import { type ReactNode, type ButtonHTMLAttributes, type InputHTMLAttributes, forwardRef } from 'react';
 import styles from './ui.module.css';
 
+// Segédfüggvény a haptikus visszajelzéshez (Progressive Enhancement)
+const triggerHaptic = () => {
+  // Csak akkor hívjuk meg, ha a böngésző támogatja (pl. Android Chrome)
+  // iOS Safari jelenleg ignorálja, de nem okoz hibát
+  if (typeof navigator !== 'undefined' && navigator.vibrate) {
+    navigator.vibrate(10); // 10ms finom rezgés
+  }
+};
+
 // ============ BUTTON ============
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
@@ -8,6 +17,7 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
   size?: 'sm' | 'md' | 'lg';
   fullWidth?: boolean;
   children: ReactNode;
+  haptic?: boolean; // Új prop: kikapcsolható rezgés
 }
 
 export function Button({
@@ -16,11 +26,19 @@ export function Button({
   fullWidth = false,
   children,
   className = '',
+  haptic = true,
+  onClick,
   ...props
 }: ButtonProps) {
+  const handleClick = (e: React.MouseEvent<HTMLButtonElement>) => {
+    if (haptic && !props.disabled) triggerHaptic();
+    if (onClick) onClick(e);
+  };
+
   return (
     <button
       className={`${styles.button} ${styles[variant]} ${styles[size]} ${fullWidth ? styles.fullWidth : ''} ${className}`}
+      onClick={handleClick}
       {...props}
     >
       {children}
@@ -34,21 +52,28 @@ interface CardProps {
   children: ReactNode;
   className?: string;
   onClick?: () => void;
-  variant?: 'default' | 'interactive' | 'glow'; // HOZZÁADVA: 'glow'
+  variant?: 'default' | 'interactive' | 'glow';
 }
 
 export function Card({ children, className = '', onClick, variant = 'default' }: CardProps) {
   const Component = onClick ? 'button' : 'div';
   
-  // Stílus kiválasztása a variant alapján
   let variantClass = '';
   if (variant === 'interactive') variantClass = styles.cardInteractive;
-  if (variant === 'glow') variantClass = styles.cardGlow; // HOZZÁADVA
+  if (variant === 'glow') variantClass = styles.cardGlow;
+
+  const handleClick = () => {
+    if (onClick) {
+      // Csak akkor rezegjen, ha interaktív
+      if (variant === 'interactive' || variant === 'glow') triggerHaptic();
+      onClick();
+    }
+  };
 
   return (
     <Component
       className={`${styles.card} ${variantClass} ${className}`}
-      onClick={onClick}
+      onClick={onClick ? handleClick : undefined}
     >
       {children}
     </Component>
@@ -172,19 +197,24 @@ export function Toggle({
   positiveColor = 'success',
   negativeColor = 'error',
 }: ToggleProps) {
+  const handleChange = (newValue: boolean) => {
+    triggerHaptic();
+    onChange(newValue);
+  };
+
   return (
     <div className={styles.toggleContainer}>
       <button
         type="button"
         className={`${styles.toggleButton} ${value ? styles[positiveColor] : styles.inactive}`}
-        onClick={() => onChange(true)}
+        onClick={() => handleChange(true)}
       >
         {positiveLabel}
       </button>
       <button
         type="button"
         className={`${styles.toggleButton} ${!value ? styles[negativeColor] : styles.inactive}`}
-        onClick={() => onChange(false)}
+        onClick={() => handleChange(false)}
       >
         {negativeLabel}
       </button>
@@ -202,12 +232,17 @@ interface StepperProps {
 }
 
 export function Stepper({ value, onChange, min = 0, max = 99 }: StepperProps) {
+  const handleStep = (newValue: number) => {
+    triggerHaptic();
+    onChange(newValue);
+  };
+
   return (
     <div className={styles.stepperContainer}>
       <button
         type="button"
         className={styles.stepperButton}
-        onClick={() => onChange(Math.max(min, value - 1))}
+        onClick={() => handleStep(Math.max(min, value - 1))}
         disabled={value <= min}
       >
         −
@@ -216,7 +251,7 @@ export function Stepper({ value, onChange, min = 0, max = 99 }: StepperProps) {
       <button
         type="button"
         className={`${styles.stepperButton} ${styles.stepperButtonPrimary}`}
-        onClick={() => onChange(Math.min(max, value + 1))}
+        onClick={() => handleStep(Math.min(max, value + 1))}
         disabled={value >= max}
       >
         +
@@ -284,10 +319,15 @@ interface SwitchProps {
 }
 
 export function Switch({ checked, onChange, label }: SwitchProps) {
+  const handleChange = (newVal: boolean) => {
+    triggerHaptic();
+    onChange(newVal);
+  };
+
   return (
     <label className={styles.switchContainer}>
       {label && <span className={styles.switchLabel}>{label}</span>}
-      <div className={`${styles.switch} ${checked ? styles.switchChecked : ''}`} onClick={() => onChange(!checked)}>
+      <div className={`${styles.switch} ${checked ? styles.switchChecked : ''}`} onClick={() => handleChange(!checked)}>
         <div className={styles.switchThumb} />
       </div>
     </label>
@@ -309,13 +349,18 @@ interface TabBarProps {
 }
 
 export function TabBar({ tabs, activeTab, onChange }: TabBarProps) {
+  const handleTabChange = (id: string) => {
+    triggerHaptic();
+    onChange(id);
+  };
+
   return (
     <nav className={styles.tabBar}>
       {tabs.map((tab) => (
         <button
           key={tab.id}
           className={`${styles.tabButton} ${activeTab === tab.id ? styles.tabActive : ''}`}
-          onClick={() => onChange(tab.id)}
+          onClick={() => handleTabChange(tab.id)}
         >
           {tab.icon && <span className={styles.tabIcon}>{tab.icon}</span>}
           <span className={styles.tabLabel}>{tab.label}</span>
