@@ -1,5 +1,5 @@
 .container {
-  padding-top: calc(10px + env(safe-area-inset-top, 0)); /* Kisebb felső padding */
+  padding-top: calc(10px + env(safe-area-inset-top, 0));
   padding-bottom: 100px;
   display: flex;
   flex-direction: column;
@@ -8,7 +8,7 @@
   background-color: var(--color-background);
 }
 
-/* 1. Header */
+/* --- HEADER --- */
 .header {
   padding: 0 20px;
   display: flex;
@@ -44,12 +44,11 @@
   background: var(--color-surface-light);
 }
 
-/* 2. Story Rail */
+/* --- STORY RAIL --- */
 .storyRailWrapper {
   width: 100%;
   overflow-x: auto;
   padding: 0 20px;
-  /* Hide scrollbar */
   scrollbar-width: none;
   -ms-overflow-style: none;
 }
@@ -61,7 +60,7 @@
 .storyRail {
   display: flex;
   gap: 16px;
-  min-width: min-content; /* Fontos a görgetéshez */
+  min-width: min-content;
 }
 
 .storyItem {
@@ -70,14 +69,14 @@
   align-items: center;
   gap: 6px;
   cursor: pointer;
-  width: 72px; /* Fix szélesség */
+  width: 72px;
 }
 
 .storyRing {
   width: 68px;
   height: 68px;
   border-radius: 50%;
-  padding: 3px; /* A keret vastagsága */
+  padding: 3px;
   position: relative;
   transition: transform 0.2s;
 }
@@ -86,13 +85,11 @@
   transform: scale(0.95);
 }
 
-/* Aktív: Gradiens keret + animáció */
 .ringActive {
   background: linear-gradient(45deg, #ff7033, #FFD700);
   animation: pulse 3s infinite;
 }
 
-/* Inaktív: Szürke keret */
 .ringInactive {
   background: var(--color-border);
   opacity: 0.7;
@@ -103,7 +100,7 @@
   height: 100%;
   border-radius: 50%;
   background-color: var(--color-background);
-  border: 2px solid var(--color-background); /* Belső térköz */
+  border: 2px solid var(--color-background);
   object-fit: contain;
 }
 
@@ -132,12 +129,12 @@
   width: 100%;
 }
 
-/* 3. Leaderboard Section */
+/* --- LEADERBOARD --- */
 .leaderboardSection {
   background-color: var(--color-surface);
-  border-radius: 24px 24px 0 0; /* Lekerekített felső sarkok */
+  border-radius: 24px 24px 0 0;
   padding: 24px 20px;
-  flex: 1; /* Kitölti a maradék helyet */
+  flex: 1;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -181,14 +178,15 @@
   box-shadow: 0 2px 8px rgba(255, 112, 51, 0.3);
 }
 
-/* Podium */
+/* --- PODIUM (JAVÍTOTT MAGASSÁGOK) --- */
 .podium {
   display: flex;
   justify-content: center;
   align-items: flex-end;
   gap: 12px;
-  height: 180px;
+  height: 200px; /* Növeltük a teret */
   margin-bottom: 12px;
+  padding-bottom: 10px;
 }
 
 .podiumItem {
@@ -197,33 +195,36 @@
   align-items: center;
   flex: 1;
   max-width: 100px;
+  position: relative;
 }
 
 .podiumAvatarWrapper {
   position: relative;
   margin-bottom: 8px;
+  z-index: 2;
 }
 
 .podiumAvatar {
-  width: 48px;
-  height: 48px;
   border-radius: 50%;
-  border: 2px solid;
+  border: 3px solid; /* Vastagabb keret */
   background-color: var(--color-background);
+  object-fit: contain;
 }
 
 .medal {
   position: absolute;
-  top: -10px;
+  top: -12px;
   left: 50%;
   transform: translateX(-50%);
-  font-size: 20px;
-  z-index: 1;
+  font-size: 24px;
+  z-index: 3;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.5));
 }
 
 .podiumInfo {
   text-align: center;
-  margin-bottom: 4px;
+  margin-bottom: 6px;
+  z-index: 2;
 }
 
 .podiumName {
@@ -231,6 +232,10 @@
   font-size: 12px;
   font-weight: 700;
   color: var(--color-foreground);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 80px;
 }
 
 .podiumScore {
@@ -240,18 +245,32 @@
 
 .podiumBar {
   width: 100%;
-  border-radius: 8px 8px 0 0;
-  background: linear-gradient(180deg, var(--color-surface-light) 0%, rgba(255,255,255,0.05) 100%);
+  border-radius: 12px 12px 0 0;
+  position: relative;
 }
 
-.first .podiumAvatar { width: 64px; height: 64px; border-color: #FFD700 !important; }
-.first .podiumBar { height: 100px; background: linear-gradient(180deg, #FFD700 0%, rgba(255, 215, 0, 0.1) 100%); opacity: 0.8; }
+/* Stílusok helyezés szerint - JELENTŐSEBB KÜLÖNBSÉGEK */
+.first .podiumAvatar { width: 72px; height: 72px; border-color: #FFD700 !important; }
+.first .podiumBar { 
+  height: 120px; 
+  background: linear-gradient(180deg, rgba(255, 215, 0, 0.3) 0%, rgba(255, 215, 0, 0.05) 100%);
+  border-top: 2px solid #FFD700;
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.15);
+}
 
-.second .podiumAvatar { width: 56px; height: 56px; border-color: #C0C0C0 !important; }
-.second .podiumBar { height: 70px; }
+.second .podiumAvatar { width: 60px; height: 60px; border-color: #C0C0C0 !important; }
+.second .podiumBar { 
+  height: 80px; 
+  background: linear-gradient(180deg, rgba(192, 192, 192, 0.3) 0%, rgba(192, 192, 192, 0.05) 100%);
+  border-top: 2px solid #C0C0C0;
+}
 
-.third .podiumAvatar { width: 56px; height: 56px; border-color: #CD7F32 !important; }
-.third .podiumBar { height: 50px; }
+.third .podiumAvatar { width: 50px; height: 50px; border-color: #CD7F32 !important; }
+.third .podiumBar { 
+  height: 50px; 
+  background: linear-gradient(180deg, rgba(205, 127, 50, 0.3) 0%, rgba(205, 127, 50, 0.05) 100%);
+  border-top: 2px solid #CD7F32;
+}
 
 /* List */
 .leaderboardList {
@@ -265,7 +284,7 @@
   align-items: center;
   padding: 12px 16px;
   gap: 12px;
-  background-color: var(--color-background) !important; /* Kártya a kártyán */
+  background-color: var(--color-background) !important;
   border: 1px solid var(--color-border);
 }
 
@@ -316,26 +335,34 @@
   color: var(--color-foreground);
 }
 
-/* Modal */
+/* --- GLASSMORPHISM MODAL --- */
 .modalOverlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.85);
+  background-color: rgba(0, 0, 0, 0.6); /* Átlátszóbb sötét */
+  backdrop-filter: blur(8px); /* Erősebb homályosítás */
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 2000;
   padding: 20px;
-  backdrop-filter: blur(5px);
   animation: fadeIn 0.2s ease-out;
 }
 
 .modalContent {
   width: 100%;
   max-width: 360px;
+  /* Glass hatás a dobozon */
+  background: rgba(30, 30, 30, 0.7);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 24px;
+  padding: 8px; /* Padding a kártya körül */
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
   animation: slideUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -344,6 +371,7 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+  padding: 0 12px 12px 12px;
 }
 
 .fireAction {
@@ -351,6 +379,13 @@
   border: none;
   font-size: 16px;
   padding: 14px;
+  box-shadow: 0 4px 15px rgba(255, 69, 0, 0.3);
+}
+
+.emptyState {
+  text-align: center;
+  padding: 40px;
+  color: var(--color-muted);
 }
 
 @keyframes pulse {
@@ -365,6 +400,6 @@
 }
 
 @keyframes slideUp {
-  from { transform: translateY(20px); opacity: 0; }
-  to { transform: translateY(0); opacity: 1; }
+  from { transform: translateY(20px) scale(0.95); opacity: 0; }
+  to { transform: translateY(0) scale(1); opacity: 1; }
 }
