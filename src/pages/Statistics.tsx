@@ -3,10 +3,11 @@ import { useHabits } from '../context/HabitContext';
 import { Card } from '../components/ui';
 import { MetricsChart } from '../components/MetricsChart';
 import { getScoreColor } from '../lib/scoring';
+import * as supabase from '../lib/supabase';
 import styles from './Statistics.module.css';
 
 export function Statistics() {
-  const { entries, weeklyAverage, monthlyAverage } = useHabits();
+  const { entries, weeklyAverage, monthlyAverage, authUser } = useHabits();
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth() };
@@ -14,33 +15,28 @@ export function Statistics() {
   const [monthStats, setMonthStats] = useState<{
     entries: typeof entries;
     average: number;
-    total: number;
+    total: number; // Ez most már az összes pontszám, de a UI-hoz a totalBusinessMinutes kell
+    totalBusinessMinutes: number; // ÚJ MEZŐ
     count: number;
     best: number;
-  }>({ entries: [], average: 0, total: 0, count: 0, best: 0 });
+  }>({ entries: [], average: 0, total: 0, totalBusinessMinutes: 0, count: 0, best: 0 });
 
   useEffect(() => {
-    // Calculate monthly stats from entries in context
-    const monthStr = `${currentMonth.year}-${String(currentMonth.month + 1).padStart(2, '0')}`;
-    const monthEntries = entries.filter(e => e.date.startsWith(monthStr));
-    
-    if (monthEntries.length === 0) {
-      setMonthStats({ entries: [], average: 0, total: 0, count: 0, best: 0 });
-      return;
-    }
-    
-    const totalPoints = monthEntries.reduce((sum, e) => sum + e.score, 0);
-    const best = Math.max(...monthEntries.map(e => e.score));
-    const totalBusinessMinutes = monthEntries.reduce((sum, e) => sum + (e.businessMinutes || 0), 0);
-    
-    setMonthStats({
-      entries: monthEntries,
-      average: totalPoints / monthEntries.length,
-      total: totalBusinessMinutes, // Stores business minutes for display
-      count: monthEntries.length,
-      best,
-    });
-  }, [currentMonth, entries]);
+    const loadStats = async () => {
+      if (!authUser?.id) return;
+
+      try {
+        const stats = await supabase.getMonthlyStats(authUser.id, currentMonth.year, currentMonth.month);
+        setMonthStats(stats);
+      } catch (error) {
+        console.error('Failed to load monthly stats:', error);
+        // Fallback kliens oldali számításra hiba esetén, vagy üres állapot
+        setMonthStats({ entries: [], average: 0, total: 0, totalBusinessMinutes: 0, count: 0, best: 0 });
+      }
+    };
+
+    loadStats();
+  }, [currentMonth, authUser]); // entries nem kell, mert a szerverről kérjük le
 
   const colorMap = {
     success: 'var(--color-success)',
@@ -106,7 +102,7 @@ export function Statistics() {
 
       {/* Metrics Chart */}
       <Card className={styles.chartCard}>
-        <MetricsChart entries={entries} currentMonth={currentMonth} />
+        <MetricsChart entries={monthStats.entries} currentMonth={currentMonth} />
       </Card>
 
       {/* Quick stats */}
@@ -186,7 +182,7 @@ export function Statistics() {
             <span className={styles.summaryLabel}>Legjobb</span>
           </div>
           <div className={styles.summaryItem}>
-            <span className={styles.summaryValue}>{Math.round(monthStats.total)}</span>
+            <span className={styles.summaryValue}>{Math.round(monthStats.totalBusinessMinutes)}</span>
             <span className={styles.summaryLabel}>Összes Biz Perc</span>
           </div>
         </div>
