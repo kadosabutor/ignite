@@ -34,14 +34,14 @@ interface CardProps {
   children: ReactNode;
   className?: string;
   onClick?: () => void;
-  variant?: 'default' | 'interactive' | 'glow';
+  variant?: 'default' | 'interactive';
 }
 
 export function Card({ children, className = '', onClick, variant = 'default' }: CardProps) {
   const Component = onClick ? 'button' : 'div';
   return (
     <Component
-      className={`${styles.card} ${variant === 'interactive' ? styles.cardInteractive : ''} ${variant === 'glow' ? styles.cardGlow : ''} ${className}`}
+      className={`${styles.card} ${variant === 'interactive' ? styles.cardInteractive : ''} ${className}`}
       onClick={onClick}
     >
       {children}
@@ -81,10 +81,15 @@ interface TimeInputProps {
   onChange: (value: string) => void;
   label?: string;
   onComplete?: () => void;
+  firstInputRef?: React.RefObject<HTMLInputElement | null>; // Ref az óra mezőhöz
 }
 
-export function TimeInput({ value, onChange, label, onComplete }: TimeInputProps) {
+export function TimeInput({ value, onChange, label, onComplete, firstInputRef }: TimeInputProps) {
   const [hours, minutes] = value ? value.split(':') : ['', ''];
+
+  const handleFocus = (e: React.FocusEvent<HTMLInputElement>) => {
+    e.target.select();
+  };
 
   const handleHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value.replace(/\D/g, '').slice(0, 2);
@@ -92,11 +97,11 @@ export function TimeInput({ value, onChange, label, onComplete }: TimeInputProps
     onChange(newValue);
     
     // Auto-focus to minutes when 2 digits entered
-    if (val.length === 2 && onComplete) {
+    if (val.length === 2) {
       const nextInput = e.target.nextElementSibling?.nextElementSibling as HTMLInputElement;
       if (nextInput) {
         nextInput.focus();
-        nextInput.select();
+        // A select hívás már nem kell itt, mert a focus eseménykezelő intézi
       }
     }
   };
@@ -117,10 +122,12 @@ export function TimeInput({ value, onChange, label, onComplete }: TimeInputProps
       {label && <label className={styles.label}>{label}</label>}
       <div className={styles.timeInputContainer}>
         <input
+          ref={firstInputRef}
           type="text"
           inputMode="numeric"
           value={hours}
           onChange={handleHoursChange}
+          onFocus={handleFocus}
           placeholder="00"
           maxLength={2}
           className={styles.timeInput}
@@ -131,6 +138,7 @@ export function TimeInput({ value, onChange, label, onComplete }: TimeInputProps
           inputMode="numeric"
           value={minutes}
           onChange={handleMinutesChange}
+          onFocus={handleFocus}
           placeholder="00"
           maxLength={2}
           className={styles.timeInput}
@@ -219,7 +227,7 @@ interface ProgressRingProps {
   max: number;
   size?: number;
   strokeWidth?: number;
-  color?: string; // This can now be ignored if using gradient, or used as fallback
+  color?: string;
   children?: ReactNode;
 }
 
@@ -228,6 +236,7 @@ export function ProgressRing({
   max,
   size = 120,
   strokeWidth = 8,
+  color = 'var(--color-primary)',
   children,
 }: ProgressRingProps) {
   const radius = (size - strokeWidth) / 2;
@@ -238,23 +247,13 @@ export function ProgressRing({
   return (
     <div className={styles.progressRing} style={{ width: size, height: size }}>
       <svg width={size} height={size}>
-        <defs>
-          <linearGradient id="scoreGradient" x1="0%" y1="0%" x2="100%" y2="0%">
-            <stop offset="0%" stopColor="#ff7033" />
-            <stop offset="100%" stopColor="#FFCC00" />
-          </linearGradient>
-        </defs>
-        
-        {/* Background Track (Faint ring) */}
         <circle
-          className={styles.progressRingTrack}
+          className={styles.progressRingBg}
           strokeWidth={strokeWidth}
           r={radius}
           cx={size / 2}
           cy={size / 2}
         />
-        
-        {/* Progress Value (Gradient ring) */}
         <circle
           className={styles.progressRingFg}
           strokeWidth={strokeWidth}
@@ -263,7 +262,7 @@ export function ProgressRing({
           r={radius}
           cx={size / 2}
           cy={size / 2}
-          style={{ stroke: 'url(#scoreGradient)' }}
+          style={{ stroke: color }}
         />
       </svg>
       <div className={styles.progressRingContent}>{children}</div>
@@ -296,7 +295,6 @@ interface Tab {
   id: string;
   label: string;
   icon?: ReactNode;
-  badge?: number; // Added badge support
 }
 
 interface TabBarProps {
@@ -308,23 +306,16 @@ interface TabBarProps {
 export function TabBar({ tabs, activeTab, onChange }: TabBarProps) {
   return (
     <nav className={styles.tabBar}>
-      <div className={styles.tabBarInner}>
-        {tabs.map((tab) => (
-          <button
-            key={tab.id}
-            className={`${styles.tabButton} ${activeTab === tab.id ? styles.tabActive : ''}`}
-            onClick={() => onChange(tab.id)}
-          >
-            <div className={styles.tabIconWrapper}>
-              {tab.icon && <span className={styles.tabIcon}>{tab.icon}</span>}
-              {tab.badge !== undefined && tab.badge > 0 && (
-                <span className={styles.tabBadge}>{tab.badge > 9 ? '9+' : tab.badge}</span>
-              )}
-            </div>
-            <span className={styles.tabLabel}>{tab.label}</span>
-          </button>
-        ))}
-      </div>
+      {tabs.map((tab) => (
+        <button
+          key={tab.id}
+          className={`${styles.tabButton} ${activeTab === tab.id ? styles.tabActive : ''}`}
+          onClick={() => onChange(tab.id)}
+        >
+          {tab.icon && <span className={styles.tabIcon}>{tab.icon}</span>}
+          <span className={styles.tabLabel}>{tab.label}</span>
+        </button>
+      ))}
     </nav>
   );
 }
