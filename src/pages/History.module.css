@@ -1,153 +1,257 @@
 .container {
   padding: 20px;
   padding-top: calc(20px + env(safe-area-inset-top, 0));
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
 }
 
 .header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 20px;
 }
 
 .title {
-  font-size: 24px;
+  font-size: 28px;
   font-weight: 800;
   color: var(--color-foreground);
   margin: 0;
+  letter-spacing: -0.5px;
+}
+
+.statsBadge {
+  background: var(--color-surface);
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid var(--color-border);
 }
 
 .count {
-  font-size: 14px;
+  font-size: 12px;
+  font-weight: 600;
   color: var(--color-muted);
 }
 
-/* Empty state */
+/* Empty State */
 .empty {
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
   gap: 16px;
-  padding: 60px 20px;
+  padding: 80px 20px;
+  text-align: center;
+  opacity: 0.8;
 }
 
 .emptyIcon {
-  font-size: 48px;
+  font-size: 64px;
+  margin-bottom: 8px;
 }
 
 .emptyText {
-  font-size: 16px;
-  color: var(--color-muted);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--color-foreground);
   margin: 0;
 }
 
-/* List */
-.list {
-  display: flex;
-  flex-direction: column;
-  gap: 24px;
+.emptySubtext {
+  font-size: 14px;
+  color: var(--color-muted);
+  margin: 0 0 16px 0;
 }
 
+/* Month Group */
 .monthGroup {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 16px;
+}
+
+.monthHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 0 4px;
 }
 
 .monthTitle {
-  font-size: 14px;
-  font-weight: 700;
+  font-size: 16px;
+  font-weight: 800;
   color: var(--color-primary);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   margin: 0;
 }
 
-/* Entry card */
-.entryCard {
+.monthStats {
+  font-size: 12px;
+  color: var(--color-muted);
   display: flex;
-  align-items: center;
   gap: 12px;
-  padding: 16px;
 }
 
-.entryMain {
-  flex: 1;
+.cardsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Entry Card Design */
+.entryCard {
+  padding: 0 !important; /* Felülírjuk az alap Card paddingot */
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--color-border);
+  transition: transform 0.2s, box-shadow 0.2s;
+}
+
+.entryCard:active {
+  transform: scale(0.98);
+}
+
+.cardBorder {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 4px;
+  /* Glow effect */
+  box-shadow: 2px 0 12px rgba(0,0,0,0.5); 
+}
+
+.cardContent {
+  padding: 16px 16px 16px 20px; /* Bal oldalon hely a színes csíknak */
   display: flex;
   align-items: center;
   gap: 16px;
 }
 
-.entryDate {
-  min-width: 50px;
+/* Date Block */
+.dateBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 45px;
+  border-right: 1px solid var(--color-border);
+  padding-right: 16px;
+}
+
+.dayNum {
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--color-foreground);
+  line-height: 1;
 }
 
 .dayName {
-  font-size: 14px;
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--color-muted);
   font-weight: 600;
-  color: var(--color-foreground);
-  text-transform: capitalize;
+  margin-top: 4px;
 }
 
+/* Stats Pills */
 .entryStats {
   flex: 1;
   display: flex;
-  gap: 12px;
   flex-wrap: wrap;
+  gap: 8px;
 }
 
-.entryStat {
-  font-size: 12px;
+.statPill {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background-color: var(--color-background);
+  padding: 4px 8px;
+  border-radius: 6px;
+  font-size: 11px;
   color: var(--color-muted);
+  font-weight: 600;
+}
+
+.exercisePill {
+  background-color: rgba(74, 222, 128, 0.1);
+  color: var(--color-success);
+}
+
+/* Score */
+.scoreContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
 }
 
 .entryScore {
   font-size: 24px;
   font-weight: 800;
-  min-width: 50px;
-  text-align: right;
+  line-height: 1;
 }
 
-.entryActions {
+.scoreLabel {
+  font-size: 8px;
+  text-transform: uppercase;
+  color: var(--color-muted);
+}
+
+/* Actions */
+.actions {
   display: flex;
-  gap: 8px;
+  flex-direction: column;
+  gap: 4px;
+  margin-left: 8px;
+  opacity: 0.5;
+  transition: opacity 0.2s;
 }
 
-.actionButton {
-  width: 36px;
-  height: 36px;
-  border-radius: 8px;
-  background-color: var(--color-background);
+.entryCard:hover .actions {
+  opacity: 1;
+}
+
+.iconButton {
+  background: none;
   border: none;
   cursor: pointer;
-  font-size: 16px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  font-size: 14px;
+  padding: 4px;
+  border-radius: 4px;
   transition: background-color 0.2s;
 }
 
-.actionButton:hover {
+.iconButton:hover {
   background-color: var(--color-surface-light);
 }
 
-/* Delete confirm */
+.deleteButton:hover {
+  background-color: rgba(248, 113, 113, 0.15);
+}
+
+/* Delete Confirm Overlay */
 .deleteConfirm {
-  flex: 1;
+  padding: 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
+  background-color: var(--color-surface);
+  text-align: center;
 }
 
 .deleteConfirm p {
-  font-size: 14px;
-  color: var(--color-foreground);
   margin: 0;
+  font-weight: 600;
 }
 
 .deleteActions {
   display: flex;
-  gap: 8px;
+  gap: 12px;
+  width: 100%;
+}
+
+.deleteActions button {
+  flex: 1;
 }
