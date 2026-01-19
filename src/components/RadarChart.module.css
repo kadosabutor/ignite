@@ -106,11 +106,11 @@
 }
 
 .labelIcon {
-  font-size: 16px;
+  font-size: 24px; /* NÖVELVE 16px-ről */
 }
 
 .labelTitle {
-  font-size: 10px;
+  font-size: 12px; /* NÖVELVE 10px-ről */
   font-weight: 700;
   fill: var(--color-muted);
   text-transform: uppercase;
