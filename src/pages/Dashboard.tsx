@@ -4,13 +4,14 @@ import { useHabits } from '../context/HabitContext';
 import { Button, Card, ProgressRing } from '../components/ui';
 import { StreakIcon } from '../components/StreakIcon';
 import { DateSelector } from '../components/DateSelector';
-import { getScoreColor, getTodayString, formatMinutes } from '../lib/scoring';
-import { RANKS } from '../types';
+import { getScoreColor, getTodayString, formatMinutes, calculateTotalScore } from '../lib/scoring';
+import { createNewEntry } from '../lib/supabase';
+import { RANKS, type HabitEntry } from '../types';
 import styles from './Dashboard.module.css';
 
 export function Dashboard() {
   const navigate = useNavigate();
-  const { todayEntry, streak, user, weeklyAverage, entries } = useHabits();
+  const { todayEntry, streak, user, weeklyAverage, entries, saveEntry } = useHabits();
 
   const todayScore = todayEntry?.score ?? 0;
   const hasLoggedToday = !!todayEntry;
@@ -57,6 +58,30 @@ export function Dashboard() {
     setShowDateSelector(false);
   };
 
+  // GYORS MŰVELETEK (Quick Actions)
+  const handleQuickToggle = async (field: keyof HabitEntry) => {
+    // Haptikus visszajelzés
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(10);
+    }
+
+    const currentVal = todayEntry ? (todayEntry[field] as boolean) : false;
+    
+    // Ha még nincs mai bejegyzés, létrehozunk egyet alapértelmezett értékekkel
+    const baseEntry = todayEntry || createNewEntry(getTodayString());
+    
+    const entryToSave = {
+      ...baseEntry,
+      [field]: !currentVal
+    };
+
+    // Pontszám újrakalkulálása
+    entryToSave.score = calculateTotalScore(entryToSave);
+    
+    // Mentés
+    await saveEntry(entryToSave);
+  };
+
   return (
     <div className={styles.container}>
       {/* Date Selector Modal */}
@@ -77,7 +102,6 @@ export function Dashboard() {
         </div>
         {user && (
           <div className={styles.userBadge}>
-            <span className={styles.rankName}>{RANKS[user.rank].name}</span>
             <span className={styles.rankEmoji}>{RANKS[user.rank].emoji}</span>
           </div>
         )}
@@ -103,7 +127,7 @@ export function Dashboard() {
       </section>
 
       {/* Today's Score */}
-      <Card className={styles.scoreCard} variant="glow">
+      <Card className={styles.scoreCard}>
         <div className={styles.scoreHeader}>
           <h3 className={styles.sectionTitle}>Mai nap</h3>
           <span className={styles.dateLabel}>
@@ -115,18 +139,14 @@ export function Dashboard() {
           <ProgressRing
             value={todayScore}
             max={100}
-            size={160}
-            strokeWidth={12}
+            size={140}
+            strokeWidth={10}
+            color={hasLoggedToday ? colorMap[scoreColor] : 'var(--color-border)'}
           >
-            <div className={styles.scoreInner}>
-              <span className={styles.scoreValue} style={{ 
-                color: hasLoggedToday ? colorMap[scoreColor] : 'var(--color-muted)',
-                opacity: hasLoggedToday ? 1 : 0.5 
-              }}>
-                {hasLoggedToday ? Math.round(todayScore) : '0'}
-              </span>
-              <span className={styles.scoreUnit}>pont</span>
-            </div>
+            <span className={styles.scoreValue} style={{ color: hasLoggedToday ? colorMap[scoreColor] : 'var(--color-muted)' }}>
+              {hasLoggedToday ? Math.round(todayScore) : '—'}
+            </span>
+            <span className={styles.scoreUnit}>pont</span>
           </ProgressRing>
           
           {hasLoggedToday && todayEntry && (
@@ -136,15 +156,38 @@ export function Dashboard() {
                 <span className={styles.statValue}>{formatMinutes(todayEntry.businessMinutes)}</span>
               </div>
               <div className={styles.statItem}>
-                <span className={styles.statIcon}>💪</span>
-                <span className={styles.statValue}>{todayEntry.exercise ? '✓' : '✗'}</span>
-              </div>
-              <div className={styles.statItem}>
-                <span className={styles.statIcon}>🍎</span>
-                <span className={styles.statValue}>{todayEntry.cleanEating ? '✓' : '✗'}</span>
+                <span className={styles.statIcon}>🌙</span>
+                <span className={styles.statValue}>{formatMinutes(todayEntry.sleepMinutes)}</span>
               </div>
             </div>
           )}
+        </div>
+
+        {/* GYORS MŰVELETEK SZEKCIÓ */}
+        <div className={styles.quickActions}>
+          <button 
+            className={`${styles.quickBtn} ${todayEntry?.exercise ? styles.active : ''}`}
+            onClick={() => handleQuickToggle('exercise')}
+          >
+            <span className={styles.quickIcon}>💪</span>
+            <span className={styles.quickLabel}>Edzés</span>
+          </button>
+          
+          <button 
+            className={`${styles.quickBtn} ${todayEntry?.cleanEating ? styles.active : ''}`}
+            onClick={() => handleQuickToggle('cleanEating')}
+          >
+            <span className={styles.quickIcon}>🍎</span>
+            <span className={styles.quickLabel}>Étkezés</span>
+          </button>
+          
+          <button 
+            className={`${styles.quickBtn} ${todayEntry?.paradigm ? styles.active : ''}`}
+            onClick={() => handleQuickToggle('paradigm')}
+          >
+            <span className={styles.quickIcon}>🧠</span>
+            <span className={styles.quickLabel}>Paradigma</span>
+          </button>
         </div>
 
         <Button
@@ -152,9 +195,8 @@ export function Dashboard() {
           fullWidth
           size="lg"
           onClick={handleStartWizard}
-          className={styles.actionButton}
         >
-          {hasLoggedToday ? (hasMissedDays ? 'NAP RÖGZÍTÉSE' : 'SZERKESZTÉS') : 'NAP RÖGZÍTÉSE'}
+          {hasLoggedToday ? (hasMissedDays ? 'Nap rögzítése' : 'Részletes szerkesztés') : 'Nap rögzítése'}
         </Button>
       </Card>
 
@@ -167,32 +209,21 @@ export function Dashboard() {
         
         <div className={styles.weekChart}>
           {last7Days.map((day) => {
-            const isToday = day.date === getTodayString();
-            const isMissed = !day.hasEntry && !isToday && new Date(day.date) < new Date();
-            
             const height = day.hasEntry ? Math.max(10, (day.score / 100) * 100) : 10;
-            // Ha ma van és nincs entry, akkor halvány szürke, ha kihagyott, akkor pirosas
-            const color = day.hasEntry 
-              ? colorMap[getScoreColor(day.score)] 
-              : isMissed 
-                ? 'rgba(248, 113, 113, 0.15)' // Halvány piros háttér a kihagyottnak
-                : 'var(--color-surface-light)';
+            const color = day.hasEntry ? colorMap[getScoreColor(day.score)] : 'var(--color-border)';
+            const isToday = day.date === getTodayString();
             
             return (
-              <div key={day.date} className={styles.chartBarWrapper}>
+              <div key={day.date} className={styles.chartBar}>
                 <div
-                  className={`${styles.bar} ${isMissed ? styles.missedBar : ''}`}
+                  className={styles.bar}
                   style={{
-                    height: isMissed ? '100%' : `${height}%`,
-                    backgroundColor: isMissed ? 'rgba(248, 113, 113, 0.1)' : color,
-                    border: isMissed ? '1px solid rgba(248, 113, 113, 0.3)' : 'none',
+                    height: `${height}%`,
+                    backgroundColor: color,
+                    opacity: day.hasEntry ? 1 : 0.3,
                   }}
-                >
-                  {isMissed && (
-                    <span className={styles.missedLabel}>KIHAGYOTT</span>
-                  )}
-                </div>
-                <span className={`${styles.dayLabel} ${isToday ? styles.todayLabel : ''}`}>
+                />
+                <span className={`${styles.dayLabel} ${isToday ? styles.today : ''}`}>
                   {['V', 'H', 'K', 'Sz', 'Cs', 'P', 'Sz'][new Date(day.date).getDay()]}
                 </span>
               </div>
