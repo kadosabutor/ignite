@@ -1,42 +1,53 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo } from 'react';
 import { useHabits } from '../context/HabitContext';
 import { Card } from '../components/ui';
 import { MetricsChart } from '../components/MetricsChart';
 import { getScoreColor } from '../lib/scoring';
-import * as supabase from '../lib/supabase';
 import styles from './Statistics.module.css';
 
 export function Statistics() {
-  const { entries, weeklyAverage, monthlyAverage, authUser } = useHabits();
+  const { entries, weeklyAverage, monthlyAverage } = useHabits();
+  
+  // Dátum állapot inicializálása
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth() };
   });
-  const [monthStats, setMonthStats] = useState<{
-    entries: typeof entries;
-    average: number;
-    total: number; // Ez most már az összes pontszám, de a UI-hoz a totalBusinessMinutes kell
-    totalBusinessMinutes: number; // ÚJ MEZŐ
-    count: number;
-    best: number;
-  }>({ entries: [], average: 0, total: 0, totalBusinessMinutes: 0, count: 0, best: 0 });
 
-  useEffect(() => {
-    const loadStats = async () => {
-      if (!authUser?.id) return;
-
-      try {
-        const stats = await supabase.getMonthlyStats(authUser.id, currentMonth.year, currentMonth.month);
-        setMonthStats(stats);
-      } catch (error) {
-        console.error('Failed to load monthly stats:', error);
-        // Fallback kliens oldali számításra hiba esetén, vagy üres állapot
-        setMonthStats({ entries: [], average: 0, total: 0, totalBusinessMinutes: 0, count: 0, best: 0 });
-      }
+  // Havi statisztikák számítása kliens oldalon (a már betöltött 'entries'-ből)
+  const monthStats = useMemo(() => {
+    // 1. Dátum string előállítása szűréshez (YYYY-MM)
+    const monthStr = `${currentMonth.year}-${String(currentMonth.month + 1).padStart(2, '0')}`;
+    
+    // 2. Bejegyzések szűrése az aktuális hónapra
+    const monthEntries = entries.filter(e => e.date.startsWith(monthStr));
+    
+    // 3. Ha nincs adat, üres objektum visszaadása
+    if (monthEntries.length === 0) {
+      return { 
+        entries: [], 
+        average: 0, 
+        total: 0, 
+        totalBusinessMinutes: 0, 
+        count: 0, 
+        best: 0 
+      };
+    }
+    
+    // 4. Statisztikák kiszámítása
+    const totalScore = monthEntries.reduce((sum, e) => sum + e.score, 0);
+    const totalBusinessMinutes = monthEntries.reduce((sum, e) => sum + (e.businessMinutes || 0), 0);
+    const best = Math.max(...monthEntries.map(e => e.score));
+    
+    return {
+      entries: monthEntries,
+      average: totalScore / monthEntries.length,
+      total: totalScore,
+      totalBusinessMinutes,
+      count: monthEntries.length,
+      best,
     };
-
-    loadStats();
-  }, [currentMonth, authUser]); // entries nem kell, mert a szerverről kérjük le
+  }, [entries, currentMonth]); // Újraszámol, ha változnak az adatok vagy a hónap
 
   const colorMap = {
     success: 'var(--color-success)',
@@ -62,23 +73,25 @@ export function Statistics() {
     });
   };
 
-  // Generate calendar days
+  // Naptár napjainak generálása
   const generateCalendarDays = () => {
     const firstDay = new Date(currentMonth.year, currentMonth.month, 1);
     const lastDay = new Date(currentMonth.year, currentMonth.month + 1, 0);
     const daysInMonth = lastDay.getDate();
-    const startingDay = firstDay.getDay(); // 0 = Sunday
+    const startingDay = firstDay.getDay(); // 0 = Vasárnap
     
     const days: { date: string | null; score: number | null }[] = [];
     
-    // Add empty cells for days before the first of the month
-    // Adjust for Monday start (0 = Monday, 6 = Sunday)
+    // Üres cellák a hónap elejére (Hétfői kezdéssel: 0=Hétfő helyett igazítás)
+    // getDay(): 0=Vasárnap, 1=Hétfő ... 6=Szombat
+    // Cél: 0=Hétfő ... 6=Vasárnap
     const adjustedStartingDay = startingDay === 0 ? 6 : startingDay - 1;
+    
     for (let i = 0; i < adjustedStartingDay; i++) {
       days.push({ date: null, score: null });
     }
     
-    // Add actual days
+    // Tényleges napok hozzáadása
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${currentMonth.year}-${String(currentMonth.month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const entry = monthStats.entries.find(e => e.date === dateStr);
@@ -94,6 +107,10 @@ export function Statistics() {
     month: 'long',
   });
 
+  // Segédfüggvény: van-e adat más hónapokban?
+  const hasAnyData = entries.length > 0;
+  const isCurrentMonthEmpty = monthStats.count === 0;
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -102,6 +119,12 @@ export function Statistics() {
 
       {/* Metrics Chart */}
       <Card className={styles.chartCard}>
+        {/* Ha nincs adat az aktuális hónapban, de van amúgy adat, jelezzük a lapozást */}
+        {isCurrentMonthEmpty && hasAnyData && (
+          <div style={{ textAlign: 'center', marginBottom: '10px', fontSize: '12px', color: 'var(--color-warning)' }}>
+            ⚠️ Ebben a hónapban nincs adat. Lapozz a nyilakkal!
+          </div>
+        )}
         <MetricsChart entries={monthStats.entries} currentMonth={currentMonth} />
       </Card>
 
@@ -182,8 +205,8 @@ export function Statistics() {
             <span className={styles.summaryLabel}>Legjobb</span>
           </div>
           <div className={styles.summaryItem}>
-            <span className={styles.summaryValue}>{Math.round(monthStats.totalBusinessMinutes)}</span>
-            <span className={styles.summaryLabel}>Összes Biz Perc</span>
+            <span className={styles.summaryValue}>{Math.round(monthStats.totalBusinessMinutes / 60)}</span>
+            <span className={styles.summaryLabel}>Összes Munkaóra</span>
           </div>
         </div>
       </Card>
