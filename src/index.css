@@ -35,10 +35,7 @@
   box-sizing: border-box;
 }
 
-html {
-  /* FONTOS: iOS overscroll tiltása (a kérésednek megfelelően) */
-  overscroll-behavior-y: none;
-}
+/* VISSZAÁLLÍTVA A RÉGIRE: Kivettem a html { overscroll-behavior-y: none; } blokkot */
 
 html, body, #root {
   height: 100%;
@@ -53,8 +50,7 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   line-height: 1.5;
-  /* További iOS optimalizálás */
-  -webkit-tap-highlight-color: transparent;
+  /* VISSZAÁLLÍTVA A RÉGIRE: Kivettem a -webkit-tap-highlight-color sort */
 }
 
 /* Scrollbar styling */
@@ -121,7 +117,9 @@ button:disabled {
   padding-bottom: env(safe-area-inset-bottom, 0);
 }
 
-/* Page Transitions - Ez az új animáció */
+/* --- ÚJ DOLGOK MEGTARTVA INNENTŐL --- */
+
+/* Page Transitions */
 main > div {
   animation: pageEnter 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
   will-change: transform, opacity;
