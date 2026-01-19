@@ -109,7 +109,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
     .from('streaks')
     .select('*')
     .eq('user_id', userId)
-    .maybeSingle(); 
+    .single();
 
   return {
     id: userData.id,
@@ -228,7 +228,7 @@ export async function getEntryByDate(userId: string, date: string): Promise<Habi
     .select('*')
     .eq('user_id', userId)
     .eq('date', date)
-    .maybeSingle();
+    .single();
 
   if (error || !data) return null;
 
@@ -255,9 +255,7 @@ export async function getEntryByDate(userId: string, date: string): Promise<Habi
 }
 
 export async function saveEntry(userId: string, entry: HabitEntry): Promise<void> {
-  // JAVÍTÁS: Kerekítjük a pontszámot, mert az adatbázis INT típust vár
-  // Ez okozta a "semmi sem történik" hibát, mert a Supabase visszadobta a 85.4-et
-  const score = Math.round(calculateTotalScore(entry));
+  const score = calculateTotalScore(entry);
 
   const { error } = await supabase
     .from('entries')
@@ -307,7 +305,7 @@ export async function getStreak(userId: string): Promise<StreakData> {
     .from('streaks')
     .select('*')
     .eq('user_id', userId)
-    .maybeSingle();
+    .single();
 
   if (error || !data) {
     return {
@@ -392,19 +390,17 @@ export async function updateStreak(userId: string): Promise<StreakData> {
     .from('streaks')
     .select('*')
     .eq('user_id', userId)
-    .maybeSingle();
+    .single();
 
-  // Ensure numbers are actually numbers, prevent NaN
-  const safeCurrentLongest = (currentData?.longest_streak && !isNaN(currentData.longest_streak)) ? currentData.longest_streak : 0;
-  const longestStreak = Math.max(safeCurrentLongest, streak);
+  const longestStreak = Math.max(currentData?.longest_streak || 0, streak);
   const cryoEarned = Math.min(3, Math.floor(streak / 7));
   const level = getStreakLevel(streak, false, currentData?.phoenix_active || false);
 
   const streakData: StreakData = {
-    currentStreak: streak || 0,
-    longestStreak: longestStreak || 0,
+    currentStreak: streak,
+    longestStreak,
     level,
-    cryoFreezeCount: cryoEarned || 0,
+    cryoFreezeCount: cryoEarned,
     lastEntryDate: entries[0]?.date || null,
     phoenixActive: currentData?.phoenix_active || false,
     phoenixDaysRemaining: currentData?.phoenix_days_remaining || 0,
@@ -473,7 +469,7 @@ export async function getAllFriends(userId: string): Promise<Friend[]> {
       .from('streaks')
       .select('*')
       .eq('user_id', friend.id)
-      .maybeSingle();
+      .single();
 
     // Get friend's today entry with full details for ProfileCard
     const { data: todayEntry } = await supabase
@@ -481,7 +477,7 @@ export async function getAllFriends(userId: string): Promise<Friend[]> {
       .select('score, business_minutes, sleep_minutes, exercise, clean_eating, satisfaction, dopamine_content, gaming')
       .eq('user_id', friend.id)
       .eq('date', getTodayString())
-      .maybeSingle();
+      .single();
 
     friends.push({
       id: friend.id,
@@ -637,7 +633,7 @@ export async function getPendingFriendRequests(userId: string): Promise<{
       .from('streaks')
       .select('*')
       .eq('user_id', user.id)
-      .maybeSingle();
+      .single();
 
     incoming.push({
       id: user.id,
@@ -682,7 +678,7 @@ export async function getPendingFriendRequests(userId: string): Promise<{
       .from('streaks')
       .select('*')
       .eq('user_id', friend.id)
-      .maybeSingle();
+      .single();
 
     outgoing.push({
       id: friend.id,
@@ -885,7 +881,7 @@ export async function getNotificationSettings(userId: string): Promise<Notificat
     .from('settings')
     .select('notifications')
     .eq('user_id', userId)
-    .maybeSingle();
+    .single();
 
   return data?.notifications || DEFAULT_NOTIFICATION_SETTINGS;
 }
@@ -908,6 +904,7 @@ export async function getMonthlyStats(userId: string, year: number, month: numbe
   entries: HabitEntry[];
   average: number;
   total: number;
+  totalBusinessMinutes: number; // Added field
   count: number;
   best: number;
 }> {
@@ -940,16 +937,18 @@ export async function getMonthlyStats(userId: string, year: number, month: numbe
   })) as HabitEntry[];
 
   if (entries.length === 0) {
-    return { entries: [], average: 0, total: 0, count: 0, best: 0 };
+    return { entries: [], average: 0, total: 0, totalBusinessMinutes: 0, count: 0, best: 0 };
   }
 
-  const total = entries.reduce((sum, e) => sum + e.score, 0);
+  const totalScore = entries.reduce((sum, e) => sum + e.score, 0);
+  const totalBusinessMinutes = entries.reduce((sum, e) => sum + (e.businessMinutes || 0), 0);
   const best = Math.max(...entries.map(e => e.score));
 
   return {
     entries,
-    average: total / entries.length,
-    total,
+    average: totalScore / entries.length,
+    total: totalScore,
+    totalBusinessMinutes,
     count: entries.length,
     best,
   };
@@ -1183,7 +1182,7 @@ export async function sendPushNotification(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'Authorization': `Bearer ${session.access_token}`, // Fix: Use session token instead of anon key for proper auth
+        'Authorization': `Bearer ${supabaseKey}`,
       },
       body: JSON.stringify({
         recipientUserId,
