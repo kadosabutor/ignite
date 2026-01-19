@@ -105,13 +105,8 @@ export async function subscribeToPush(): Promise<any | null> {
 
     console.log('New push subscription created:', subscription.endpoint);
     return subscription;
-  } catch (error: any) {
-    // Silently handle AbortError (user denied) or other common errors
-    if (error.name === 'AbortError' || error.message.includes('Registration failed')) {
-        console.log('Push subscription aborted or denied by user.');
-    } else {
-        console.error('Error subscribing to push:', error);
-    }
+  } catch (error) {
+    console.error('Error subscribing to push:', error);
     return null;
   }
 }
