@@ -3,7 +3,6 @@
   background: var(--color-background);
   padding: 20px;
   padding-top: calc(20px + env(safe-area-inset-top, 0));
-  padding-bottom: 100px;
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -20,229 +19,178 @@
   background: none;
   border: none;
   color: var(--color-primary);
-  font-size: 16px;
+  font-size: 14px;
+  font-weight: 600;
   cursor: pointer;
-  padding: 8px;
+  padding: 8px 0;
 }
 
-.viewToggle {
+.headerTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-foreground);
+}
+
+/* Profile Section */
+.profileSection {
+  /* Alapértelmezett, nem kell extra stílus, a ProfileCard intézi */
+}
+
+/* Tab Container (Segmented Control) */
+.tabContainer {
   display: flex;
-  gap: 4px;
-  background: var(--color-surface);
+  background-color: var(--color-surface);
   padding: 4px;
   border-radius: 12px;
+  border: 1px solid var(--color-border);
 }
 
-.toggleButton {
-  padding: 8px 16px;
+.tabButton {
+  flex: 1;
+  padding: 10px;
   border: none;
   background: transparent;
   color: var(--color-muted);
-  font-size: 14px;
-  font-weight: 500;
+  font-size: 13px;
+  font-weight: 600;
   border-radius: 8px;
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.toggleActive {
-  background: var(--color-primary);
+.activeTab {
+  background-color: var(--color-primary);
   color: #121212;
-  font-weight: 700;
+  box-shadow: 0 2px 8px rgba(255, 112, 51, 0.3);
 }
 
-/* Profile View */
-.profileView {
+/* Content Area */
+.contentArea {
+  flex: 1;
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Details Grid */
+.gridStats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.statBox {
+  background-color: var(--color-surface);
+  border-radius: 16px;
+  padding: 16px;
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--color-border);
+}
+
+.statIcon {
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+
+.statLabel {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.statValue {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-foreground);
+}
+
+/* Bio Card */
+.bioCard {
+  background-color: var(--color-surface) !important;
+  padding: 20px !important;
+  border: 1px solid var(--color-border);
+}
+
+.bioCard h3 {
+  font-size: 14px;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin: 0 0 12px 0;
+}
+
+.bioCard p {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-foreground);
+  margin: 0;
 }
 
 /* VS View */
 .vsView {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
 }
 
-.loading, .error {
+.chartCard {
+  background-color: var(--color-surface) !important;
+  padding: 20px !important;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 48px;
-  color: var(--color-muted);
 }
 
-.errorIcon {
-  font-size: 48px;
-  margin-bottom: 16px;
-}
-
-/* Radar Card */
-.radarCard {
-  padding: 20px;
-}
-
-.radarTitle {
-  font-size: 18px;
+.cardTitle {
+  font-size: 16px;
   font-weight: 700;
-  color: var(--color-foreground);
   margin: 0 0 16px 0;
   text-align: center;
 }
 
-/* Category Explanations */
-.explanationCard {
-  padding: 20px;
-}
-
-.explanationTitle {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-foreground);
-  margin: 0 0 16px 0;
-}
-
-.explanationList {
+.legendContainer {
   display: flex;
-  flex-direction: column;
-  gap: 16px;
+  justify-content: center;
+  gap: 24px;
 }
 
-.explanationItem {
-  padding: 12px;
-  background: var(--color-background);
-  border-radius: 8px;
-}
-
-.explanationHeader {
+.legendItem {
   display: flex;
   align-items: center;
   gap: 8px;
-  margin-bottom: 8px;
-}
-
-.explanationName {
   font-size: 14px;
-  font-weight: 700;
-  color: var(--color-primary);
-}
-
-.explanationDesc {
-  font-size: 13px;
-  color: var(--color-foreground);
-  margin: 0 0 8px 0;
-  line-height: 1.5;
-}
-
-.explanationCalc {
-  font-size: 11px;
-  color: var(--color-muted);
-  font-style: italic;
-}
-
-/* Bar Chart */
-.chartCard {
-  padding: 20px;
-}
-
-.chartTitle {
-  font-size: 16px;
   font-weight: 600;
-  color: var(--color-foreground);
-  margin: 0 0 16px 0;
 }
 
-.chartContainer {
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+.emptyState, .loading, .error {
   display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: var(--color-muted);
+  text-align: center;
   gap: 12px;
 }
 
-.yAxis {
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  height: 150px;
-  padding-right: 8px;
-  border-right: 1px solid var(--color-border);
+.emptyIcon {
+  font-size: 40px;
+  opacity: 0.5;
 }
 
-.yAxis span {
-  font-size: 11px;
-  color: var(--color-muted);
-  text-align: right;
-  min-width: 24px;
-}
-
-.chartArea {
-  flex: 1;
-  position: relative;
-  height: 150px;
-}
-
-.averageLine {
-  position: absolute;
-  left: 0;
-  right: 0;
-  border-top: 2px dashed;
-  z-index: 1;
-}
-
-.averageLabel {
-  position: absolute;
-  right: 0;
-  top: -18px;
-  font-size: 10px;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.barChart {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  height: 100%;
-  gap: 8px;
-  position: relative;
-  z-index: 2;
-}
-
-.barGroup {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 8px;
-}
-
-.bars {
-  display: flex;
-  gap: 4px;
-  align-items: flex-end;
-  height: 120px;
-  width: 100%;
-}
-
-.bar {
-  flex: 1;
-  border-radius: 4px 4px 0 0;
-  min-height: 4px;
-  transition: height 0.3s ease;
-  position: relative;
-}
-
-.barValue {
-  position: absolute;
-  top: -18px;
-  left: 50%;
-  transform: translateX(-50%);
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--color-foreground);
-}
-
-.barLabel {
-  font-size: 12px;
-  color: var(--color-muted);
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
