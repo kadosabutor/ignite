@@ -25,7 +25,7 @@ export function FriendProfile() {
   
   const [viewMode, setViewMode] = useState<'details' | 'vs'>('details');
   const [friendEntries, setFriendEntries] = useState<HabitEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(false); // Changed default to false, load on demand
+  const [isLoading, setIsLoading] = useState(false);
   
   // Find friend
   const friend = friends.find(f => f.id === friendId);
@@ -63,16 +63,16 @@ export function FriendProfile() {
 
   return (
     <div className={styles.container}>
-      {/* Header - letisztult, csak vissza gomb */}
+      {/* Header */}
       <header className={styles.header}>
         <button className={styles.backButton} onClick={() => navigate(-1)}>
           ← Vissza
         </button>
         <span className={styles.headerTitle}>{friend.displayName}</span>
-        <div style={{ width: 24 }} /> {/* Spacer a középre igazításhoz */}
+        <div style={{ width: 24 }} />
       </header>
       
-      {/* 1. Profil Kártya (Mindig látszik, statikus) */}
+      {/* 1. Profil Kártya */}
       <div className={styles.profileSection}>
         <ProfileCard
           id={friend.id}
@@ -84,11 +84,11 @@ export function FriendProfile() {
           monthlyAverage={friend.monthlyAverage}
           todayEntry={friend.todayEntry}
           viewType="friend"
-          expandable={false} // Itt nem kell lenyitni, mert lent vannak a részletek
+          expandable={false}
         />
       </div>
 
-      {/* 2. Nézet Váltó (Segmented Control) */}
+      {/* 2. Nézet Váltó */}
       <div className={styles.tabContainer}>
         <button 
           className={`${styles.tabButton} ${viewMode === 'details' ? styles.activeTab : ''}`}
@@ -141,7 +141,6 @@ export function FriendProfile() {
               </div>
             )}
             
-            {/* Bio kártya, ha van */}
             {friend.bio && (
               <Card className={styles.bioCard}>
                 <h3>Bemutatkozás</h3>
@@ -175,6 +174,19 @@ export function FriendProfile() {
                     <span>{friend.displayName}</span>
                   </div>
                 </div>
+
+                {/* Itt használjuk fel a CATEGORY_EXPLANATIONS konstanst, így eltűnik a hiba */}
+                <Card className={styles.explanationCard}>
+                  <h3 className={styles.cardTitle}>Kategóriák</h3>
+                  <div className={styles.explanationList}>
+                    {Object.entries(CATEGORY_EXPLANATIONS).map(([key, cat]) => (
+                      <div key={key} className={styles.explanationItem}>
+                        <span className={styles.explanationName}>{cat.name}</span>
+                        <span className={styles.explanationDesc}>{cat.desc}</span>
+                      </div>
+                    ))}
+                  </div>
+                </Card>
               </>
             )}
           </div>
