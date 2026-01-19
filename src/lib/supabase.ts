@@ -158,6 +158,32 @@ export async function saveUserProfile(profile: Partial<UserProfile> & { id: stri
   if (error) throw error;
 }
 
+// ÚJ FÜGGVÉNY: Kép feltöltése a Storage-ba
+export async function uploadAvatar(userId: string, file: File): Promise<string> {
+  // Egyedi fájlnév generálása: userId + timestamp + kiterjesztés
+  const fileExt = file.name.split('.').pop();
+  const fileName = `${userId}-${Date.now()}.${fileExt}`;
+  
+  // Feltöltés a 'avatars' bucket-be
+  const { error: uploadError } = await supabase.storage
+    .from('avatars')
+    .upload(fileName, file, {
+      cacheControl: '3600',
+      upsert: true
+    });
+
+  if (uploadError) {
+    throw uploadError;
+  }
+
+  // Nyilvános URL lekérése
+  const { data } = supabase.storage
+    .from('avatars')
+    .getPublicUrl(fileName);
+
+  return data.publicUrl;
+}
+
 export async function searchUsers(query: string): Promise<UserProfile[]> {
   const { data, error } = await supabase
     .from('users')
@@ -271,7 +297,7 @@ export async function saveEntry(userId: string, entry: HabitEntry): Promise<void
       exercise: entry.exercise,
       paradigm: entry.paradigm ? 1 : 0, // Convert boolean to INT
       satisfaction: entry.satisfaction,
-      dopamine_content: entry.dopamineContent,
+      dopamine_content: entry.dopamine_content,
       gaming: entry.gaming,
       reflection_goal: entry.approachedGoal,
       reflection_obstacle: entry.businessObstacle,
@@ -904,7 +930,6 @@ export async function getMonthlyStats(userId: string, year: number, month: numbe
   entries: HabitEntry[];
   average: number;
   total: number;
-  totalBusinessMinutes: number; // Added field
   count: number;
   best: number;
 }> {
@@ -937,18 +962,16 @@ export async function getMonthlyStats(userId: string, year: number, month: numbe
   })) as HabitEntry[];
 
   if (entries.length === 0) {
-    return { entries: [], average: 0, total: 0, totalBusinessMinutes: 0, count: 0, best: 0 };
+    return { entries: [], average: 0, total: 0, count: 0, best: 0 };
   }
 
-  const totalScore = entries.reduce((sum, e) => sum + e.score, 0);
-  const totalBusinessMinutes = entries.reduce((sum, e) => sum + (e.businessMinutes || 0), 0);
+  const total = entries.reduce((sum, e) => sum + e.score, 0);
   const best = Math.max(...entries.map(e => e.score));
 
   return {
     entries,
-    average: totalScore / entries.length,
-    total: totalScore,
-    totalBusinessMinutes,
+    average: total / entries.length,
+    total,
     count: entries.length,
     best,
   };
