@@ -1,10 +1,10 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
-import { useToast } from '../context/ToastContext'; // ÚJ IMPORT
+import { useToast } from '../context/ToastContext';
 import { Button, Card } from '../components/ui';
 import { ProfileCard } from '../components/ProfileCard';
-import { AVATARS, RANKS, type Friend } from '../types';
+import { RANKS, type Friend, getAvatarSrc } from '../types'; // getAvatarSrc importálása
 import { getRandomPingMessage, getRandomFireMessage } from '../lib/push';
 import styles from './Arena.module.css';
 
@@ -13,15 +13,13 @@ type LeaderboardPeriod = 'today' | 'week' | 'month';
 export function Arena() {
   const navigate = useNavigate();
   const { user, friends, getLeaderboard, todayEntry } = useHabits();
-  const { showToast } = useToast(); // Toast használata
+  const { showToast } = useToast();
   
-  // State
   const [period, setPeriod] = useState<LeaderboardPeriod>('today');
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<Friend | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
-  // Ranglista betöltése
   useEffect(() => {
     const loadLeaderboard = async () => {
       setIsLoading(true);
@@ -37,7 +35,6 @@ export function Arena() {
     loadLeaderboard();
   }, [period, getLeaderboard]);
 
-  // Story Rail adatok
   const stories = useMemo(() => {
     if (!user) return [];
 
@@ -71,22 +68,19 @@ export function Arena() {
     return [me, ...activeFriends, ...sleepingFriends];
   }, [user, friends, todayEntry]);
 
-  // --- ÚJ: Haptikus visszajelzés (Rezgés) ---
   const vibrate = (pattern: number | number[] = 10) => {
     if (navigator.vibrate) {
       navigator.vibrate(pattern);
     }
   };
 
-  // Akciók (Ping / Fire)
   const handlePing = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!selectedProfile) return;
     
-    // Azonnali visszajelzés
-    vibrate([50]); // Rövid rezgés
-    setSelectedProfile(null); // Modal bezárása azonnal a folyamatosság érzetéért
-    showToast('Ping elküldve! 🔔', 'info'); // Alert helyett Toast
+    vibrate([50]);
+    setSelectedProfile(null);
+    showToast('Ping elküldve! 🔔', 'info');
 
     try {
       const { sendPushNotification } = await import('../lib/supabase');
@@ -99,7 +93,6 @@ export function Arena() {
       );
     } catch (error) {
       console.error('Error sending ping:', error);
-      // Opcionális: hiba esetén jelezhetjük, de nem feltétlen szükséges zavarni a usert
     }
   };
 
@@ -107,8 +100,7 @@ export function Arena() {
     e.stopPropagation();
     if (!selectedProfile) return;
 
-    // Azonnali visszajelzés
-    vibrate([50, 50, 50]); // Kettős, erősebb rezgés a tűzért
+    vibrate([50, 50, 50]);
     setSelectedProfile(null);
     showToast('🔥 Tűz elismerés elküldve!', 'success');
 
@@ -126,7 +118,6 @@ export function Arena() {
     }
   };
 
-  // Pódium logika
   const top3 = leaderboard.slice(0, 3);
   const podiumOrder = [top3[1], top3[0], top3[2]].filter(Boolean);
   const restOfLeaderboard = leaderboard.slice(3);
@@ -151,13 +142,14 @@ export function Arena() {
               key={story.id} 
               className={styles.storyItem}
               onClick={() => {
-                vibrate(5); // Apró rezgés koppintáskor
+                vibrate(5);
                 setSelectedProfile(story as Friend);
               }}
             >
               <div className={`${styles.storyRing} ${story.todayCompleted ? styles.ringActive : styles.ringInactive}`}>
+                {/* JAVÍTVA: getAvatarSrc használata */}
                 <img 
-                  src={AVATARS[story.avatar]?.icon} 
+                  src={getAvatarSrc(story.avatar)} 
                   alt={story.displayName} 
                   className={styles.storyAvatar} 
                 />
@@ -180,7 +172,7 @@ export function Arena() {
                 key={p}
                 className={`${styles.periodTab} ${period === p ? styles.periodActive : ''}`}
                 onClick={() => {
-                  vibrate(5); // Apró rezgés váltáskor
+                  vibrate(5);
                   setPeriod(p);
                 }}
               >
@@ -206,8 +198,9 @@ export function Arena() {
                     <span className={styles.medal}>
                       {entry.position === 1 ? '🥇' : entry.position === 2 ? '🥈' : '🥉'}
                     </span>
+                    {/* JAVÍTVA: getAvatarSrc használata */}
                     <img 
-                      src={AVATARS[entry.user.avatar as keyof typeof AVATARS]?.icon} 
+                      src={getAvatarSrc(entry.user.avatar)} 
                       className={styles.podiumAvatar}
                       style={{ borderColor: RANKS[entry.user.rank as keyof typeof RANKS]?.color }}
                     />
@@ -232,8 +225,9 @@ export function Arena() {
             {restOfLeaderboard.map((entry) => (
               <Card key={entry.user.id} className={styles.listItem}>
                 <span className={styles.listPosition}>#{entry.position}</span>
+                {/* JAVÍTVA: getAvatarSrc használata */}
                 <img 
-                  src={AVATARS[entry.user.avatar as keyof typeof AVATARS]?.icon} 
+                  src={getAvatarSrc(entry.user.avatar)} 
                   className={styles.listAvatar}
                 />
                 <div className={styles.listInfo}>
