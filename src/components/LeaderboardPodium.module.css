@@ -29,6 +29,7 @@
   border-radius: 50%;
   border: 3px solid;
   background: var(--color-surface);
+  object-fit: contain;
 }
 
 .rank1 .avatar { width: 64px; height: 64px; }
@@ -67,12 +68,14 @@
   overflow: hidden;
   text-overflow: ellipsis;
   max-width: 80px;
+  color: var(--color-foreground);
 }
 
 .score {
   font-size: 16px;
   font-weight: 800;
   margin-bottom: 4px;
+  color: var(--color-foreground);
 }
 
 .bar {
