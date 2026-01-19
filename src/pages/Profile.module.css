@@ -4,7 +4,6 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  /* Extra padding alulra, hogy a navigáció ne takarja ki a tartalmat */
   padding-bottom: 100px;
 }
 
@@ -31,29 +30,11 @@
   padding: 8px;
 }
 
-.settingsWrapper {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  background-color: var(--color-surface);
-  padding: 6px 12px;
-  border-radius: 20px;
-  border: 1px solid var(--color-border);
-}
-
-.settingsLabel {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-muted);
-  text-transform: uppercase;
-}
-
 .settingsButton {
-  font-size: 18px;
-  padding: 0;
+  font-size: 20px;
 }
 
-/* --- JAVÍTOTT VÁLTÓGOMBOK (Mint a Barátok oldalon) --- */
+/* View Toggle */
 .viewToggle {
   display: flex;
   background-color: var(--color-surface);
@@ -85,11 +66,11 @@
 
 .toggleActive {
   background-color: var(--color-primary);
-  color: #121212 !important; /* Fekete szöveg a narancs háttéren */
+  color: #121212 !important;
   box-shadow: 0 2px 8px rgba(255, 112, 51, 0.3);
 }
 
-/* Form */
+/* Form & Edit Mode */
 .form {
   display: flex;
   flex-direction: column;
@@ -110,6 +91,60 @@
   color: var(--color-muted);
 }
 
+/* ÚJ: Upload Container */
+.uploadContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.previewWrapper {
+  position: relative;
+  width: 100px;
+  height: 100px;
+  border-radius: 50%;
+  overflow: hidden;
+  cursor: pointer;
+  border: 3px solid var(--color-primary);
+  background-color: var(--color-background);
+}
+
+.uploadPreview {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.uploadOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: opacity 0.2s;
+  font-size: 24px;
+  color: white;
+}
+
+.previewWrapper:hover .uploadOverlay {
+  opacity: 1;
+}
+
+.uploadHint {
+  font-size: 11px;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Avatar Grid (Selectable) */
 .avatarGrid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -187,7 +222,9 @@
 .profileAvatar {
   width: 72px;
   height: 72px;
-  object-fit: contain;
+  object-fit: cover; /* Fontos a feltöltött képekhez */
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
 }
 
 .profileInfo {
@@ -214,6 +251,9 @@
   border: none;
   cursor: pointer;
   font-size: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .profileBio {
@@ -254,7 +294,7 @@
   font-weight: 700;
 }
 
-/* Streak card */
+/* Streak & Rank cards */
 .streakCard,
 .rankCard {
   display: flex;
@@ -294,7 +334,6 @@
   color: var(--color-foreground);
 }
 
-/* Rank card */
 .rankInfo {
   display: flex;
   align-items: center;
@@ -370,7 +409,7 @@
   z-index: 1;
 }
 
-/* Radar & Analysis */
+/* Analysis & Explanations */
 .radarCard {
   padding: 20px;
   display: flex;
@@ -386,7 +425,6 @@
   text-align: center;
 }
 
-/* --- JAVÍTOTT MAGYARÁZATOK (Strukturáltabb megjelenés) --- */
 .explanationCard {
   padding: 20px;
 }
@@ -444,4 +482,16 @@
   border-radius: 6px;
   align-self: flex-start;
   margin-top: 4px;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  color: var(--color-muted);
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-weight: 600;
 }
