@@ -1,6 +1,7 @@
 import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
+import { useToast } from '../context/ToastContext'; // ÚJ IMPORT
 import { Button, Card } from '../components/ui';
 import { ProfileCard } from '../components/ProfileCard';
 import { AVATARS, RANKS, type Friend } from '../types';
@@ -12,11 +13,12 @@ type LeaderboardPeriod = 'today' | 'week' | 'month';
 export function Arena() {
   const navigate = useNavigate();
   const { user, friends, getLeaderboard, todayEntry } = useHabits();
+  const { showToast } = useToast(); // Toast használata
   
   // State
   const [period, setPeriod] = useState<LeaderboardPeriod>('today');
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
-  const [selectedProfile, setSelectedProfile] = useState<Friend | null>(null); // Modalhoz
+  const [selectedProfile, setSelectedProfile] = useState<Friend | null>(null);
   const [isLoading, setIsLoading] = useState(false);
 
   // Ranglista betöltése
@@ -35,11 +37,10 @@ export function Arena() {
     loadLeaderboard();
   }, [period, getLeaderboard]);
 
-  // Story Rail adatok előkészítése
+  // Story Rail adatok
   const stories = useMemo(() => {
     if (!user) return [];
 
-    // 1. Saját magad (Te)
     const me = {
       id: user.id,
       username: user.username,
@@ -64,19 +65,29 @@ export function Arena() {
       lastPingedAt: null
     };
 
-    // 2. Barátok szétválogatása
     const activeFriends = friends.filter(f => f.todayCompleted);
     const sleepingFriends = friends.filter(f => !f.todayCompleted);
 
-    // 3. Összefűzés: Te -> Aktívak -> Alvók
     return [me, ...activeFriends, ...sleepingFriends];
   }, [user, friends, todayEntry]);
+
+  // --- ÚJ: Haptikus visszajelzés (Rezgés) ---
+  const vibrate = (pattern: number | number[] = 10) => {
+    if (navigator.vibrate) {
+      navigator.vibrate(pattern);
+    }
+  };
 
   // Akciók (Ping / Fire)
   const handlePing = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!selectedProfile) return;
     
+    // Azonnali visszajelzés
+    vibrate([50]); // Rövid rezgés
+    setSelectedProfile(null); // Modal bezárása azonnal a folyamatosság érzetéért
+    showToast('Ping elküldve! 🔔', 'info'); // Alert helyett Toast
+
     try {
       const { sendPushNotification } = await import('../lib/supabase');
       await sendPushNotification(
@@ -86,16 +97,20 @@ export function Arena() {
         'ping',
         { senderId: user?.id }
       );
-      alert('Ping elküldve! 🔔');
-      setSelectedProfile(null); // Modal bezárása
     } catch (error) {
       console.error('Error sending ping:', error);
+      // Opcionális: hiba esetén jelezhetjük, de nem feltétlen szükséges zavarni a usert
     }
   };
 
   const handleFire = async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!selectedProfile) return;
+
+    // Azonnali visszajelzés
+    vibrate([50, 50, 50]); // Kettős, erősebb rezgés a tűzért
+    setSelectedProfile(null);
+    showToast('🔥 Tűz elismerés elküldve!', 'success');
 
     try {
       const { sendPushNotification } = await import('../lib/supabase');
@@ -106,22 +121,18 @@ export function Arena() {
         'fire',
         { senderId: user?.id }
       );
-      alert('🔥 Tűz elismerés elküldve!');
-      setSelectedProfile(null); // Modal bezárása
     } catch (error) {
       console.error('Error sending fire:', error);
     }
   };
 
-  // Pódium logika (Top 3)
+  // Pódium logika
   const top3 = leaderboard.slice(0, 3);
-  // Átrendezés a pódiumhoz: 2. - 1. - 3.
   const podiumOrder = [top3[1], top3[0], top3[2]].filter(Boolean);
   const restOfLeaderboard = leaderboard.slice(3);
 
   return (
     <div className={styles.container}>
-      {/* 1. Fejléc */}
       <header className={styles.header}>
         <h1 className={styles.title}>Aréna</h1>
         <button 
@@ -133,14 +144,16 @@ export function Arena() {
         </button>
       </header>
 
-      {/* 2. Story Sáv (Story Rail) */}
       <div className={styles.storyRailWrapper}>
         <div className={styles.storyRail}>
           {stories.map((story) => (
             <div 
               key={story.id} 
               className={styles.storyItem}
-              onClick={() => setSelectedProfile(story as Friend)}
+              onClick={() => {
+                vibrate(5); // Apró rezgés koppintáskor
+                setSelectedProfile(story as Friend);
+              }}
             >
               <div className={`${styles.storyRing} ${story.todayCompleted ? styles.ringActive : styles.ringInactive}`}>
                 <img 
@@ -158,17 +171,18 @@ export function Arena() {
         </div>
       </div>
 
-      {/* 3. Ranglista Szekció */}
       <div className={styles.leaderboardSection}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Ranglista</h2>
-          {/* Időszak váltó */}
           <div className={styles.periodSelector}>
             {(['today', 'week', 'month'] as const).map((p) => (
               <button
                 key={p}
                 className={`${styles.periodTab} ${period === p ? styles.periodActive : ''}`}
-                onClick={() => setPeriod(p)}
+                onClick={() => {
+                  vibrate(5); // Apró rezgés váltáskor
+                  setPeriod(p);
+                }}
               >
                 {p === 'today' ? 'Ma' : p === 'week' ? 'Hét' : 'Hónap'}
               </button>
@@ -176,7 +190,6 @@ export function Arena() {
           </div>
         </div>
 
-        {/* Pódium és Loading állapot kezelése */}
         {isLoading ? (
           <div className={styles.emptyState}>
             <p>Ranglista betöltése...</p>
@@ -214,7 +227,6 @@ export function Arena() {
           </div>
         )}
 
-        {/* Lista (4. helytől) - Csak ha nem tölt */}
         {!isLoading && (
           <div className={styles.leaderboardList}>
             {restOfLeaderboard.map((entry) => (
@@ -240,7 +252,6 @@ export function Arena() {
         )}
       </div>
 
-      {/* MODAL (Pop-up) */}
       {selectedProfile && (
         <div className={styles.modalOverlay} onClick={() => setSelectedProfile(null)}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
@@ -257,7 +268,6 @@ export function Arena() {
               expandable={false}
             />
             
-            {/* Akció gombok a modal alján */}
             {selectedProfile.id !== user?.id && (
               <div className={styles.modalActions}>
                 {selectedProfile.todayCompleted ? (
