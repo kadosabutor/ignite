@@ -115,7 +115,7 @@ export interface LeaderboardEntry {
 }
 
 // Notification types
-export type NotificationSettings {
+export interface NotificationSettings {
   enabled: boolean;
   morningEnabled: boolean;
   afternoonEnabled: boolean;
