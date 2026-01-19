@@ -1,4 +1,3 @@
-import { motion } from 'framer-motion'; // Ha van framer-motion, ha nincs, sima div is jó animációval
 import { AVATARS } from '../types';
 import styles from './LeaderboardPodium.module.css';
 
@@ -18,6 +17,8 @@ export function LeaderboardPodium({ top3 }: { top3: PodiumUser[] }) {
     top3.find(u => u.rank === 1),
     top3.find(u => u.rank === 3),
   ].filter(Boolean) as PodiumUser[];
+
+  if (podiumOrder.length === 0) return null;
 
   return (
     <div className={styles.podiumContainer}>
