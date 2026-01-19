@@ -176,8 +176,12 @@ export function Arena() {
           </div>
         </div>
 
-        {/* Pódium */}
-        {leaderboard.length > 0 ? (
+        {/* Pódium és Loading állapot kezelése */}
+        {isLoading ? (
+          <div className={styles.emptyState}>
+            <p>Ranglista betöltése...</p>
+          </div>
+        ) : leaderboard.length > 0 ? (
           <div className={styles.podium}>
             {podiumOrder.map((entry) => {
               const isFirst = entry.position === 1;
@@ -210,28 +214,30 @@ export function Arena() {
           </div>
         )}
 
-        {/* Lista (4. helytől) */}
-        <div className={styles.leaderboardList}>
-          {restOfLeaderboard.map((entry) => (
-            <Card key={entry.user.id} className={styles.listItem}>
-              <span className={styles.listPosition}>#{entry.position}</span>
-              <img 
-                src={AVATARS[entry.user.avatar as keyof typeof AVATARS]?.icon} 
-                className={styles.listAvatar}
-              />
-              <div className={styles.listInfo}>
-                <span className={styles.listName}>
-                  {entry.user.displayName}
-                  {entry.isCurrentUser && <span className={styles.youBadge}>Te</span>}
-                </span>
-                <span className={styles.listRank}>
-                  {RANKS[entry.user.rank as keyof typeof RANKS]?.name}
-                </span>
-              </div>
-              <span className={styles.listScore}>{Math.round(entry.score)}</span>
-            </Card>
-          ))}
-        </div>
+        {/* Lista (4. helytől) - Csak ha nem tölt */}
+        {!isLoading && (
+          <div className={styles.leaderboardList}>
+            {restOfLeaderboard.map((entry) => (
+              <Card key={entry.user.id} className={styles.listItem}>
+                <span className={styles.listPosition}>#{entry.position}</span>
+                <img 
+                  src={AVATARS[entry.user.avatar as keyof typeof AVATARS]?.icon} 
+                  className={styles.listAvatar}
+                />
+                <div className={styles.listInfo}>
+                  <span className={styles.listName}>
+                    {entry.user.displayName}
+                    {entry.isCurrentUser && <span className={styles.youBadge}>Te</span>}
+                  </span>
+                  <span className={styles.listRank}>
+                    {RANKS[entry.user.rank as keyof typeof RANKS]?.name}
+                  </span>
+                </div>
+                <span className={styles.listScore}>{Math.round(entry.score)}</span>
+              </Card>
+            ))}
+          </div>
+        )}
       </div>
 
       {/* MODAL (Pop-up) */}
@@ -248,7 +254,7 @@ export function Arena() {
               monthlyAverage={selectedProfile.monthlyAverage}
               todayEntry={selectedProfile.todayEntry}
               viewType={selectedProfile.id === user?.id ? 'self' : 'friend'}
-              expandable={false} // A modalban mindig nyitva legyen vagy csak a lényeg
+              expandable={false}
             />
             
             {/* Akció gombok a modal alján */}
