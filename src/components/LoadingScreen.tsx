@@ -7,8 +7,9 @@ interface LoadingScreenProps {
 export function LoadingScreen({ message = 'Betöltés...' }: LoadingScreenProps) {
   return (
     <div className={styles.container}>
-      <span className={styles.text}>{message}</span>
+      <img src="/logo.png" alt="IGNITE" className={styles.logo} />
       <div className={styles.spinner} />
+      <span className={styles.text}>{message}</span>
     </div>
   );
 }
