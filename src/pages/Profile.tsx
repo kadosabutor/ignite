@@ -1,46 +1,27 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
 import { Button, Card, Input, Switch } from '../components/ui';
 import { StreakIcon } from '../components/StreakIcon';
 import { RadarChart } from '../components/RadarChart';
-import { RANKS, AVATARS, type AvatarType } from '../types';
+import { RANKS, AVATARS, getAvatarSrc, type AvatarType } from '../types';
 import { calculateRadarStats } from '../lib/scoring';
 import * as supabase from '../lib/supabase';
+import { useToast } from '../context/ToastContext';
 import styles from './Profile.module.css';
 
-// Kategória magyarázatok
 const CATEGORY_EXPLANATIONS = {
-  business: {
-    name: 'Business Idő',
-    description: 'Produktív munkaórák száma. Minél több időt töltesz fókuszált munkával, annál magasabb a pontszámod.',
-    calculation: 'Napi business percek átlaga / 480 perc (8 óra) × 100'
-  },
-  discipline: {
-    name: 'Fegyelem',
-    description: 'Tisztaság és önkontroll. A satisfaction, dopamine content és gaming szokások alapján.',
-    calculation: 'Tiszta napok aránya × 100'
-  },
-  body: {
-    name: 'Test',
-    description: 'Fizikai egészség: edzés és egészséges étkezés kombinációja.',
-    calculation: '(Edzés napok + Tiszta étkezés napok) / (Összes nap × 2) × 100'
-  },
-  mind: {
-    name: 'Elme',
-    description: 'Mentális fejlődés és tanulás. Paradigma shift és tudatos döntések.',
-    calculation: 'Paradigma napok aránya × 100'
-  },
-  sleep: {
-    name: 'Alvás',
-    description: 'Alvás minősége és mennyisége. Optimális: 7-9 óra.',
-    calculation: 'Alvás percek átlaga / 480 perc (8 óra) × 100, max 100'
-  }
+  business: { name: 'Business Idő', desc: 'Produktív munkaórák száma.', calc: 'Napi business percek átlaga / 480 perc (8 óra) × 100' },
+  discipline: { name: 'Fegyelem', desc: 'Tisztaság és önkontroll.', calc: 'Tiszta napok aránya × 100' },
+  body: { name: 'Test', desc: 'Fizikai egészség: edzés és étkezés.', calc: '(Edzés + Étkezés napok) / (Összes nap × 2) × 100' },
+  mind: { name: 'Elme', desc: 'Mentális fejlődés és tanulás.', calc: 'Paradigma napok aránya × 100' },
+  sleep: { name: 'Alvás', desc: 'Alvás minősége és mennyisége.', calc: 'Alvás percek átlaga / 480 perc (8 óra) × 100' }
 };
 
 export function Profile() {
   const navigate = useNavigate();
   const { user, streak, saveUser, monthlyAverage, signOut, authUser, pendingRequests, entries } = useHabits();
+  const { showToast } = useToast();
   
   const [viewMode, setViewMode] = useState<'overview' | 'analysis'>('overview');
   const [isEditing, setIsEditing] = useState(false);
@@ -48,6 +29,8 @@ export function Profile() {
   const [selectedAvatar, setSelectedAvatar] = useState<AvatarType>(user?.avatar || 'lion');
   const [bio, setBio] = useState(user?.bio || '');
   const [showSettings, setShowSettings] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  
   const [notifications, setNotifications] = useState({
     enabled: true,
     morningEnabled: true,
@@ -57,13 +40,13 @@ export function Profile() {
     socialEnabled: true,
   });
 
-  // Calculate radar stats
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   const radarStats = useMemo(() => {
     const last30Days = entries.slice(0, 30);
     return calculateRadarStats(last30Days);
   }, [entries]);
 
-  // Load notification settings
   useEffect(() => {
     if (authUser) {
       supabase.getNotificationSettings(authUser.id).then(settings => {
@@ -79,7 +62,6 @@ export function Profile() {
     }
   }, [authUser]);
 
-  // Update form when user changes
   useEffect(() => {
     if (user) {
       setDisplayName(user.displayName);
@@ -96,15 +78,36 @@ export function Profile() {
       avatar: selectedAvatar,
       bio: bio.trim(),
     });
+    showToast('Profil sikeresen mentve! ✅', 'success');
     setIsEditing(false);
+  };
+
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !authUser) return;
+
+    if (file.size > 2 * 1024 * 1024) { // 2MB limit
+      showToast('A kép mérete túl nagy! (Max 2MB)', 'error');
+      return;
+    }
+
+    setIsUploading(true);
+    try {
+      const publicUrl = await supabase.uploadAvatar(authUser.id, file);
+      setSelectedAvatar(publicUrl); // Beállítjuk az URL-t avatarnak
+      showToast('Kép sikeresen feltöltve! 📸', 'success');
+    } catch (error: any) {
+      console.error('Upload failed:', error);
+      showToast('Hiba a feltöltés során: ' + error.message, 'error');
+    } finally {
+      setIsUploading(false);
+    }
   };
 
   const handleNotificationChange = async (key: keyof typeof notifications, value: boolean) => {
     if (!authUser) return;
-    
     const newSettings = { ...notifications, [key]: value };
     setNotifications(newSettings);
-    
     const currentSettings = await supabase.getNotificationSettings(authUser.id);
     await supabase.saveNotificationSettings(authUser.id, { ...currentSettings, ...newSettings });
   };
@@ -116,40 +119,51 @@ export function Profile() {
     }
   };
 
-  if (!user) {
-    return (
-      <div className={styles.container}>
-        <div className={styles.loading}>Betöltés...</div>
-      </div>
-    );
-  }
+  if (!user) return <div className={styles.loading}>Betöltés...</div>;
 
   if (isEditing) {
     return (
       <div className={styles.container}>
         <header className={styles.header}>
           <h1 className={styles.title}>Profil szerkesztése</h1>
-          <button className={styles.cancelButton} onClick={() => setIsEditing(false)}>
-            Mégse
-          </button>
+          <button className={styles.cancelButton} onClick={() => setIsEditing(false)}>Mégse</button>
         </header>
 
         <div className={styles.form}>
-          {/* Avatar selection */}
           <div className={styles.avatarSection}>
             <span className={styles.label}>Avatar</span>
+            
+            {/* Nagy előnézeti kép feltöltés gombbal */}
+            <div className={styles.uploadContainer}>
+              <div className={styles.previewWrapper} onClick={() => fileInputRef.current?.click()}>
+                <img 
+                  src={getAvatarSrc(selectedAvatar)} 
+                  alt="Avatar preview" 
+                  className={styles.uploadPreview} 
+                />
+                <div className={styles.uploadOverlay}>
+                  {isUploading ? '...' : '📷'}
+                </div>
+              </div>
+              <input
+                type="file"
+                ref={fileInputRef}
+                onChange={handleFileChange}
+                accept="image/*"
+                style={{ display: 'none' }}
+              />
+              <span className={styles.uploadHint}>Koppints a képre a módosításhoz</span>
+            </div>
+
+            {/* Hagyományos választó is megmarad */}
             <div className={styles.avatarGrid}>
-              {(Object.keys(AVATARS) as AvatarType[]).map((avatarKey) => (
+              {Object.keys(AVATARS).map((avatarKey) => (
                 <button
                   key={avatarKey}
                   className={`${styles.avatarOption} ${selectedAvatar === avatarKey ? styles.avatarSelected : ''}`}
                   onClick={() => setSelectedAvatar(avatarKey)}
                 >
-                  <img
-                    src={AVATARS[avatarKey].icon}
-                    alt={AVATARS[avatarKey].name}
-                    className={styles.avatarImage}
-                  />
+                  <img src={AVATARS[avatarKey].icon} alt={AVATARS[avatarKey].name} className={styles.avatarImage} />
                   <span className={styles.avatarName}>{AVATARS[avatarKey].name}</span>
                 </button>
               ))}
@@ -174,8 +188,8 @@ export function Profile() {
             />
           </div>
 
-          <Button fullWidth onClick={handleSave} disabled={!displayName.trim()}>
-            Mentés
+          <Button fullWidth onClick={handleSave} disabled={!displayName.trim() || isUploading}>
+            {isUploading ? 'Feltöltés...' : 'Mentés'}
           </Button>
         </div>
       </div>
@@ -188,198 +202,102 @@ export function Profile() {
     <div className={styles.container}>
       <header className={styles.header}>
         <h1 className={styles.title}>Profil</h1>
-        <div className={styles.settingsWrapper}>
-          <span className={styles.settingsLabel}>Beállítások</span>
-          <button className={styles.settingsButton} onClick={() => setShowSettings(!showSettings)}>
-            {showSettings ? '✕' : '⚙️'}
-          </button>
-        </div>
+        <button className={styles.settingsButton} onClick={() => setShowSettings(!showSettings)}>
+          {showSettings ? '✕' : '⚙️'}
+        </button>
       </header>
 
       {showSettings ? (
         <div className={styles.settingsSection}>
           <Card className={styles.settingsCard}>
             <h3 className={styles.sectionTitle}>Értesítések</h3>
-            
             <div className={styles.settingsList}>
-              <Switch
-                label="Értesítések engedélyezése"
-                checked={notifications.enabled}
-                onChange={(val) => handleNotificationChange('enabled', val)}
-              />
-              
+              <Switch label="Értesítések engedélyezése" checked={notifications.enabled} onChange={(val) => handleNotificationChange('enabled', val)} />
               {notifications.enabled && (
                 <>
                   <div className={styles.settingsDivider} />
-                  
-                  <Switch
-                    label="Reggeli motiváció (07:00)"
-                    checked={notifications.morningEnabled}
-                    onChange={(val) => handleNotificationChange('morningEnabled', val)}
-                  />
-                  
-                  <Switch
-                    label="Délutáni emlékeztető (15:00)"
-                    checked={notifications.afternoonEnabled}
-                    onChange={(val) => handleNotificationChange('afternoonEnabled', val)}
-                  />
-                  
-                  <Switch
-                    label="Esti felszólítás (21:00)"
-                    checked={notifications.eveningEnabled}
-                    onChange={(val) => handleNotificationChange('eveningEnabled', val)}
-                  />
-                  
+                  <Switch label="Reggeli motiváció (07:00)" checked={notifications.morningEnabled} onChange={(val) => handleNotificationChange('morningEnabled', val)} />
+                  <Switch label="Délutáni emlékeztető (15:00)" checked={notifications.afternoonEnabled} onChange={(val) => handleNotificationChange('afternoonEnabled', val)} />
+                  <Switch label="Esti felszólítás (21:00)" checked={notifications.eveningEnabled} onChange={(val) => handleNotificationChange('eveningEnabled', val)} />
                   <div className={styles.settingsDivider} />
-                  
-                  <Switch
-                    label="Streak értesítések"
-                    checked={notifications.streakEnabled}
-                    onChange={(val) => handleNotificationChange('streakEnabled', val)}
-                  />
-                  
-                  <Switch
-                    label="Közösségi értesítések"
-                    checked={notifications.socialEnabled}
-                    onChange={(val) => handleNotificationChange('socialEnabled', val)}
-                  />
+                  <Switch label="Streak értesítések" checked={notifications.streakEnabled} onChange={(val) => handleNotificationChange('streakEnabled', val)} />
+                  <Switch label="Közösségi értesítések" checked={notifications.socialEnabled} onChange={(val) => handleNotificationChange('socialEnabled', val)} />
                 </>
               )}
             </div>
           </Card>
-          
-          <Button variant="ghost" fullWidth onClick={() => setShowSettings(false)}>
-            Vissza a profilhoz
-          </Button>
+          <Button variant="ghost" fullWidth onClick={() => setShowSettings(false)}>Vissza a profilhoz</Button>
         </div>
       ) : (
         <>
-          {/* View Toggle */}
           <div className={styles.viewToggle}>
-            <button
-              className={`${styles.toggleButton} ${viewMode === 'overview' ? styles.toggleActive : ''}`}
-              onClick={() => setViewMode('overview')}
-            >
-              Áttekintés
-            </button>
-            <button
-              className={`${styles.toggleButton} ${viewMode === 'analysis' ? styles.toggleActive : ''}`}
-              onClick={() => setViewMode('analysis')}
-            >
-              Elemzés
-            </button>
+            <button className={`${styles.toggleButton} ${viewMode === 'overview' ? styles.toggleActive : ''}`} onClick={() => setViewMode('overview')}>Áttekintés</button>
+            <button className={`${styles.toggleButton} ${viewMode === 'analysis' ? styles.toggleActive : ''}`} onClick={() => setViewMode('analysis')}>Elemzés</button>
           </div>
 
           {viewMode === 'overview' ? (
             <>
-              {/* Profile card */}
               <Card className={styles.profileCard}>
                 <div className={styles.profileHeader}>
                   <img
-                    src={AVATARS[user.avatar].icon}
-                    alt={AVATARS[user.avatar].name}
+                    src={getAvatarSrc(user.avatar)}
+                    alt={user.displayName}
                     className={styles.profileAvatar}
                   />
                   <div className={styles.profileInfo}>
                     <h2 className={styles.profileName}>{user.displayName}</h2>
                     <span className={styles.profileUsername}>@{user.username}</span>
                   </div>
-                  <button className={styles.editButton} onClick={() => setIsEditing(true)}>
-                    ✏️
-                  </button>
+                  <button className={styles.editButton} onClick={() => setIsEditing(true)}>✏️</button>
                 </div>
-                
                 {user.bio && <p className={styles.profileBio}>{user.bio}</p>}
-                
                 <div className={styles.profileStats}>
-                  <div className={styles.profileStat}>
-                    <StreakIcon level={streak.level} days={streak.currentStreak} size="sm" />
-                  </div>
-                  <div className={styles.profileStat}>
-                    <span className={styles.statValue}>{Math.round(monthlyAverage)}</span>
-                    <span className={styles.statLabel}>Havi átlag</span>
-                  </div>
-                  <div className={styles.profileStat}>
-                    <span className={styles.rankBadge} style={{ color: rankData.color }}>
-                      {rankData.emoji} {rankData.name}
-                    </span>
-                  </div>
+                  <div className={styles.profileStat}><StreakIcon level={streak.level} days={streak.currentStreak} size="sm" /></div>
+                  <div className={styles.profileStat}><span className={styles.statValue}>{Math.round(monthlyAverage)}</span><span className={styles.statLabel}>Havi átlag</span></div>
+                  <div className={styles.profileStat}><span className={styles.rankBadge} style={{ color: rankData.color }}>{rankData.emoji} {rankData.name}</span></div>
                 </div>
               </Card>
 
-              {/* Streak details */}
               <Card className={styles.streakCard}>
                 <h3 className={styles.sectionTitle}>Streak részletek</h3>
                 <div className={styles.streakDetails}>
-                  <div className={styles.streakItem}>
-                    <span className={styles.streakLabel}>Jelenlegi sorozat</span>
-                    <span className={styles.streakValue}>{streak.currentStreak} nap</span>
-                  </div>
-                  <div className={styles.streakItem}>
-                    <span className={styles.streakLabel}>Leghosszabb sorozat</span>
-                    <span className={styles.streakValue}>{streak.longestStreak} nap</span>
-                  </div>
-                  <div className={styles.streakItem}>
-                    <span className={styles.streakLabel}>Cryo-Freeze készlet</span>
-                    <span className={styles.streakValue}>🧊 {streak.cryoFreezeCount}/3</span>
-                  </div>
+                  <div className={styles.streakItem}><span className={styles.streakLabel}>Jelenlegi sorozat</span><span className={styles.streakValue}>{streak.currentStreak} nap</span></div>
+                  <div className={styles.streakItem}><span className={styles.streakLabel}>Leghosszabb sorozat</span><span className={styles.streakValue}>{streak.longestStreak} nap</span></div>
+                  <div className={styles.streakItem}><span className={styles.streakLabel}>Cryo-Freeze készlet</span><span className={styles.streakValue}>🧊 {streak.cryoFreezeCount}/3</span></div>
                 </div>
               </Card>
 
-              {/* Rank info */}
               <Card className={styles.rankCard}>
                 <h3 className={styles.sectionTitle}>Rang</h3>
                 <div className={styles.rankInfo}>
                   <span className={styles.rankEmoji}>{rankData.emoji}</span>
                   <div className={styles.rankDetails}>
-                    <span className={styles.rankName} style={{ color: rankData.color }}>
-                      {rankData.name}
-                    </span>
-                    <span className={styles.rankRange}>
-                      {rankData.minScore} - {rankData.maxScore === 100 ? '100' : rankData.maxScore.toFixed(1)} pont átlag
-                    </span>
+                    <span className={styles.rankName} style={{ color: rankData.color }}>{rankData.name}</span>
+                    <span className={styles.rankRange}>{rankData.minScore} - {rankData.maxScore === 100 ? '100' : rankData.maxScore.toFixed(1)} pont átlag</span>
                   </div>
                 </div>
               </Card>
 
-              {/* Friends button */}
               <div className={styles.friendsButtonWrapper}>
-                <Button variant="secondary" fullWidth onClick={() => navigate('/friends')}>
-                  👥 Barátok kezelése
-                </Button>
-                {pendingRequests.incoming.length > 0 && (
-                  <span className={styles.notificationDot} title={`${pendingRequests.incoming.length} bejövő barátkérelem`}>
-                    {pendingRequests.incoming.length}
-                  </span>
-                )}
+                <Button variant="secondary" fullWidth onClick={() => navigate('/friends')}>👥 Barátok kezelése</Button>
+                {pendingRequests.incoming.length > 0 && <span className={styles.notificationDot}>{pendingRequests.incoming.length}</span>}
               </div>
-
-              {/* Sign out button */}
-              <Button variant="danger" fullWidth onClick={handleSignOut}>
-                Kijelentkezés
-              </Button>
+              <Button variant="danger" fullWidth onClick={handleSignOut}>Kijelentkezés</Button>
             </>
           ) : (
             <>
-              {/* Analysis View */}
               <Card className={styles.radarCard}>
                 <h3 className={styles.radarTitle}>Képességek</h3>
-                <RadarChart 
-                  stats={radarStats}
-                  primaryLabel="Te"
-                />
+                <RadarChart stats={radarStats} primaryLabel="Te" />
               </Card>
-
               <Card className={styles.explanationCard}>
                 <h3 className={styles.explanationTitle}>Magyarázatok</h3>
                 <div className={styles.explanationList}>
                   {Object.entries(CATEGORY_EXPLANATIONS).map(([key, cat]) => (
                     <div key={key} className={styles.explanationItem}>
-                      <div className={styles.explanationHeader}>
-                        <span className={styles.explanationName}>{cat.name}</span>
-                      </div>
-                      <p className={styles.explanationDesc}>{cat.description}</p>
-                      <span className={styles.explanationCalc}>{cat.calculation}</span>
+                      <div className={styles.explanationHeader}><span className={styles.explanationName}>{cat.name}</span></div>
+                      <p className={styles.explanationDesc}>{cat.desc}</p>
+                      <span className={styles.explanationCalc}>{cat.calc}</span>
                     </div>
                   ))}
                 </div>
