@@ -1,7 +1,7 @@
 .container {
   /* 1. JAVÍTÁS: A TOKA ELTÜNTETÉSE */
   min-height: 100vh;
-  background-color: var(--color-background);
+  background-color: var(--color-background, #121212);
   box-sizing: border-box;
   padding: 20px;
   /* 2. JAVÍTÁS: A FELSŐ SÁV (Notch) */
@@ -26,37 +26,30 @@
 }
 
 .logoImage {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
 }
 
 .logoText {
-  font-size: 20px;
+  font-size: 24px;
   font-weight: 800;
   color: var(--color-primary);
-  letter-spacing: 0.15em;
-  text-transform: uppercase;
+  letter-spacing: 0.1em;
 }
 
 .userBadge {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background-color: var(--color-surface);
   display: flex;
   align-items: center;
-  gap: 8px;
-  background-color: var(--color-surface);
-  padding: 6px 12px;
-  border-radius: 20px;
-  border: 1px solid var(--color-border);
-}
-
-.rankName {
-  font-size: 12px;
-  font-weight: 600;
-  color: var(--color-muted);
-  text-transform: uppercase;
+  justify-content: center;
 }
 
 .rankEmoji {
-  font-size: 16px;
+  font-size: 20px;
 }
 
 /* Streak Section */
@@ -68,7 +61,6 @@
   padding: 24px;
   background-color: var(--color-surface);
   border-radius: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .streakInfo {
@@ -80,9 +72,6 @@
   font-weight: 800;
   color: var(--color-foreground);
   margin: 0;
-  background: linear-gradient(180deg, #FFFFFF 0%, #A0A0A0 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
 }
 
 .streakLabel {
@@ -105,8 +94,6 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  position: relative;
-  overflow: hidden;
 }
 
 .scoreHeader {
@@ -128,7 +115,6 @@
   font-size: 12px;
   color: var(--color-muted);
   text-transform: uppercase;
-  font-weight: 600;
 }
 
 .scoreContent {
@@ -136,14 +122,6 @@
   flex-direction: column;
   align-items: center;
   gap: 16px;
-  padding: 10px 0;
-}
-
-.scoreInner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
 }
 
 .scoreValue {
@@ -156,14 +134,11 @@
   font-size: 12px;
   color: var(--color-muted);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin-top: 4px;
 }
 
 .todayStats {
   display: flex;
   gap: 24px;
-  margin-top: 8px;
 }
 
 .statItem {
@@ -182,9 +157,54 @@
   color: var(--color-foreground);
 }
 
-.actionButton {
-  font-weight: 800;
-  letter-spacing: 0.1em;
+/* QUICK ACTIONS */
+.quickActions {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.quickBtn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 12px 8px;
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.quickBtn:hover {
+  background-color: var(--color-surface-light);
+}
+
+.quickBtn.active {
+  background-color: rgba(74, 222, 128, 0.15); /* Halvány zöld */
+  border-color: var(--color-success);
+}
+
+.quickBtn:active {
+  transform: scale(0.95);
+}
+
+.quickIcon {
+  font-size: 20px;
+}
+
+.quickLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--color-muted);
+  text-transform: uppercase;
+}
+
+.quickBtn.active .quickLabel {
+  color: var(--color-success);
 }
 
 /* Week Card */
@@ -210,11 +230,11 @@
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  height: 120px;
+  height: 100px;
   gap: 8px;
 }
 
-.chartBarWrapper {
+.chartBar {
   flex: 1;
   display: flex;
   flex-direction: column;
@@ -225,30 +245,9 @@
 
 .bar {
   width: 100%;
-  border-radius: 6px;
+  border-radius: 4px;
   transition: height 0.3s ease;
   margin-top: auto;
-  position: relative;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  overflow: hidden;
-}
-
-.missedBar {
-  background-color: transparent;
-}
-
-.missedLabel {
-  position: absolute;
-  font-size: 9px;
-  font-weight: 800;
-  color: var(--color-error);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  /* Elforgatás 90 fokkal */
-  transform: rotate(-90deg);
-  white-space: nowrap;
 }
 
 .dayLabel {
@@ -258,9 +257,8 @@
   text-transform: uppercase;
 }
 
-.todayLabel {
+.dayLabel.today {
   color: var(--color-primary);
-  font-weight: 800;
 }
 
 /* Quick Stats */
