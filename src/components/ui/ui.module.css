@@ -24,14 +24,12 @@
 }
 
 .primary {
-  background: linear-gradient(135deg, var(--color-primary) 0%, #ff4500 100%);
+  background-color: var(--color-primary);
   color: #121212;
-  box-shadow: 0 4px 12px rgba(255, 112, 51, 0.3);
 }
 
 .primary:hover:not(:disabled) {
-  filter: brightness(1.1);
-  box-shadow: 0 6px 16px rgba(255, 112, 51, 0.4);
+  background-color: var(--color-primary-dark);
 }
 
 .secondary {
@@ -85,9 +83,9 @@
 /* Card */
 .card {
   background-color: var(--color-surface);
-  border-radius: 20px;
+  border-radius: 16px;
   padding: 20px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: none;
   width: 100%;
   text-align: left;
 }
@@ -105,9 +103,10 @@
   transform: scale(0.98);
 }
 
+/* HOZZÁADVA: Glow stílus */
 .cardGlow {
-  border: 1px solid rgba(255, 112, 51, 0.3);
-  box-shadow: 0 0 20px rgba(255, 112, 51, 0.1);
+  border: 1px solid var(--color-primary);
+  box-shadow: 0 0 20px rgba(255, 112, 51, 0.15);
 }
 
 /* Input */
@@ -297,15 +296,15 @@
   transform: rotate(-90deg);
 }
 
-.progressRingTrack {
+.progressRingBg {
   fill: none;
-  stroke: rgba(255, 112, 51, 0.15); /* Halvány narancs háttér */
+  stroke: var(--color-surface);
 }
 
 .progressRingFg {
   fill: none;
   stroke-linecap: round;
-  transition: stroke-dashoffset 0.8s ease-out;
+  transition: stroke-dashoffset 0.5s ease;
 }
 
 .progressRingContent {
@@ -355,36 +354,15 @@
 
 .switchChecked .switchThumb {
   transform: translateX(24px);
-  background-color: #121212;
 }
 
-/* Tab Bar - Redesigned */
+/* Tab Bar */
 .tabBar {
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
   display: flex;
-  justify-content: center;
-  padding: 0 16px;
-  /* Fontos: A container layout-ban már lekezeltük az alját, de itt a belső elrendezést csinosítjuk */
-  padding-bottom: calc(12px + env(safe-area-inset-bottom, 20px));
-  z-index: 100;
-  pointer-events: none; /* A wrapper átenged, a gombok kattinthatók */
-}
-
-.tabBarInner {
-  display: flex;
-  background-color: rgba(30, 30, 30, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  border-radius: 24px;
-  padding: 8px 16px;
-  gap: 16px;
-  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
-  pointer-events: auto;
-  max-width: 100%;
+  background-color: var(--color-surface);
+  border-top: 1px solid var(--color-border);
+  padding: 8px 0;
+  padding-bottom: calc(8px + env(safe-area-inset-bottom, 0));
 }
 
 .tabButton {
@@ -398,9 +376,7 @@
   border: none;
   color: var(--color-muted);
   cursor: pointer;
-  transition: all 0.3s;
-  min-width: 50px;
-  position: relative;
+  transition: color 0.2s;
 }
 
 .tabButton:hover {
@@ -411,19 +387,8 @@
   color: var(--color-primary);
 }
 
-.tabIconWrapper {
-  position: relative;
-  display: flex;
-  justify-content: center;
-}
-
 .tabIcon {
   font-size: 24px;
-  transition: transform 0.2s;
-}
-
-.tabActive .tabIcon {
-  transform: translateY(-2px);
 }
 
 .tabLabel {
@@ -431,24 +396,4 @@
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.05em;
-  opacity: 0.8;
-}
-
-.tabBadge {
-  position: absolute;
-  top: -4px;
-  right: -6px;
-  min-width: 16px;
-  height: 16px;
-  background-color: var(--color-error);
-  color: white;
-  border-radius: 8px;
-  font-size: 10px;
-  font-weight: 800;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0 4px;
-  box-shadow: 0 0 0 2px var(--color-surface);
-  animation: pulse 2s infinite;
 }
