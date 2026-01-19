@@ -34,14 +34,20 @@ interface CardProps {
   children: ReactNode;
   className?: string;
   onClick?: () => void;
-  variant?: 'default' | 'interactive';
+  variant?: 'default' | 'interactive' | 'glow'; // HOZZÁADVA: 'glow'
 }
 
 export function Card({ children, className = '', onClick, variant = 'default' }: CardProps) {
   const Component = onClick ? 'button' : 'div';
+  
+  // Stílus kiválasztása a variant alapján
+  let variantClass = '';
+  if (variant === 'interactive') variantClass = styles.cardInteractive;
+  if (variant === 'glow') variantClass = styles.cardGlow; // HOZZÁADVA
+
   return (
     <Component
-      className={`${styles.card} ${variant === 'interactive' ? styles.cardInteractive : ''} ${className}`}
+      className={`${styles.card} ${variantClass} ${className}`}
       onClick={onClick}
     >
       {children}
@@ -81,7 +87,7 @@ interface TimeInputProps {
   onChange: (value: string) => void;
   label?: string;
   onComplete?: () => void;
-  firstInputRef?: React.RefObject<HTMLInputElement | null>; // Ref az óra mezőhöz
+  firstInputRef?: React.RefObject<HTMLInputElement | null>;
 }
 
 export function TimeInput({ value, onChange, label, onComplete, firstInputRef }: TimeInputProps) {
@@ -101,7 +107,6 @@ export function TimeInput({ value, onChange, label, onComplete, firstInputRef }:
       const nextInput = e.target.nextElementSibling?.nextElementSibling as HTMLInputElement;
       if (nextInput) {
         nextInput.focus();
-        // A select hívás már nem kell itt, mert a focus eseménykezelő intézi
       }
     }
   };
