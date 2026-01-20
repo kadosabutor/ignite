@@ -95,7 +95,7 @@
   opacity: 0.7;
 }
 
-/* SAJÁT PROFIL KIEMELÉSE (2. pontból) */
+/* SAJÁT PROFIL KIEMELÉSE */
 .ringMeActive {
   background: linear-gradient(45deg, #33CCFF, #B833FF);
   animation: pulse 3s infinite;
@@ -114,7 +114,7 @@
   border-radius: 50%;
   background-color: var(--color-background);
   border: 2px solid var(--color-background);
-  object-fit: cover; /* JAVÍTÁS a 4. ponthoz előkészítve: contain helyett cover */
+  object-fit: cover; /* JAVÍTVA */
 }
 
 .fireBadge {
@@ -165,24 +165,27 @@
   margin: 0;
 }
 
+/* JAVÍTOTT VÁLASZTÓ (5-6. PONT) */
 .periodSelector {
   display: flex;
-  background-color: var(--color-background);
-  border-radius: 20px;
-  padding: 2px;
+  background-color: var(--color-surface); /* Egyezik a háttérrel */
+  border-radius: 12px; /* Kisebb radius, szögletesebb */
+  padding: 4px;
+  border: 1px solid var(--color-border);
 }
 
 .periodTab {
-  padding: 6px 12px;
-  font-size: 11px;
+  padding: 8px 16px; /* Nagyobb padding */
+  font-size: 13px; /* Nagyobb betűméret */
   font-weight: 600;
   color: var(--color-muted);
-  background: none;
+  background: transparent;
   border: none;
-  border-radius: 18px;
+  border-radius: 8px; /* Szögletesebb gombok */
   cursor: pointer;
-  transition: all 0.2s;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
   text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .periodActive {
@@ -195,9 +198,9 @@
 .podium {
   display: flex;
   justify-content: center;
-  align-items: flex-end; /* Fontos: Alulra igazítás, hogy a magasságok felfelé nőjenek */
-  gap: 16px; /* Kicsit nagyobb térköz */
-  height: 240px; /* Növelt konténer magasság */
+  align-items: flex-end;
+  gap: 16px;
+  height: 240px;
   margin-bottom: 24px;
   padding-bottom: 0;
 }
@@ -209,7 +212,7 @@
   flex: 1;
   max-width: 100px;
   position: relative;
-  justify-content: flex-end; /* Az avatar és a sáv alulra igazítása a flex itemen belül is */
+  justify-content: flex-end;
   height: 100%;
 }
 
@@ -223,7 +226,7 @@
   border-radius: 50%;
   border: 3px solid;
   background-color: var(--color-background);
-  object-fit: cover; /* Kerek formához igazodás */
+  object-fit: cover;
 }
 
 .medal {
@@ -262,20 +265,17 @@
   width: 100%;
   border-radius: 12px 12px 0 0;
   position: relative;
-  transition: height 0.5s ease-out; /* Animáció betöltéskor */
+  transition: height 0.5s ease-out;
 }
 
-/* STÍLUSOK HELYEZÉS SZERINT - JAVÍTOTT MAGASSÁGOK */
-/* 1. Helyezett (Közép) - Legmagasabb */
 .first .podiumAvatar { width: 80px; height: 80px; border-color: #FFD700 !important; }
 .first .podiumBar { 
-  height: 140px; /* Jelentősen magasabb */
+  height: 140px;
   background: linear-gradient(180deg, rgba(255, 215, 0, 0.4) 0%, rgba(255, 215, 0, 0.05) 100%);
   border-top: 2px solid #FFD700;
   box-shadow: 0 0 25px rgba(255, 215, 0, 0.2);
 }
 
-/* 2. Helyezett (Bal) - Közepes */
 .second .podiumAvatar { width: 64px; height: 64px; border-color: #C0C0C0 !important; }
 .second .podiumBar { 
   height: 90px; 
@@ -283,7 +283,6 @@
   border-top: 2px solid #C0C0C0;
 }
 
-/* 3. Helyezett (Jobb) - Legalacsonyabb */
 .third .podiumAvatar { width: 56px; height: 56px; border-color: #CD7F32 !important; }
 .third .podiumBar { 
   height: 60px; 
@@ -318,7 +317,7 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  object-fit: cover;
+  object-fit: cover; /* JAVÍTVA */
 }
 
 .listInfo {
