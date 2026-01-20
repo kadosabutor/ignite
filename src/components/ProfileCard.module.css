@@ -29,16 +29,12 @@
   padding: 4px;
   flex-shrink: 0;
   background-color: var(--color-background);
-  /* JAVÍTÁS: overflow hidden, hogy a kép ne lógjon ki */
-  overflow: hidden;
 }
 
 .avatar {
   width: 100%;
   height: 100%;
-  /* JAVÍTÁS: cover, hogy kitöltse a kört */
-  object-fit: cover;
-  border-radius: 50%;
+  object-fit: contain;
 }
 
 /* Info section */
