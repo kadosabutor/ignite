@@ -6,7 +6,7 @@ const TABS = [
   { id: '/', label: 'Főoldal', icon: '🏠' },
   { id: '/arena', label: 'Aréna', icon: '⚔️' },
   { id: '/stats', label: 'Statisztika', icon: '📊' },
-  { id: '/history', label: 'Előzmények', icon: '📅' },
+  // History tab removed - moved to Profile page
   { id: '/profile', label: 'Profil', icon: '👤' },
 ];
 
