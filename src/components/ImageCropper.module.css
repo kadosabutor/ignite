@@ -5,36 +5,98 @@
   right: 0;
   bottom: 0;
   background-color: #000;
-  z-index: 5000; /* Legyen mind felett */
+  z-index: 5000;
   display: flex;
   flex-direction: column;
+  color: white;
 }
 
-.cropperWrapper {
-  position: relative;
+.title {
+  text-align: center;
+  margin: 16px 0;
+  font-size: 16px;
+  font-weight: 600;
+  z-index: 10;
+}
+
+/* A munkaterület */
+.cropAreaWrapper {
   flex: 1;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   background-color: #121212;
+  /* Fontos: ne lógjon ki semmi */
+  width: 100%;
+  height: 100%;
+}
+
+/* Ez maga a kör alakú ablak, ami alatt a kép látszik */
+.cropContainer {
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  border: 2px solid white;
+  position: relative;
+  z-index: 2;
+  /* Fontos: A kép ezen belül jelenik meg */
+  overflow: hidden;
+  /* Sötétítő maszk */
+  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.7);
+  
+  /* Flexbox a kép középre igazításához */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.image {
+  /* KRITIKUS JAVÍTÁS: */
+  /* A kép sose legyen nagyobb, mint a konténer, de töltse ki */
+  min-width: 100%;
+  min-height: 100%;
+  /* Eredeti arány megtartása */
+  object-fit: cover;
+  
+  /* Mozgatás */
+  position: absolute;
+  /* Nem kell top/left 0, mert a translate-tel mozgatjuk */
+  
+  transform-origin: center center;
+  user-select: none;
+  touch-action: none;
 }
 
 .controls {
-  padding: 20px;
-  padding-bottom: calc(20px + env(safe-area-inset-bottom));
+  padding: 24px;
+  padding-bottom: calc(24px + env(safe-area-inset-bottom));
   background-color: var(--color-surface);
+  border-top: 1px solid var(--color-border);
   display: flex;
   flex-direction: column;
   gap: 20px;
-  border-top: 1px solid var(--color-border);
+  z-index: 10;
+}
+
+.hint {
+  text-align: center;
+  color: var(--color-muted);
+  font-size: 12px;
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .sliderContainer {
   display: flex;
   align-items: center;
-  gap: 12px;
-  padding: 0 10px;
+  gap: 16px;
 }
 
 .sliderLabel {
-  font-size: 18px;
+  font-size: 20px;
   color: var(--color-muted);
   font-weight: 700;
 }
@@ -50,17 +112,17 @@
 
 .slider::-webkit-slider-thumb {
   -webkit-appearance: none;
-  appearance: none;
-  width: 20px;
-  height: 20px;
+  width: 24px;
+  height: 24px;
   border-radius: 50%;
   background: var(--color-primary);
   cursor: pointer;
+  border: 2px solid var(--color-surface);
 }
 
 .buttons {
   display: flex;
-  gap: 12px;
+  gap: 16px;
 }
 
 .buttons button {
