@@ -15,18 +15,36 @@ export function ImageCropper({ imageSrc, onCancel, onCropComplete }: ImageCroppe
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   
+  // ÚJ: Tároljuk a kép kezdő stílusát (hogy illeszkedjen a dobozba)
+  const [baseStyle, setBaseStyle] = useState<React.CSSProperties>({});
+  
   const containerRef = useRef<HTMLDivElement>(null);
   const imageRef = useRef<HTMLImageElement>(null);
   const dragStartRef = useRef({ x: 0, y: 0 });
   const imgStartPosRef = useRef({ x: 0, y: 0 });
 
-  // Reseteljük a pozíciót, ha új kép jön
-  useEffect(() => {
+  // 1. Amikor a kép betölt, beállítjuk a méretét, hogy pont beleférjen
+  const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
+    const img = e.currentTarget;
+    const { naturalWidth, naturalHeight } = img;
+    
+    // Alapértelmezett reset
     setPosition({ x: 0, y: 0 });
     setZoom(1);
-  }, [imageSrc]);
 
-  // Mozgatás (Drag) kezelése - Egér és Érintés
+    // Döntés: Álló vagy Fekvő kép?
+    // Ha a kép aránya szélesebb, mint 1 (fekvő), akkor a magasságát igazítjuk a körhöz (100%).
+    // Ha a kép aránya magasabb (álló), akkor a szélességét igazítjuk a körhöz (100%).
+    if (naturalWidth / naturalHeight > 1) {
+      // Fekvő kép -> Magasság legyen a fix, szélesség automatikus
+      setBaseStyle({ height: '100%', width: 'auto' });
+    } else {
+      // Álló kép (vagy négyzet) -> Szélesség legyen fix, magasság automatikus
+      setBaseStyle({ width: '100%', height: 'auto' });
+    }
+  };
+
+  // Mozgatás (Drag) kezelése
   const handlePointerDown = (e: React.PointerEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -41,8 +59,6 @@ export function ImageCropper({ imageSrc, onCancel, onCropComplete }: ImageCroppe
       const dx = e.clientX - dragStartRef.current.x;
       const dy = e.clientY - dragStartRef.current.y;
       
-      // Korlátozzuk a mozgást, hogy ne lehessen kitolni a képet a végtelenségbe
-      // (Ez opcionális finomhangolás, egyelőre engedjük a szabad mozgást)
       setPosition({
         x: imgStartPosRef.current.x + dx,
         y: imgStartPosRef.current.y + dy
@@ -72,15 +88,11 @@ export function ImageCropper({ imageSrc, onCancel, onCropComplete }: ImageCroppe
       const imageRect = imageRef.current.getBoundingClientRect();
       const containerRect = containerRef.current.getBoundingClientRect();
 
-      // Kiszámoljuk a relatív pozíciót és méretezést
-      // Mivel object-fit: contain/cover-t használhat a böngésző, 
-      // a naturalWidth/Height arányát kell nézni a megjelenített mérethez képest.
-      
+      // Kiszámoljuk a relatív skálázást a renderelt méret és az eredeti méret között
       const scaleX = imageRef.current.naturalWidth / imageRect.width;
       const scaleY = imageRef.current.naturalHeight / imageRect.height;
 
-      // A vágási terület:
-      // (Konténer bal széle - Kép bal széle) * Arány
+      // A vágási terület kiszámítása
       const pixelCrop = {
         x: (containerRect.left - imageRect.left) * scaleX,
         y: (containerRect.top - imageRect.top) * scaleY,
@@ -88,8 +100,7 @@ export function ImageCropper({ imageSrc, onCancel, onCropComplete }: ImageCroppe
         height: containerRect.height * scaleY,
       };
 
-      // Védelmi mechanizmus: Ha negatív koordináták jönnének ki (kilóg a kép),
-      // akkor korrigáljuk 0-ra, hogy ne legyen hiba a Canvas rajzolásnál.
+      // Biztonsági korrekció (negatív értékek elkerülése)
       if (pixelCrop.x < 0) pixelCrop.x = 0;
       if (pixelCrop.y < 0) pixelCrop.y = 0;
 
@@ -98,7 +109,6 @@ export function ImageCropper({ imageSrc, onCancel, onCropComplete }: ImageCroppe
     } catch (e) {
       console.error("Hiba a vágásnál:", e);
       setIsProcessing(false);
-      // Opcionális: jelezhetnénk a hibát a felhasználónak
     }
   };
 
@@ -106,7 +116,6 @@ export function ImageCropper({ imageSrc, onCancel, onCropComplete }: ImageCroppe
     <div className={styles.container}>
       <h3 className={styles.title}>Profilkép beállítása</h3>
       
-      {/* Vágóterület (A Kör) */}
       <div className={styles.cropAreaWrapper}>
         <div className={styles.cropContainer} ref={containerRef}>
           <img
@@ -115,16 +124,15 @@ export function ImageCropper({ imageSrc, onCancel, onCropComplete }: ImageCroppe
             alt="Crop target"
             className={styles.image}
             style={{
-              // A translate mozgatja a képet, a scale nagyítja
-              // Fontos: a transform-origin most 'center', így középről nagyít
+              ...baseStyle, // Itt alkalmazzuk a kiszámolt alapméretet
               transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
               cursor: isDragging ? 'grabbing' : 'grab'
             }}
+            onLoad={onImageLoad}
             onPointerDown={handlePointerDown}
             draggable={false}
           />
         </div>
-        {/* Sötétítő maszk a körön kívül (CSS box-shadow trükk) */}
       </div>
       
       <div className={styles.controls}>
@@ -135,9 +143,9 @@ export function ImageCropper({ imageSrc, onCancel, onCropComplete }: ImageCroppe
           <input
             type="range"
             value={zoom}
-            min={0.5} // Kicsit kisebbre is lehessen venni
+            min={0.5} // Kicsit engedjük kisebbre is venni
             max={3}
-            step={0.1}
+            step={0.05}
             onChange={(e) => setZoom(Number(e.target.value))}
             className={styles.slider}
           />
