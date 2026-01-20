@@ -202,9 +202,11 @@ export function Arena() {
             {podiumOrder.map((entry) => {
               const isFirst = entry.position === 1;
               const isSecond = entry.position === 2;
-              const isThird = entry.position === 3;
+              
+              // JAVÍTVA: Kivettem a "const isThird = ..." sort, mert nem használtuk, és ez okozta a hibát.
               
               // CSS osztály kiválasztása a helyezés alapján
+              // Ha nem első és nem második, akkor a styles.third lép életbe (ez a fallback)
               const podiumClass = isFirst ? styles.first : isSecond ? styles.second : styles.third;
               
               return (
