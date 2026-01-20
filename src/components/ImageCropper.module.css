@@ -17,23 +17,22 @@
   font-size: 16px;
   font-weight: 600;
   z-index: 10;
+  pointer-events: none;
 }
 
 /* A munkaterület */
 .cropAreaWrapper {
   flex: 1;
   position: relative;
-  overflow: hidden;
+  overflow: hidden; /* Ez nagyon fontos: levágja ami kilóg */
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: #121212;
-  /* Fontos: ne lógjon ki semmi */
   width: 100%;
-  height: 100%;
 }
 
-/* Ez maga a kör alakú ablak, ami alatt a kép látszik */
+/* Ez maga a kör alakú ablak */
 .cropContainer {
   width: 280px;
   height: 280px;
@@ -42,9 +41,10 @@
   position: relative;
   z-index: 2;
   /* Fontos: A kép ezen belül jelenik meg */
-  overflow: hidden;
-  /* Sötétítő maszk */
-  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.7);
+  /* overflow: hidden; <- EZT KIVETTEM, hogy lásd a képet mozgatás közben is, de a maszk takarja */
+  
+  /* Sötétítő maszk trükk */
+  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.85); 
   
   /* Flexbox a kép középre igazításához */
   display: flex;
@@ -53,20 +53,17 @@
 }
 
 .image {
-  /* KRITIKUS JAVÍTÁS: */
-  /* A kép sose legyen nagyobb, mint a konténer, de töltse ki */
-  min-width: 100%;
-  min-height: 100%;
-  /* Eredeti arány megtartása */
-  object-fit: cover;
+  /* ITT VOLT A HIBA: KIVETTEM a min-width/height sorokat */
   
   /* Mozgatás */
   position: absolute;
-  /* Nem kell top/left 0, mert a translate-tel mozgatjuk */
-  
   transform-origin: center center;
   user-select: none;
   touch-action: none;
+  
+  /* Hogy ne legyen torz */
+  max-width: none; 
+  max-height: none;
 }
 
 .controls {
