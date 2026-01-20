@@ -4,14 +4,16 @@ import { useHabits } from '../context/HabitContext';
 import { Button, Card, ProgressRing } from '../components/ui';
 import { StreakIcon } from '../components/StreakIcon';
 import { DateSelector } from '../components/DateSelector';
-import { getScoreColor, getTodayString } from '../lib/scoring';
+import { getScoreColor, getTodayString, formatMinutes, calculateTotalScore } from '../lib/scoring';
+import { createNewEntry } from '../lib/supabase';
 import { RANKS } from '../types';
 import styles from './Dashboard.module.css';
 
 export function Dashboard() {
   const navigate = useNavigate();
-  const { todayEntry, streak, user, weeklyAverage, entries } = useHabits();
+  const { todayEntry, streak, user, weeklyAverage, entries, saveEntry } = useHabits();
 
+  // Ha nincs még mai bejegyzés, akkor nullának tekintjük a pontokat, de a UI-n kezeljük
   const todayScore = todayEntry?.score ?? 0;
   const hasLoggedToday = !!todayEntry;
   const scoreColor = getScoreColor(todayScore);
@@ -22,6 +24,73 @@ export function Dashboard() {
     success: 'var(--color-success)',
     warning: 'var(--color-warning)',
     error: 'var(--color-error)',
+  };
+
+  // Gyors váltó gomb kezelése
+  const handleToggle = async (key: keyof typeof todayEntry, isNegativeHabit = false) => {
+    // Ha nincs még mai entry, létrehozzuk
+    const baseEntry = todayEntry || createNewEntry(getTodayString());
+    
+    // Az új érték meghatározása
+    // Negatív szokásnál (pl. Gaming): Ha Zöld (false) volt, akkor most rányomtunk -> Szürke (true) lett (tehát csináltuk).
+    // De a kérés: "rányomok -> zöld lesz -> pontot ad". 
+    // Tehát: Gray (Rossz/Semleges) -> Green (Jó/Pont).
+    // Pozitív szokás (Edzés): false -> true (Jó).
+    // Negatív szokás (Gaming): true (Rossz) -> false (Jó).
+    
+    let newValue;
+    if (isNegativeHabit) {
+       // Negatívnál a "Jó" állapot a false. Ha most "Jó" (false), akkor kikapcsoljuk (true). Ha "Rossz" (true), akkor bekapcsoljuk (false).
+       // De várj, alapból (undefined/null) a negative habit false (Jó). 
+       // A gomb vizuális állapota: Zöld = Jó (false), Szürke = Rossz (true).
+       const currentValue = baseEntry[key] as boolean;
+       newValue = !currentValue; // Toggle
+    } else {
+       // Pozitívnál: true = Jó (Zöld).
+       const currentValue = baseEntry[key] as boolean;
+       newValue = !currentValue;
+    }
+
+    const updatedEntry = {
+      ...baseEntry,
+      [key]: newValue,
+    };
+
+    // Pontszám újrakalkulálása
+    updatedEntry.score = calculateTotalScore(updatedEntry);
+
+    // Mentés
+    await saveEntry(updatedEntry);
+  };
+
+  // Helper a gomb stílushoz
+  // isActive: akkor igaz, ha a szokás "teljesítve van" (tehát pontot ér)
+  const renderQuickButton = (label: string, icon: string, key: string, isNegativeHabit = false) => {
+    // Ha nincs entry, akkor alapértelmezett (pl. false).
+    // Pozitívnál: false -> nem aktív.
+    // Negatívnál: false -> aktív (mert elkerültük). DE a felhasználó azt mondta "rányomok -> zöld lesz".
+    // Ez azt feltételezi, hogy alapból szürke.
+    // Ha a `todayEntry` null, akkor még nem rögzítettünk semmit. Ilyenkor minden szürke legyen?
+    // Vagy feltételezzük a default értékeket? 
+    // A `createNewEntry` defaultjai: cleanEating: false (szürke), gaming: false (ZÖLD lenne alapból).
+    // Hogy a UX jó legyen ("rányomok -> zöld"), a negatív szokásoknál a UI logika:
+    // Gomb Zöld = "Elkerültem" (entry[key] === false).
+    // Gomb Szürke = "Nem kerültem el / Még nem nyilatkoztam?" -> Inkább legyen bináris.
+    
+    const value = todayEntry ? todayEntry[key as keyof typeof todayEntry] as boolean : (isNegativeHabit ? true : false); 
+    // Trükk: Ha nincs entry, a negatívat true-nak (Rossznak/Szürkének) mutatjuk, hogy rányomhasson és zöld legyen.
+    
+    const isSuccess = isNegativeHabit ? !value : value;
+
+    return (
+      <button 
+        className={`${styles.quickButton} ${isSuccess ? styles.active : ''}`}
+        onClick={() => handleToggle(key as any, isNegativeHabit)}
+      >
+        <span className={styles.quickButtonIcon}>{icon}</span>
+        <span className={styles.quickButtonLabel}>{label}</span>
+      </button>
+    );
   };
 
   // Get last 7 days for mini chart
@@ -37,15 +106,8 @@ export function Dashboard() {
     };
   });
 
-  // Check if there are any missed days in the last 7 days
-  const hasMissedDays = last7Days.some(day => !day.hasEntry && day.date !== getTodayString());
-
   const handleStartWizard = () => {
-    if (hasMissedDays || !hasLoggedToday) {
-      setShowDateSelector(true);
-    } else {
-      navigate(`/wizard?date=${getTodayString()}`);
-    }
+    navigate(`/wizard?date=${getTodayString()}`);
   };
 
   const handleDateSelect = (date: string) => {
@@ -53,18 +115,13 @@ export function Dashboard() {
     navigate(`/wizard?date=${date}`);
   };
 
-  const handleDateSelectorCancel = () => {
-    setShowDateSelector(false);
-  };
-
   return (
     <div className={styles.container}>
-      {/* Date Selector Modal */}
       {showDateSelector && (
         <DateSelector
           entries={entries}
           onSelectDate={handleDateSelect}
-          onCancel={handleDateSelectorCancel}
+          onCancel={() => setShowDateSelector(false)}
           maxMissedDays={7}
         />
       )}
@@ -82,7 +139,7 @@ export function Dashboard() {
         )}
       </header>
 
-      {/* Streak Section */}
+      {/* Streak */}
       <section className={styles.streakSection}>
         <StreakIcon
           level={streak.level}
@@ -101,95 +158,66 @@ export function Dashboard() {
         </div>
       </section>
 
-      {/* Today's Score */}
+      {/* Main Score Card */}
       <Card className={styles.scoreCard}>
         <div className={styles.scoreHeader}>
-          <h3 className={styles.sectionTitle}>Mai nap</h3>
+          <h3 className={styles.sectionTitle}>MAI NAP</h3>
           <span className={styles.dateLabel}>
-            {new Date().toLocaleDateString('hu-HU', { month: 'short', day: 'numeric', weekday: 'short' })}
+            {new Date().toLocaleDateString('hu-HU', { month: 'short', day: 'numeric' }).toUpperCase()}
           </span>
         </div>
         
         <div className={styles.scoreContent}>
+          {/* Progress Ring */}
           <ProgressRing
             value={todayScore}
             max={100}
-            size={140}
-            strokeWidth={10}
-            color={hasLoggedToday ? colorMap[scoreColor] : 'var(--color-border)'}
+            size={160}
+            strokeWidth={12}
+            color={hasLoggedToday ? colorMap[scoreColor] : 'var(--color-surface-light)'}
           >
             <span className={styles.scoreValue} style={{ color: hasLoggedToday ? colorMap[scoreColor] : 'var(--color-muted)' }}>
               {hasLoggedToday ? Math.round(todayScore) : '—'}
             </span>
-            <span className={styles.scoreUnit}>pont</span>
+            <span className={styles.scoreUnit}>PONT</span>
           </ProgressRing>
           
-          {hasLoggedToday && todayEntry && (
-            <div className={styles.todayStats}>
-              {/* 1. Edzés */}
-              <div className={styles.statItem}>
-                <span className={styles.statIcon}>💪</span>
-                <span className={styles.statLabel}>Edzés</span>
-                <span className={`${styles.statValue} ${todayEntry.exercise ? styles.success : styles.error}`}>
-                  {todayEntry.exercise ? '✓' : '✗'}
-                </span>
-              </div>
-
-              {/* 2. Étkezés */}
-              <div className={styles.statItem}>
-                <span className={styles.statIcon}>🍎</span>
-                <span className={styles.statLabel}>Étkezés</span>
-                <span className={`${styles.statValue} ${todayEntry.cleanEating ? styles.success : styles.error}`}>
-                  {todayEntry.cleanEating ? '✓' : '✗'}
-                </span>
-              </div>
-
-              {/* 3. Paradigma (Imádkozás) */}
-              <div className={styles.statItem}>
-                <span className={styles.statIcon}>🙏</span>
-                <span className={styles.statLabel}>Paradigma</span>
-                <span className={`${styles.statValue} ${todayEntry.paradigm ? styles.success : styles.error}`}>
-                  {todayEntry.paradigm ? '✓' : '✗'}
-                </span>
-              </div>
-
-              {/* 4. Kielégülés (Fordított logika: False a jó) */}
-              <div className={styles.statItem}>
-                <span className={styles.statIcon}>⚡</span>
-                <span className={styles.statLabel}>Kielégülés</span>
-                <span className={`${styles.statValue} ${!todayEntry.satisfaction ? styles.success : styles.error}`}>
-                  {!todayEntry.satisfaction ? '✓' : '✗'}
-                </span>
-              </div>
-
-              {/* 5. Dopamindús tartalom (Agy, Fordított logika) */}
-              <div className={styles.statItem}>
-                <span className={styles.statIcon}>🧠</span>
-                <span className={styles.statLabel}>Dopamin</span>
-                <span className={`${styles.statValue} ${!todayEntry.dopamineContent ? styles.success : styles.error}`}>
-                  {!todayEntry.dopamineContent ? '✓' : '✗'}
-                </span>
-              </div>
-
-              {/* 6. Gaming (Fordított logika) */}
-              <div className={styles.statItem}>
-                <span className={styles.statIcon}>🎮</span>
-                <span className={styles.statLabel}>Gaming</span>
-                <span className={`${styles.statValue} ${!todayEntry.gaming ? styles.success : styles.error}`}>
-                  {!todayEntry.gaming ? '✓' : '✗'}
-                </span>
-              </div>
+          {/* Business & Sleep Stats (VISSZAKERÜLT) */}
+          <div className={styles.mainStatsRow}>
+            <div className={styles.mainStat}>
+              <span className={styles.mainStatIcon}>💼</span>
+              <span className={styles.mainStatValue}>
+                {todayEntry ? formatMinutes(todayEntry.businessMinutes) : '0p'}
+              </span>
             </div>
-          )}
+            <div className={styles.mainStat}>
+              <span className={styles.mainStatIcon}>🌙</span>
+              <span className={styles.mainStatValue}>
+                {todayEntry && todayEntry.sleepMinutes > 0 
+                  ? `${Math.floor(todayEntry.sleepMinutes / 60)}ó ${todayEntry.sleepMinutes % 60}p` 
+                  : '0ó 0p'}
+              </span>
+            </div>
+          </div>
+
+          {/* Quick Actions Grid (6 gomb) */}
+          <div className={styles.quickActionsGrid}>
+            {renderQuickButton('EDZÉS', '💪', 'exercise')}
+            {renderQuickButton('ÉTKEZÉS', '🍎', 'cleanEating')}
+            {renderQuickButton('PARADIGMA', '🙏', 'paradigm')}
+            {renderQuickButton('KIELÉGÜLÉS', '🍼', 'satisfaction', true)}
+            {renderQuickButton('DOPAMIN', '🧠', 'dopamineContent', true)}
+            {renderQuickButton('GAMING', '🎮', 'gaming', true)}
+          </div>
         </div>
 
         <Button
-          variant={hasLoggedToday ? 'secondary' : 'primary'}
+          variant="secondary"
           fullWidth
-          size="lg"
+          className={styles.detailsButton}
           onClick={handleStartWizard}
         >
-          {hasLoggedToday ? (hasMissedDays ? 'Nap rögzítése' : 'Részletes szerkesztés') : 'Nap rögzítése'}
+          RÉSZLETES SZERKESZTÉS
         </Button>
       </Card>
 
@@ -199,13 +227,11 @@ export function Dashboard() {
           <h3 className={styles.sectionTitle}>Heti áttekintés</h3>
           <span className={styles.weekAvg}>Átlag: {Math.round(weeklyAverage)}</span>
         </div>
-        
         <div className={styles.weekChart}>
           {last7Days.map((day) => {
             const height = day.hasEntry ? Math.max(10, (day.score / 100) * 100) : 10;
-            const color = day.hasEntry ? colorMap[getScoreColor(day.score)] : 'var(--color-border)';
+            const color = day.hasEntry ? colorMap[getScoreColor(day.score)] : 'var(--color-surface-light)';
             const isToday = day.date === getTodayString();
-            
             return (
               <div key={day.date} className={styles.chartBar}>
                 <div
@@ -224,18 +250,6 @@ export function Dashboard() {
           })}
         </div>
       </Card>
-
-      {/* Quick Stats */}
-      <div className={styles.quickStats}>
-        <Card className={styles.statCard}>
-          <span className={styles.quickStatValue}>{streak.longestStreak}</span>
-          <span className={styles.quickStatLabel}>Leghosszabb sorozat</span>
-        </Card>
-        <Card className={styles.statCard}>
-          <span className={styles.quickStatValue}>{Math.round(user?.monthlyAverage ?? 0)}</span>
-          <span className={styles.quickStatLabel}>Havi átlag</span>
-        </Card>
-      </div>
     </div>
   );
 }
