@@ -383,45 +383,48 @@ export function Wizard() {
               </div>
             </div>
             
-            {/* Reflection questions */}
+            {/* JAVÍTOTT REFLEXIÓS KÉRDÉSEK (9. PONT) */}
             <div className={styles.reflectionSection}>
               <h3 className={styles.reflectionTitle}>Önreflexió</h3>
               
+              {/* 1. Napi napló */}
               <div className={styles.reflectionItem}>
                 <label className={styles.reflectionLabel}>
-                  Közelebb kerültél ma a céljaidhoz?
+                  Hogy telt a napod? (Napló)
                 </label>
                 <textarea
                   className={styles.reflectionInput}
-                  value={entry.approachedGoal || ''}
+                  value={entry.approachedGoal || ''} // DB: reflection_goal
                   onChange={(e) => updateEntry({ approachedGoal: e.target.value })}
-                  placeholder="Írd le röviden..."
-                  rows={2}
+                  placeholder="Írd le röviden a mai nap eseményeit..."
+                  rows={3}
                 />
               </div>
               
+              {/* 2. Akadályok */}
               <div className={styles.reflectionItem}>
                 <label className={styles.reflectionLabel}>
-                  Mi akadályozott a business-ben?
+                  Akadályozott ma valami/valaki a célod elérésében?
                 </label>
                 <textarea
                   className={styles.reflectionInput}
-                  value={entry.businessObstacle || ''}
+                  value={entry.businessObstacle || ''} // DB: reflection_obstacle
                   onChange={(e) => updateEntry({ businessObstacle: e.target.value })}
-                  placeholder="Írd le röviden..."
+                  placeholder="Nehézségek, kizökkentő tényezők..."
                   rows={2}
                 />
               </div>
               
+              {/* 3. Fejlődés */}
               <div className={styles.reflectionItem}>
                 <label className={styles.reflectionLabel}>
-                  Mi akadályozott személyesen?
+                  Mit rontottál el, és hogyan lehetnél jobb?
                 </label>
                 <textarea
                   className={styles.reflectionInput}
-                  value={entry.personalObstacle || ''}
+                  value={entry.personalObstacle || ''} // DB: reflection_personal
                   onChange={(e) => updateEntry({ personalObstacle: e.target.value })}
-                  placeholder="Írd le röviden..."
+                  placeholder="Tanulságok a holnapi napra..."
                   rows={2}
                 />
               </div>
