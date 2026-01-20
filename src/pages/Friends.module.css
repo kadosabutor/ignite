@@ -171,75 +171,103 @@
   margin: 0;
 }
 
-/* Friend card */
+/* --- ÚJ: GLASSMORPH FRIEND CARD --- */
 .friendCard {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   padding: 16px;
+  
+  /* Glassmorphism */
+  background-color: rgba(30, 30, 30, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s;
+}
+
+.friendCard:active {
+  transform: scale(0.98);
+}
+
+.friendAvatarWrapper {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  overflow: hidden;
+  flex-shrink: 0;
 }
 
 .friendAvatar {
-  width: 56px;
-  height: 56px;
-  object-fit: contain;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 .friendInfo {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 4px;
+  min-width: 0; /* Text truncate support */
 }
 
 .friendName {
   font-size: 16px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-foreground);
-}
-
-.friendUsername {
-  font-size: 12px;
-  color: var(--color-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .friendRank {
   font-size: 11px;
   font-weight: 600;
-}
-
-.friendStats {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 4px;
-}
-
-.friendAvg {
-  font-size: 10px;
   color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
-.friendActions {
+.friendStreak {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
+  align-items: center;
+  gap: 6px;
+  background-color: rgba(0, 0, 0, 0.2);
+  padding: 6px 10px;
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+}
+
+.streakCount {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-foreground);
 }
 
 .removeButton {
   width: 32px;
   height: 32px;
   border-radius: 50%;
-  background-color: var(--color-background);
-  border: none;
-  color: var(--color-error);
-  font-size: 14px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid transparent;
+  color: var(--color-muted);
+  font-size: 16px;
   cursor: pointer;
-  transition: background-color 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  flex-shrink: 0;
 }
 
 .removeButton:hover {
   background-color: rgba(248, 113, 113, 0.2);
+  color: var(--color-error);
+  border-color: rgba(248, 113, 113, 0.3);
 }
 
 /* Search results */
@@ -256,71 +284,6 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   margin: 0;
-}
-
-.resultCard {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
-}
-
-.resultAvatar {
-  width: 48px;
-  height: 48px;
-  object-fit: contain;
-}
-
-.resultInfo {
-  flex: 1;
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.resultName {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-foreground);
-}
-
-.resultUsername {
-  font-size: 12px;
-  color: var(--color-muted);
-}
-
-.alreadyFriend {
-  font-size: 12px;
-  color: var(--color-muted);
-  padding: 8px 12px;
-}
-
-/* Pending requests */
-.pendingSection {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.sectionTitle {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  margin: 0;
-}
-
-.requestCard {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 16px;
-}
-
-.requestActions {
-  display: flex;
-  gap: 8px;
 }
 
 /* Error */
