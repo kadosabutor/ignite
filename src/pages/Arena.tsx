@@ -118,6 +118,7 @@ export function Arena() {
     }
   };
 
+  // Az első három helyezett kiválasztása és sorrendezése: 2. (bal), 1. (közép), 3. (jobb)
   const top3 = leaderboard.slice(0, 3);
   const podiumOrder = [top3[1], top3[0], top3[2]].filter(Boolean);
   const restOfLeaderboard = leaderboard.slice(3);
@@ -138,10 +139,7 @@ export function Arena() {
       <div className={styles.storyRailWrapper}>
         <div className={styles.storyRail}>
           {stories.map((story) => {
-            // Ellenőrizzük, hogy ez a saját profilunk-e
             const isMe = story.id === user?.id;
-            
-            // Stílus kiválasztása
             let ringStyle = styles.ringInactive;
             
             if (isMe) {
@@ -204,12 +202,16 @@ export function Arena() {
             {podiumOrder.map((entry) => {
               const isFirst = entry.position === 1;
               const isSecond = entry.position === 2;
+              const isThird = entry.position === 3;
+              
+              // CSS osztály kiválasztása a helyezés alapján
+              const podiumClass = isFirst ? styles.first : isSecond ? styles.second : styles.third;
               
               return (
-                <div key={entry.user.id} className={`${styles.podiumItem} ${isFirst ? styles.first : ''} ${isSecond ? styles.second : styles.third}`}>
+                <div key={entry.user.id} className={`${styles.podiumItem} ${podiumClass}`}>
                   <div className={styles.podiumAvatarWrapper}>
                     <span className={styles.medal}>
-                      {entry.position === 1 ? '🥇' : entry.position === 2 ? '🥈' : '🥉'}
+                      {isFirst ? '🥇' : isSecond ? '🥈' : '🥉'}
                     </span>
                     <img 
                       src={getAvatarSrc(entry.user.avatar)} 
