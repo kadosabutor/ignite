@@ -29,7 +29,7 @@
   border-radius: 50%;
   border: 3px solid;
   background: var(--color-surface);
-  object-fit: contain;
+  object-fit: cover; /* JAVÍTVA: contain helyett cover */
 }
 
 .rank1 .avatar { width: 64px; height: 64px; }
