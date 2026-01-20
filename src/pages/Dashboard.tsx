@@ -152,7 +152,7 @@ export function Dashboard() {
                 </span>
               </div>
               <div className={styles.statItem}>
-                <span className={styles.statIcon}>⚡</span>
+                <span className={styles.statIcon}>🍆</span>
                 <span className={`${styles.statValue} ${!todayEntry.satisfaction ? styles.positive : styles.negative}`}>
                   {!todayEntry.satisfaction ? '✓' : '✗'}
                 </span>
