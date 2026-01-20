@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
 import { Button, TimeInput, Toggle } from '../components/ui';
 import { calculateSleepMinutes, calculateTotalScore, getTodayString } from '../lib/scoring';
-import { createNewEntry } from '../lib/supabase'; // JAVÍTVA: storage helyett supabase
+import { createNewEntry } from '../lib/supabase';
 import type { HabitEntry } from '../types';
 import styles from './Wizard.module.css';
 
@@ -29,7 +29,7 @@ export function Wizard() {
   );
   const [showMinuteInput, setShowMinuteInput] = useState(false);
   const [customMinutes, setCustomMinutes] = useState('');
-  const [isSaving, setIsSaving] = useState(false); // ÚJ STATE: Mentés folyamatban
+  const [isSaving, setIsSaving] = useState(false);
 
   // Refs for auto-focus
   const wakeMinutesRef = useRef<HTMLInputElement>(null);
@@ -63,12 +63,10 @@ export function Wizard() {
   };
 
   const handleSave = async () => {
-    if (isSaving) return; // Prevent double clicks
+    if (isSaving) return;
     
     setIsSaving(true);
     try {
-      // Megjegyzés: A calculateTotalScore itt csak a lokális objektumhoz kell,
-      // a saveEntry (supabase.ts) újra kiszámolja és kerekíti majd.
       const finalEntry = { ...entry, score: calculateTotalScore(entry) };
       await saveEntry(finalEntry);
       navigate(`/summary?date=${dateParam}`);
@@ -80,12 +78,21 @@ export function Wizard() {
     }
   };
 
+  // Munkaidő kezelő függvények
   const handleWorkHourSelect = (hours: number) => {
     updateEntry({ businessMinutes: hours * 60 });
   };
 
-  const handleWorkMinuteAdd = (minutes: number) => {
-    updateEntry({ businessMinutes: entry.businessMinutes + minutes });
+  // Beállítja a percet az adott negyedórára (megtartva az órát)
+  const handleWorkMinuteSnap = (minutes: number) => {
+    const currentHours = Math.floor(entry.businessMinutes / 60);
+    updateEntry({ businessMinutes: currentHours * 60 + minutes });
+  };
+
+  // Hozzáad vagy elvesz perceket
+  const adjustMinutes = (amount: number) => {
+    const newVal = Math.max(0, entry.businessMinutes + amount);
+    updateEntry({ businessMinutes: newVal });
   };
 
   const handleCustomMinutesSubmit = () => {
@@ -165,17 +172,28 @@ export function Wizard() {
               ))}
             </div>
             
-            {/* Minute buttons */}
+            {/* Minute buttons (Snap to quarter) */}
             <div className={styles.minuteGrid}>
               {[0, 15, 30, 45].map((min) => (
                 <button
                   key={min}
                   className={`${styles.minuteButton} ${entry.businessMinutes % 60 === min ? styles.minuteActive : ''}`}
-                  onClick={() => handleWorkMinuteAdd(min - (entry.businessMinutes % 60))}
+                  onClick={() => handleWorkMinuteSnap(min)}
                 >
-                  +{min}p
+                  :{min.toString().padStart(2, '0')}
                 </button>
               ))}
+            </div>
+
+            {/* Fine tuning buttons */}
+            <div className={styles.fineTuneSection}>
+              <span className={styles.fineTuneLabel}>Finomhangolás</span>
+              <div className={styles.fineTuneGrid}>
+                <button className={styles.fineTuneButton} onClick={() => adjustMinutes(-5)}>-5p</button>
+                <button className={styles.fineTuneButton} onClick={() => adjustMinutes(-1)}>-1p</button>
+                <button className={styles.fineTuneButton} onClick={() => adjustMinutes(1)}>+1p</button>
+                <button className={styles.fineTuneButton} onClick={() => adjustMinutes(5)}>+5p</button>
+              </div>
             </div>
             
             {/* Custom minute input */}
@@ -198,7 +216,7 @@ export function Wizard() {
                   className={styles.customButton}
                   onClick={() => setShowMinuteInput(true)}
                 >
-                  Pontos perc megadása
+                  Pontos perc megadása (billentyűzet)
                 </button>
               )}
             </div>
