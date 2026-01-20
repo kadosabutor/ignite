@@ -95,18 +95,16 @@
   opacity: 0.7;
 }
 
-/* --- ÚJ: SAJÁT PROFIL KIEMELÉSE --- */
+/* SAJÁT PROFIL KIEMELÉSE (2. pontból) */
 .ringMeActive {
-  /* Kék-Lila gradiens a megkülönböztetéshez */
   background: linear-gradient(45deg, #33CCFF, #B833FF);
   animation: pulse 3s infinite;
   box-shadow: 0 0 15px rgba(51, 204, 255, 0.3);
 }
 
 .ringMeInactive {
-  /* Kiemeltebb inaktív állapot a saját profilnál */
   background: var(--color-surface-light);
-  border: 2px solid var(--color-primary); /* Vékony narancs keret jelzi, hogy ez te vagy */
+  border: 2px solid var(--color-primary);
   opacity: 1;
 }
 
@@ -116,7 +114,7 @@
   border-radius: 50%;
   background-color: var(--color-background);
   border: 2px solid var(--color-background);
-  object-fit: contain;
+  object-fit: cover; /* JAVÍTÁS a 4. ponthoz előkészítve: contain helyett cover */
 }
 
 .fireBadge {
@@ -197,11 +195,11 @@
 .podium {
   display: flex;
   justify-content: center;
-  align-items: flex-end;
-  gap: 12px;
-  height: 200px;
-  margin-bottom: 12px;
-  padding-bottom: 10px;
+  align-items: flex-end; /* Fontos: Alulra igazítás, hogy a magasságok felfelé nőjenek */
+  gap: 16px; /* Kicsit nagyobb térköz */
+  height: 240px; /* Növelt konténer magasság */
+  margin-bottom: 24px;
+  padding-bottom: 0;
 }
 
 .podiumItem {
@@ -211,6 +209,8 @@
   flex: 1;
   max-width: 100px;
   position: relative;
+  justify-content: flex-end; /* Az avatar és a sáv alulra igazítása a flex itemen belül is */
+  height: 100%;
 }
 
 .podiumAvatarWrapper {
@@ -223,12 +223,12 @@
   border-radius: 50%;
   border: 3px solid;
   background-color: var(--color-background);
-  object-fit: contain;
+  object-fit: cover; /* Kerek formához igazodás */
 }
 
 .medal {
   position: absolute;
-  top: -12px;
+  top: -16px;
   left: 50%;
   transform: translateX(-50%);
   font-size: 24px;
@@ -238,7 +238,7 @@
 
 .podiumInfo {
   text-align: center;
-  margin-bottom: 6px;
+  margin-bottom: 8px;
   z-index: 2;
 }
 
@@ -262,26 +262,31 @@
   width: 100%;
   border-radius: 12px 12px 0 0;
   position: relative;
+  transition: height 0.5s ease-out; /* Animáció betöltéskor */
 }
 
-.first .podiumAvatar { width: 72px; height: 72px; border-color: #FFD700 !important; }
+/* STÍLUSOK HELYEZÉS SZERINT - JAVÍTOTT MAGASSÁGOK */
+/* 1. Helyezett (Közép) - Legmagasabb */
+.first .podiumAvatar { width: 80px; height: 80px; border-color: #FFD700 !important; }
 .first .podiumBar { 
-  height: 120px; 
-  background: linear-gradient(180deg, rgba(255, 215, 0, 0.3) 0%, rgba(255, 215, 0, 0.05) 100%);
+  height: 140px; /* Jelentősen magasabb */
+  background: linear-gradient(180deg, rgba(255, 215, 0, 0.4) 0%, rgba(255, 215, 0, 0.05) 100%);
   border-top: 2px solid #FFD700;
-  box-shadow: 0 0 20px rgba(255, 215, 0, 0.15);
+  box-shadow: 0 0 25px rgba(255, 215, 0, 0.2);
 }
 
-.second .podiumAvatar { width: 60px; height: 60px; border-color: #C0C0C0 !important; }
+/* 2. Helyezett (Bal) - Közepes */
+.second .podiumAvatar { width: 64px; height: 64px; border-color: #C0C0C0 !important; }
 .second .podiumBar { 
-  height: 80px; 
+  height: 90px; 
   background: linear-gradient(180deg, rgba(192, 192, 192, 0.3) 0%, rgba(192, 192, 192, 0.05) 100%);
   border-top: 2px solid #C0C0C0;
 }
 
-.third .podiumAvatar { width: 50px; height: 50px; border-color: #CD7F32 !important; }
+/* 3. Helyezett (Jobb) - Legalacsonyabb */
+.third .podiumAvatar { width: 56px; height: 56px; border-color: #CD7F32 !important; }
 .third .podiumBar { 
-  height: 50px; 
+  height: 60px; 
   background: linear-gradient(180deg, rgba(205, 127, 50, 0.3) 0%, rgba(205, 127, 50, 0.05) 100%);
   border-top: 2px solid #CD7F32;
 }
@@ -313,6 +318,7 @@
   width: 32px;
   height: 32px;
   border-radius: 50%;
+  object-fit: cover;
 }
 
 .listInfo {
