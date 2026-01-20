@@ -1,13 +1,23 @@
 .container {
   /* 1. JAVÍTÁS: A TOKA ELTÜNTETÉSE */
+  /* Ez biztosítja, hogy a háttér kitöltse az egész képernyőt, akkor is, ha kevés a tartalom */
   min-height: 100vh;
   background-color: var(--color-background, #121212);
+  /* Fontos: Legyen háttérszíned! */
+
+  /* Ez megakadályozza a vízszintes görgetést a padding miatt */
   box-sizing: border-box;
+
   padding: 20px;
+
   /* 2. JAVÍTÁS: A FELSŐ SÁV (Notch) */
+  /* A 20px az alap távolság + a notch mérete */
   padding-top: calc(20px + env(safe-area-inset-top));
+
   /* 3. JAVÍTÁS: AZ ALSÓ SÁV (Home Indicator) */
+  /* Ez emeli meg a tartalmat alul, hogy ne lógjon bele a húzható csíkba */
   padding-bottom: calc(20px + env(safe-area-inset-bottom));
+
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -136,75 +146,41 @@
   text-transform: uppercase;
 }
 
+/* MÓDOSÍTOTT RÉSZ: Grid elrendezés a 6 elemnek */
 .todayStats {
-  display: flex;
-  gap: 24px;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr); /* 3 oszlop */
+  gap: 12px; /* Kisebb hézag, hogy elférjen */
+  width: 100%;
 }
 
 .statItem {
   display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.statIcon {
-  font-size: 16px;
-}
-
-.statValue {
-  font-size: 14px;
-  font-weight: 600;
-  color: var(--color-foreground);
-}
-
-/* QUICK ACTIONS */
-.quickActions {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr;
-  gap: 8px;
-  margin-bottom: 8px;
-}
-
-.quickBtn {
-  display: flex;
-  flex-direction: column;
+  flex-direction: column; /* Ikon felül, érték alul */
   align-items: center;
   justify-content: center;
   gap: 4px;
-  padding: 12px 8px;
+  padding: 8px;
   background-color: var(--color-background);
-  border: 1px solid var(--color-border);
   border-radius: 12px;
-  cursor: pointer;
-  transition: all 0.2s;
 }
 
-.quickBtn:hover {
-  background-color: var(--color-surface-light);
+.statIcon {
+  font-size: 18px;
 }
 
-.quickBtn.active {
-  background-color: rgba(74, 222, 128, 0.15); /* Halvány zöld */
-  border-color: var(--color-success);
+.statValue {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--color-foreground);
 }
 
-.quickBtn:active {
-  transform: scale(0.95);
-}
-
-.quickIcon {
-  font-size: 20px;
-}
-
-.quickLabel {
-  font-size: 10px;
-  font-weight: 600;
-  color: var(--color-muted);
-  text-transform: uppercase;
-}
-
-.quickBtn.active .quickLabel {
+.positive {
   color: var(--color-success);
+}
+
+.negative {
+  color: var(--color-error);
 }
 
 /* Week Card */
