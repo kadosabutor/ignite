@@ -14,37 +14,34 @@ export function ImageCropper({ imageSrc, onCancel, onCropComplete }: ImageCroppe
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [isDragging, setIsDragging] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
-  
-  // ÚJ: Tároljuk a kép kezdő stílusát (hogy illeszkedjen a dobozba)
   const [baseStyle, setBaseStyle] = useState<React.CSSProperties>({});
   
-  const containerRef = useRef<HTMLDivElement>(null);
+  // Refek a méretezéshez
+  const cropGuideRef = useRef<HTMLDivElement>(null); // Ez a fehér kör (overlay)
   const imageRef = useRef<HTMLImageElement>(null);
+  
   const dragStartRef = useRef({ x: 0, y: 0 });
   const imgStartPosRef = useRef({ x: 0, y: 0 });
 
-  // 1. Amikor a kép betölt, beállítjuk a méretét, hogy pont beleférjen
+  // 1. Kép betöltésekor igazítás
   const onImageLoad = (e: React.SyntheticEvent<HTMLImageElement>) => {
     const img = e.currentTarget;
     const { naturalWidth, naturalHeight } = img;
     
-    // Alapértelmezett reset
     setPosition({ x: 0, y: 0 });
     setZoom(1);
 
-    // Döntés: Álló vagy Fekvő kép?
-    // Ha a kép aránya szélesebb, mint 1 (fekvő), akkor a magasságát igazítjuk a körhöz (100%).
-    // Ha a kép aránya magasabb (álló), akkor a szélességét igazítjuk a körhöz (100%).
+    // Ha fekvő kép: magasság legyen 100%, szélesség auto
+    // Ha álló kép: szélesség legyen 100%, magasság auto
+    // Így pont kitölti a keretet (vagy kicsit nagyobb)
     if (naturalWidth / naturalHeight > 1) {
-      // Fekvő kép -> Magasság legyen a fix, szélesség automatikus
-      setBaseStyle({ height: '100%', width: 'auto' });
+      setBaseStyle({ height: '280px', width: 'auto' }); // 280px a kör mérete a CSS-ben
     } else {
-      // Álló kép (vagy négyzet) -> Szélesség legyen fix, magasság automatikus
-      setBaseStyle({ width: '100%', height: 'auto' });
+      setBaseStyle({ width: '280px', height: 'auto' });
     }
   };
 
-  // Mozgatás (Drag) kezelése
+  // 2. Mozgatás kezelése (A teljes wrapperen figyeljük)
   const handlePointerDown = (e: React.PointerEvent) => {
     e.preventDefault();
     setIsDragging(true);
@@ -80,27 +77,31 @@ export function ImageCropper({ imageSrc, onCancel, onCropComplete }: ImageCroppe
     };
   }, [isDragging]);
 
+  // 3. Zoom gombok logikája
+  const handleZoomIn = () => setZoom(prev => Math.min(3, prev + 0.1));
+  const handleZoomOut = () => setZoom(prev => Math.max(0.5, prev - 0.1));
+
+  // 4. Mentés
   const handleSave = async () => {
-    if (!imageRef.current || !containerRef.current) return;
+    if (!imageRef.current || !cropGuideRef.current) return;
     setIsProcessing(true);
 
     try {
       const imageRect = imageRef.current.getBoundingClientRect();
-      const containerRect = containerRef.current.getBoundingClientRect();
+      const cropRect = cropGuideRef.current.getBoundingClientRect();
 
-      // Kiszámoljuk a relatív skálázást a renderelt méret és az eredeti méret között
+      // Arányszámítás: (Eredeti pixel méret / Megjelenített méret)
       const scaleX = imageRef.current.naturalWidth / imageRect.width;
       const scaleY = imageRef.current.naturalHeight / imageRect.height;
 
-      // A vágási terület kiszámítása
       const pixelCrop = {
-        x: (containerRect.left - imageRect.left) * scaleX,
-        y: (containerRect.top - imageRect.top) * scaleY,
-        width: containerRect.width * scaleX,
-        height: containerRect.height * scaleY,
+        x: (cropRect.left - imageRect.left) * scaleX,
+        y: (cropRect.top - imageRect.top) * scaleY,
+        width: cropRect.width * scaleX,
+        height: cropRect.height * scaleY,
       };
 
-      // Biztonsági korrekció (negatív értékek elkerülése)
+      // Negatív koordináta javítása
       if (pixelCrop.x < 0) pixelCrop.x = 0;
       if (pixelCrop.y < 0) pixelCrop.y = 0;
 
@@ -114,50 +115,52 @@ export function ImageCropper({ imageSrc, onCancel, onCropComplete }: ImageCroppe
 
   return (
     <div className={styles.container}>
-      <h3 className={styles.title}>Profilkép beállítása</h3>
+      <h3 className={styles.title}>HÚZD A KÉPET A MOZGATÁSHOZ</h3>
       
-      <div className={styles.cropAreaWrapper}>
-        <div className={styles.cropContainer} ref={containerRef}>
-          <img
-            ref={imageRef}
-            src={imageSrc}
-            alt="Crop target"
-            className={styles.image}
-            style={{
-              ...baseStyle, // Itt alkalmazzuk a kiszámolt alapméretet
-              transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
-              cursor: isDragging ? 'grabbing' : 'grab'
-            }}
-            onLoad={onImageLoad}
-            onPointerDown={handlePointerDown}
-            draggable={false}
-          />
-        </div>
+      {/* A munkaterületen figyeljük a húzást */}
+      <div 
+        className={styles.cropAreaWrapper} 
+        onPointerDown={handlePointerDown}
+      >
+        {/* 1. Réteg: KÉP (Alul) */}
+        <img
+          ref={imageRef}
+          src={imageSrc}
+          alt="Crop target"
+          className={styles.image}
+          style={{
+            ...baseStyle,
+            transform: `translate(${position.x}px, ${position.y}px) scale(${zoom})`,
+          }}
+          onLoad={onImageLoad}
+          draggable={false}
+        />
+
+        {/* 2. Réteg: MASZK/KERET (Felül) */}
+        <div className={styles.overlay} ref={cropGuideRef}></div>
       </div>
       
       <div className={styles.controls}>
-        <p className={styles.hint}>Húzd a képet a mozgatáshoz</p>
-        
         <div className={styles.sliderContainer}>
-          <span className={styles.sliderLabel}>−</span>
+          <button className={styles.zoomBtn} onClick={handleZoomOut}>−</button>
           <input
             type="range"
             value={zoom}
-            min={0.5} // Kicsit engedjük kisebbre is venni
+            min={0.5}
             max={3}
             step={0.05}
             onChange={(e) => setZoom(Number(e.target.value))}
             className={styles.slider}
           />
-          <span className={styles.sliderLabel}>+</span>
+          <button className={styles.zoomBtn} onClick={handleZoomIn}>+</button>
         </div>
         
         <div className={styles.buttons}>
           <Button variant="ghost" onClick={onCancel} disabled={isProcessing}>
-            Mégse
+            MÉGSE
           </Button>
           <Button onClick={handleSave} disabled={isProcessing}>
-            {isProcessing ? 'Mentés...' : 'Kész'}
+            {isProcessing ? 'MENTÉS...' : 'KÉSZ'}
           </Button>
         </div>
       </div>
