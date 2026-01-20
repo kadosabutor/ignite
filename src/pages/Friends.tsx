@@ -3,7 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
 import { Button, Card, Input } from '../components/ui';
 import { ProfileCard } from '../components/ProfileCard';
+import { StreakIcon } from '../components/StreakIcon';
 import * as supabase from '../lib/supabase';
+import { RANKS, getAvatarSrc } from '../types';
 import styles from './Friends.module.css';
 
 export function Friends() {
@@ -55,15 +57,11 @@ export function Friends() {
   const handleAddFriend = async (username: string) => {
     setError('');
     try {
-      console.log('[Friends] Sending friend request for username:', username);
       await addFriend(username);
-      console.log('[Friends] Friend request sent successfully');
       
-      // Find the user to get their ID for notification
       const targetUser = searchResults.find(u => u.username === username);
       if (targetUser && user) {
         try {
-          // MÓDOSÍTVA: Statikus import használata a dinamikus helyett
           await supabase.sendPushNotification(
             targetUser.id,
             '👋 Új Barátkérelem!',
@@ -73,18 +71,14 @@ export function Friends() {
           );
         } catch (notifError) {
           console.error('Error sending notification:', notifError);
-          // Don't fail the friend request if notification fails
         }
       }
       
       setSearchQuery('');
       setSearchResults([]);
-      console.log('[Friends] Refreshing friends and pending requests...');
       await refreshFriends();
       await refreshPendingRequests();
-      console.log('[Friends] Refresh complete');
     } catch (err: any) {
-      console.error('[Friends] Error sending friend request:', err);
       setError(err.message || 'Hiba a barátkérelem küldése során');
     }
   };
@@ -94,10 +88,8 @@ export function Friends() {
     try {
       await acceptFriendRequest(requesterId);
       
-      // Send notification to the requester
       if (user) {
         try {
-          // MÓDOSÍTVA: Statikus import használata
           await supabase.sendPushNotification(
             requesterId,
             '✅ Barátkérelem Elfogadva!',
@@ -227,7 +219,7 @@ export function Friends() {
         </button>
       </div>
 
-      {/* Friends List */}
+      {/* Friends List - JAVÍTOTT, LETISZTULT NÉZET */}
       {activeTab === 'friends' && (
         <div className={styles.friendsList}>
           {friends.length === 0 ? (
@@ -238,21 +230,45 @@ export function Friends() {
             </div>
           ) : (
             friends.map(friend => (
-              <ProfileCard
-                key={friend.id}
-                id={friend.id}
-                username={friend.username}
-                displayName={friend.displayName}
-                avatar={friend.avatar}
-                rank={friend.rank}
-                streak={friend.streak}
-                monthlyAverage={friend.monthlyAverage}
-                todayEntry={friend.todayEntry}
-                viewType="friend"
-                expandable={true}
-                onVSMode={() => navigate(`/friend/${friend.id}`)}
-                onRemoveFriend={() => handleRemoveFriend(friend.id)}
-              />
+              <div key={friend.id} className={styles.friendCard}>
+                {/* Avatar */}
+                <div className={styles.friendAvatarWrapper}>
+                  <img 
+                    src={getAvatarSrc(friend.avatar)} 
+                    alt={friend.displayName} 
+                    className={styles.friendAvatar} 
+                  />
+                </div>
+                
+                {/* Info */}
+                <div className={styles.friendInfo}>
+                  <span className={styles.friendName}>{friend.displayName}</span>
+                  <span className={styles.friendRank}>
+                    {RANKS[friend.rank].name}
+                  </span>
+                </div>
+
+                {/* Streak */}
+                <div className={styles.friendStreak}>
+                  <StreakIcon 
+                    level={friend.streak.level} 
+                    days={friend.streak.currentStreak} 
+                    size="sm" 
+                    showDays={false}
+                    animated={false} 
+                  />
+                  <span className={styles.streakCount}>{friend.streak.currentStreak} nap</span>
+                </div>
+
+                {/* Remove Action */}
+                <button 
+                  className={styles.removeButton} 
+                  onClick={() => handleRemoveFriend(friend.id)}
+                  aria-label="Törlés"
+                >
+                  ✕
+                </button>
+              </div>
             ))
           )}
         </div>
