@@ -156,7 +156,25 @@ export async function saveUserProfile(profile: Partial<UserProfile> & { id: stri
   if (error) throw error;
 }
 
+// JAVÍTOTT FÜGGVÉNY: Törli a régieket feltöltés előtt
 export async function uploadAvatar(userId: string, file: File): Promise<string> {
+  // 1. LÉPÉS: Megkeressük a felhasználó összes eddigi fájlját a tárolóban
+  // Mivel a fájlnevek úgy kezdődnek, hogy "userId-...", erre tudunk keresni.
+  const { data: oldFiles } = await supabase.storage
+    .from('avatars')
+    .list('', { search: userId }); // A root mappában keresünk a userId stringre
+
+  // 2. LÉPÉS: Ha találtunk régi fájlokat, töröljük őket
+  if (oldFiles && oldFiles.length > 0) {
+    const filesToRemove = oldFiles.map(x => x.name);
+    await supabase.storage
+      .from('avatars')
+      .remove(filesToRemove);
+    
+    console.log('Régi avatarok törölve:', filesToRemove);
+  }
+
+  // 3. LÉPÉS: Feltöltjük az új képet (a szokásos módon)
   const fileExt = file.name.split('.').pop();
   const fileName = `${userId}-${Date.now()}.${fileExt}`;
   
@@ -220,7 +238,6 @@ export async function getAllEntries(userId: string): Promise<HabitEntry[]> {
 
   if (error) throw error;
 
-  // JAVÍTVA: Explicit 'any' típus a map-ben
   return (data || []).map((e: any) => ({
     id: e.id,
     date: e.date,
@@ -253,7 +270,6 @@ export async function getEntryByDate(userId: string, date: string): Promise<Habi
 
   if (error || !data) return null;
 
-  // JAVÍTVA: Explicit 'any' cast
   const d = data as any;
 
   return {
@@ -533,7 +549,6 @@ export async function getAllFriends(userId: string): Promise<Friend[]> {
         exercise: todayEntry.exercise,
         cleanEating: todayEntry.clean_eating,
         satisfaction: todayEntry.satisfaction,
-        // JAVÍTVA: Explicit 'any' cast vagy direkt hozzáférés
         dopamineContent: (todayEntry as any).dopamine_content,
         gaming: todayEntry.gaming,
       } : undefined,
@@ -902,7 +917,6 @@ export async function getMonthlyStats(userId: string, year: number, month: numbe
 
   if (error) throw error;
 
-  // JAVÍTVA: Explicit 'any' cast
   const entries = (data || []).map((e: any) => ({
     id: e.id,
     date: e.date,
@@ -912,7 +926,7 @@ export async function getMonthlyStats(userId: string, year: number, month: numbe
     sleepMinutes: e.sleep_minutes,
     cleanEating: e.clean_eating,
     exercise: e.exercise,
-    paradigm: (e.paradigm ?? 0) >= 1,
+    paradigm: (e.paradigm ?? 0) >= 1, // Convert INT to boolean
     satisfaction: e.satisfaction,
     dopamineContent: e.dopamine_content,
     gaming: e.gaming,
@@ -1021,7 +1035,6 @@ export async function getFriendEntries(friendId: string, days: number = 30): Pro
 
   if (error) throw error;
 
-  // JAVÍTVA: Explicit 'any' cast
   return (data || []).map((e: any) => ({
     id: e.id,
     date: e.date,
