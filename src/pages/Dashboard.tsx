@@ -4,13 +4,14 @@ import { useHabits } from '../context/HabitContext';
 import { Button, Card, ProgressRing } from '../components/ui';
 import { StreakIcon } from '../components/StreakIcon';
 import { DateSelector } from '../components/DateSelector';
-import { getScoreColor, getTodayString, formatMinutes } from '../lib/scoring';
-import { RANKS } from '../types';
+import { getScoreColor, getTodayString, formatMinutes, calculateTotalScore } from '../lib/scoring';
+import { createNewEntry } from '../lib/supabase';
+import { RANKS, type HabitEntry } from '../types';
 import styles from './Dashboard.module.css';
 
 export function Dashboard() {
   const navigate = useNavigate();
-  const { todayEntry, streak, user, weeklyAverage, entries } = useHabits();
+  const { todayEntry, streak, user, weeklyAverage, entries, saveEntry } = useHabits();
 
   const todayScore = todayEntry?.score ?? 0;
   const hasLoggedToday = !!todayEntry;
@@ -55,6 +56,30 @@ export function Dashboard() {
 
   const handleDateSelectorCancel = () => {
     setShowDateSelector(false);
+  };
+
+  // GYORS MŰVELETEK (Quick Actions)
+  const handleQuickToggle = async (field: keyof HabitEntry) => {
+    // Haptikus visszajelzés
+    if (typeof navigator !== 'undefined' && navigator.vibrate) {
+      navigator.vibrate(10);
+    }
+
+    const currentVal = todayEntry ? (todayEntry[field] as boolean) : false;
+    
+    // Ha még nincs mai bejegyzés, létrehozunk egyet alapértelmezett értékekkel
+    const baseEntry = todayEntry || createNewEntry(getTodayString());
+    
+    const entryToSave = {
+      ...baseEntry,
+      [field]: !currentVal
+    };
+
+    // Pontszám újrakalkulálása
+    entryToSave.score = calculateTotalScore(entryToSave);
+    
+    // Mentés
+    await saveEntry(entryToSave);
   };
 
   return (
@@ -131,15 +156,38 @@ export function Dashboard() {
                 <span className={styles.statValue}>{formatMinutes(todayEntry.businessMinutes)}</span>
               </div>
               <div className={styles.statItem}>
-                <span className={styles.statIcon}>💪</span>
-                <span className={styles.statValue}>{todayEntry.exercise ? '✓' : '✗'}</span>
-              </div>
-              <div className={styles.statItem}>
-                <span className={styles.statIcon}>🍎</span>
-                <span className={styles.statValue}>{todayEntry.cleanEating ? '✓' : '✗'}</span>
+                <span className={styles.statIcon}>🌙</span>
+                <span className={styles.statValue}>{formatMinutes(todayEntry.sleepMinutes)}</span>
               </div>
             </div>
           )}
+        </div>
+
+        {/* GYORS MŰVELETEK SZEKCIÓ */}
+        <div className={styles.quickActions}>
+          <button 
+            className={`${styles.quickBtn} ${todayEntry?.exercise ? styles.active : ''}`}
+            onClick={() => handleQuickToggle('exercise')}
+          >
+            <span className={styles.quickIcon}>💪</span>
+            <span className={styles.quickLabel}>Edzés</span>
+          </button>
+          
+          <button 
+            className={`${styles.quickBtn} ${todayEntry?.cleanEating ? styles.active : ''}`}
+            onClick={() => handleQuickToggle('cleanEating')}
+          >
+            <span className={styles.quickIcon}>🍎</span>
+            <span className={styles.quickLabel}>Étkezés</span>
+          </button>
+          
+          <button 
+            className={`${styles.quickBtn} ${todayEntry?.paradigm ? styles.active : ''}`}
+            onClick={() => handleQuickToggle('paradigm')}
+          >
+            <span className={styles.quickIcon}>🧠</span>
+            <span className={styles.quickLabel}>Paradigma</span>
+          </button>
         </div>
 
         <Button
@@ -148,7 +196,7 @@ export function Dashboard() {
           size="lg"
           onClick={handleStartWizard}
         >
-          {hasLoggedToday ? (hasMissedDays ? 'Nap rögzítése' : 'Szerkesztés') : 'Nap rögzítése'}
+          {hasLoggedToday ? (hasMissedDays ? 'Nap rögzítése' : 'Részletes szerkesztés') : 'Nap rögzítése'}
         </Button>
       </Card>
 
