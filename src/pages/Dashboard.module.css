@@ -1,10 +1,23 @@
 .container {
+  /* 1. JAVÍTÁS: A TOKA ELTÜNTETÉSE */
+  /* Ez biztosítja, hogy a háttér kitöltse az egész képernyőt, akkor is, ha kevés a tartalom */
   min-height: 100vh;
   background-color: var(--color-background, #121212);
+  /* Fontos: Legyen háttérszíned! */
+
+  /* Ez megakadályozza a vízszintes görgetést a padding miatt */
   box-sizing: border-box;
+
   padding: 20px;
+
+  /* 2. JAVÍTÁS: A FELSŐ SÁV (Notch) */
+  /* A 20px az alap távolság + a notch mérete */
   padding-top: calc(20px + env(safe-area-inset-top));
+
+  /* 3. JAVÍTÁS: AZ ALSÓ SÁV (Home Indicator) */
+  /* Ez emeli meg a tartalmat alul, hogy ne lógjon bele a húzható csíkba */
   padding-bottom: calc(20px + env(safe-area-inset-bottom));
+
   display: flex;
   flex-direction: column;
   gap: 20px;
@@ -91,7 +104,6 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  padding: 24px !important;
 }
 
 .scoreHeader {
@@ -113,14 +125,13 @@
   font-size: 12px;
   color: var(--color-muted);
   text-transform: uppercase;
-  font-weight: 600;
 }
 
 .scoreContent {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 20px;
+  gap: 16px;
 }
 
 .scoreValue {
@@ -133,96 +144,27 @@
   font-size: 12px;
   color: var(--color-muted);
   text-transform: uppercase;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  margin-top: 4px;
 }
 
-/* Main Stats Row (Business & Sleep) */
-.mainStatsRow {
+.todayStats {
   display: flex;
-  justify-content: center;
   gap: 24px;
-  width: 100%;
 }
 
-.mainStat {
+.statItem {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
-.mainStatIcon {
-  font-size: 18px;
-}
-
-.mainStatValue {
+.statIcon {
   font-size: 16px;
-  font-weight: 700;
+}
+
+.statValue {
+  font-size: 14px;
+  font-weight: 600;
   color: var(--color-foreground);
-}
-
-/* Quick Actions Grid */
-.quickActionsGrid {
-  display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: 12px;
-  width: 100%;
-}
-
-.quickButton {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 16px 8px;
-  background-color: var(--color-background);
-  border: 1px solid var(--color-surface-light);
-  border-radius: 16px;
-  cursor: pointer;
-  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  min-height: 80px;
-}
-
-.quickButton:active {
-  transform: scale(0.96);
-}
-
-/* Aktív (Zöld) állapot */
-.quickButton.active {
-  background-color: rgba(74, 222, 128, 0.15); /* Halvány zöld háttér */
-  border-color: var(--color-success);
-}
-
-.quickButton.active .quickButtonIcon,
-.quickButton.active .quickButtonLabel {
-  color: var(--color-success);
-}
-
-.quickButtonIcon {
-  font-size: 24px;
-  transition: color 0.2s;
-}
-
-.quickButtonLabel {
-  font-size: 10px;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.05em;
-  color: var(--color-muted);
-  transition: color 0.2s;
-}
-
-/* Részletes szerkesztés gomb */
-.detailsButton {
-  margin-top: 8px;
-  background-color: var(--color-surface-light) !important;
-  border: none !important;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  font-size: 12px !important;
-  padding: 16px !important;
 }
 
 /* Week Card */
@@ -239,16 +181,16 @@
 }
 
 .weekAvg {
-  font-size: 12px;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--color-muted);
+  color: var(--color-foreground);
 }
 
 .weekChart {
   display: flex;
   justify-content: space-between;
   align-items: flex-end;
-  height: 80px;
+  height: 100px;
   gap: 8px;
 }
 
@@ -277,4 +219,33 @@
 
 .dayLabel.today {
   color: var(--color-primary);
+}
+
+/* Quick Stats */
+.quickStats {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+
+.statCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  padding: 16px;
+}
+
+.quickStatValue {
+  font-size: 28px;
+  font-weight: 800;
+  color: var(--color-foreground);
+}
+
+.quickStatLabel {
+  font-size: 10px;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: center;
 }
