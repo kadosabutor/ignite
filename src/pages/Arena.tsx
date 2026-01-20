@@ -4,7 +4,7 @@ import { useHabits } from '../context/HabitContext';
 import { useToast } from '../context/ToastContext';
 import { Button, Card } from '../components/ui';
 import { ProfileCard } from '../components/ProfileCard';
-import { RANKS, type Friend, getAvatarSrc } from '../types'; // getAvatarSrc importálása
+import { RANKS, type Friend, getAvatarSrc } from '../types';
 import { getRandomPingMessage, getRandomFireMessage } from '../lib/push';
 import styles from './Arena.module.css';
 
@@ -137,29 +137,42 @@ export function Arena() {
 
       <div className={styles.storyRailWrapper}>
         <div className={styles.storyRail}>
-          {stories.map((story) => (
-            <div 
-              key={story.id} 
-              className={styles.storyItem}
-              onClick={() => {
-                vibrate(5);
-                setSelectedProfile(story as Friend);
-              }}
-            >
-              <div className={`${styles.storyRing} ${story.todayCompleted ? styles.ringActive : styles.ringInactive}`}>
-                {/* JAVÍTVA: getAvatarSrc használata */}
-                <img 
-                  src={getAvatarSrc(story.avatar)} 
-                  alt={story.displayName} 
-                  className={styles.storyAvatar} 
-                />
-                {story.todayCompleted && (
-                  <span className={styles.fireBadge}>🔥</span>
-                )}
+          {stories.map((story) => {
+            // Ellenőrizzük, hogy ez a saját profilunk-e
+            const isMe = story.id === user?.id;
+            
+            // Stílus kiválasztása
+            let ringStyle = styles.ringInactive;
+            
+            if (isMe) {
+              ringStyle = story.todayCompleted ? styles.ringMeActive : styles.ringMeInactive;
+            } else {
+              ringStyle = story.todayCompleted ? styles.ringActive : styles.ringInactive;
+            }
+
+            return (
+              <div 
+                key={story.id} 
+                className={styles.storyItem}
+                onClick={() => {
+                  vibrate(5);
+                  setSelectedProfile(story as Friend);
+                }}
+              >
+                <div className={`${styles.storyRing} ${ringStyle}`}>
+                  <img 
+                    src={getAvatarSrc(story.avatar)} 
+                    alt={story.displayName} 
+                    className={styles.storyAvatar} 
+                  />
+                  {story.todayCompleted && (
+                    <span className={styles.fireBadge}>🔥</span>
+                  )}
+                </div>
+                <span className={styles.storyName}>{story.displayName.split(' ')[0]}</span>
               </div>
-              <span className={styles.storyName}>{story.displayName.split(' ')[0]}</span>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -198,7 +211,6 @@ export function Arena() {
                     <span className={styles.medal}>
                       {entry.position === 1 ? '🥇' : entry.position === 2 ? '🥈' : '🥉'}
                     </span>
-                    {/* JAVÍTVA: getAvatarSrc használata */}
                     <img 
                       src={getAvatarSrc(entry.user.avatar)} 
                       className={styles.podiumAvatar}
@@ -225,7 +237,6 @@ export function Arena() {
             {restOfLeaderboard.map((entry) => (
               <Card key={entry.user.id} className={styles.listItem}>
                 <span className={styles.listPosition}>#{entry.position}</span>
-                {/* JAVÍTVA: getAvatarSrc használata */}
                 <img 
                   src={getAvatarSrc(entry.user.avatar)} 
                   className={styles.listAvatar}
