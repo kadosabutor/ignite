@@ -14,56 +14,54 @@
 .title {
   text-align: center;
   margin: 16px 0;
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
   z-index: 10;
   pointer-events: none;
 }
 
-/* A munkaterület */
+/* A munkaterület (ahol a kép és a maszk van) */
 .cropAreaWrapper {
   flex: 1;
   position: relative;
-  overflow: hidden; /* Ez nagyon fontos: levágja ami kilóg */
+  overflow: hidden;
   display: flex;
   align-items: center;
   justify-content: center;
   background-color: #121212;
   width: 100%;
+  cursor: grab;
+  touch-action: none; /* Fontos: mobilon ne görgesse az oldalt */
 }
 
-/* Ez maga a kör alakú ablak */
-.cropContainer {
+.cropAreaWrapper:active {
+  cursor: grabbing;
+}
+
+/* 1. RÉTEG: A KÉP (Legalul) */
+.image {
+  position: absolute;
+  /* Nem kell top/left, mert translate-tel mozgatjuk a közepéről */
+  transform-origin: center center;
+  user-select: none;
+  pointer-events: none; /* A wrapper kezeli az eseményeket */
+  max-width: none; 
+  max-height: none;
+  z-index: 1;
+}
+
+/* 2. RÉTEG: A MASZK ÉS KERET (Felül) */
+.overlay {
+  position: absolute;
   width: 280px;
   height: 280px;
   border-radius: 50%;
-  border: 2px solid white;
-  position: relative;
-  z-index: 2;
-  /* Fontos: A kép ezen belül jelenik meg */
-  /* overflow: hidden; <- EZT KIVETTEM, hogy lásd a képet mozgatás közben is, de a maszk takarja */
-  
-  /* Sötétítő maszk trükk */
-  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.85); 
-  
-  /* Flexbox a kép középre igazításához */
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.image {
-  /* ITT VOLT A HIBA: KIVETTEM a min-width/height sorokat */
-  
-  /* Mozgatás */
-  position: absolute;
-  transform-origin: center center;
-  user-select: none;
-  touch-action: none;
-  
-  /* Hogy ne legyen torz */
-  max-width: none; 
-  max-height: none;
+  border: 2px solid white; /* A fehér karika */
+  box-shadow: 0 0 0 100vmax rgba(0, 0, 0, 0.8); /* A sötétítés körbe */
+  z-index: 10;
+  pointer-events: none; /* Átengedjük a kattintást a képre/wrapperre */
 }
 
 .controls {
@@ -74,13 +72,13 @@
   display: flex;
   flex-direction: column;
   gap: 20px;
-  z-index: 10;
+  z-index: 20;
 }
 
 .hint {
   text-align: center;
   color: var(--color-muted);
-  font-size: 12px;
+  font-size: 11px;
   margin: 0;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -90,12 +88,30 @@
   display: flex;
   align-items: center;
   gap: 16px;
+  padding: 0 12px;
 }
 
-.sliderLabel {
-  font-size: 20px;
+/* A Zoom gombok stílusa */
+.zoomBtn {
+  background: none;
+  border: none;
   color: var(--color-muted);
-  font-weight: 700;
+  font-size: 24px;
+  font-weight: 400;
+  cursor: pointer;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  transition: all 0.2s;
+}
+
+.zoomBtn:hover {
+  background-color: var(--color-surface-light);
+  color: var(--color-foreground);
 }
 
 .slider {
@@ -115,6 +131,7 @@
   background: var(--color-primary);
   cursor: pointer;
   border: 2px solid var(--color-surface);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.3);
 }
 
 .buttons {
