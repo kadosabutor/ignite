@@ -2,36 +2,22 @@ import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
 import { Button, Card } from '../components/ui';
-import { StreakIcon } from '../components/StreakIcon';
 import { AVATARS, RANKS } from '../types';
-import { getScoreColor } from '../lib/scoring';
-import { getRandomPingMessage, getRandomFireMessage } from '../lib/push';
 import styles from './Arena.module.css';
 
-type TabType = 'feed' | 'leaderboard' | 'friends';
 type LeaderboardPeriod = 'today' | 'week' | 'month';
 
 export function Arena() {
   const navigate = useNavigate();
   const { user, friends, getLeaderboard } = useHabits();
-  const [activeTab, setActiveTab] = useState<TabType>('leaderboard'); // Default to leaderboard based on screenshot importance
   const [leaderboardPeriod, setLeaderboardPeriod] = useState<LeaderboardPeriod>('today');
   const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
   const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
 
-  const colorMap = {
-    success: 'var(--color-success)',
-    warning: 'var(--color-warning)',
-    error: 'var(--color-error)',
-  };
-
-  const canPing = new Date().getHours() >= 18;
-
+  // Load leaderboard when period changes
   useEffect(() => {
-    if (activeTab === 'leaderboard') {
-      loadLeaderboard();
-    }
-  }, [activeTab, leaderboardPeriod]);
+    loadLeaderboard();
+  }, [leaderboardPeriod]);
 
   const loadLeaderboard = async () => {
     setIsLoadingLeaderboard(true);
@@ -43,52 +29,6 @@ export function Arena() {
     } finally {
       setIsLoadingLeaderboard(false);
     }
-  };
-
-  // ... (handlePing, handleFire, handleVS, stb. függvények változatlanok maradhatnak, de a rend kedvéért beírom őket)
-  const handlePing = async (e: React.MouseEvent, friendId: string) => {
-    e.stopPropagation();
-    try {
-      const { sendPushNotification } = await import('../lib/supabase');
-      const randomMessage = getRandomPingMessage();
-      const randomBody = getRandomFireMessage();
-      await sendPushNotification(
-        friendId,
-        randomMessage,
-        `${user?.displayName || 'Valaki'} üzeni: ${randomBody} 🎉`,
-        'ping',
-        { senderId: user?.id }
-      );
-      alert('Ping elküldve! 🔔');
-    } catch (error) {
-      console.error('Error sending ping:', error);
-      alert('Hiba a ping küldésekor');
-    }
-  };
-
-  const handleFire = async (e: React.MouseEvent, friendId: string) => {
-    e.stopPropagation();
-    try {
-      const { sendPushNotification } = await import('../lib/supabase');
-      const randomTitle = getRandomPingMessage();
-      const randomBody = getRandomFireMessage();
-      await sendPushNotification(
-        friendId,
-        randomTitle,
-        `${user?.displayName || 'Valaki'} üzeni: ${randomBody} 🎉`,
-        'fire',
-        { senderId: user?.id }
-      );
-      alert('🔥 Tűz elismerés elküldve!');
-    } catch (error) {
-      console.error('Error sending fire:', error);
-      alert('Hiba a tűz küldésekor');
-    }
-  };
-
-  const handleVS = (e: React.MouseEvent, friendId: string) => {
-    e.stopPropagation();
-    navigate(`/friend/${friendId}?mode=vs`);
   };
 
   const handleViewProfile = (friendId: string) => {
@@ -114,7 +54,6 @@ export function Arena() {
     const second = leaderboardData.find(d => d.position === 2);
     const third = leaderboardData.find(d => d.position === 3);
 
-    // Ha nincs elég adat, nem rendereljük a pódiumot, vagy csak részlegesen
     if (!first) return null;
 
     return (
@@ -227,7 +166,7 @@ export function Arena() {
         ))}
       </div>
 
-      {/* Period Selector (Javított stílus) */}
+      {/* Period Selector */}
       <div className={styles.periodSelector}>
         {(['today', 'week', 'month'] as LeaderboardPeriod[]).map(period => (
           <button
@@ -239,10 +178,6 @@ export function Arena() {
           </button>
         ))}
       </div>
-
-      {/* Tabs - Ezt megtartjuk a Feed/Ranglista váltáshoz, ha szeretnéd, vagy kivehetjük, ha a design más */}
-      {/* A képek alapján a Ranglista van fókuszban, de a kód megtartja a tabokat a funkcionalitás miatt */}
-      {/* Ha a képen nem volt TAB, akkor lehet, hogy csak a Ranglista nézet kell. De a biztonság kedvéért meghagyom. */}
 
       {/* Leaderboard Content */}
       <div className={styles.leaderboardContent}>
