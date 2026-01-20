@@ -214,7 +214,6 @@ export function Profile() {
     );
   }
 
-  // ITT VOLT A HIBA: Ez a sor hiányzott
   const rankData = RANKS[user.rank];
 
   return (
@@ -286,11 +285,21 @@ export function Profile() {
                 </div>
               </Card>
 
-              <div className={styles.friendsButtonWrapper}>
-                <Button variant="secondary" fullWidth onClick={() => navigate('/friends')}>👥 Barátok kezelése</Button>
-                {pendingRequests.incoming.length > 0 && <span className={styles.notificationDot}>{pendingRequests.incoming.length}</span>}
+              {/* GOMBOK CSOPORTJA - Új Előzmények gombbal */}
+              <div className={styles.friendsButtonWrapper} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                
+                {/* 1. Barátok kezelése */}
+                <div style={{ position: 'relative' }}>
+                  <Button variant="secondary" fullWidth onClick={() => navigate('/friends')}>👥 Barátok kezelése</Button>
+                  {pendingRequests.incoming.length > 0 && <span className={styles.notificationDot}>{pendingRequests.incoming.length}</span>}
+                </div>
+
+                {/* 2. ÚJ: Előzmények (History) */}
+                <Button variant="secondary" fullWidth onClick={() => navigate('/history')}>📅 Előzmények megtekintése</Button>
+
+                {/* 3. Kijelentkezés */}
+                <Button variant="danger" fullWidth onClick={handleSignOut}>Kijelentkezés</Button>
               </div>
-              <Button variant="danger" fullWidth onClick={handleSignOut}>Kijelentkezés</Button>
             </>
           ) : (
             <>
