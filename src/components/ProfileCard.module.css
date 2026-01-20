@@ -34,8 +34,8 @@
 .avatar {
   width: 100%;
   height: 100%;
-  object-fit: cover; /* JAVÍTVA: contain helyett cover, hogy kitöltse a kört */
-  border-radius: 50%; /* JAVÍTVA: biztosítjuk, hogy a kép maga is kerek legyen */
+  object-fit: cover; /* JAVÍTVA: contain helyett cover */
+  border-radius: 50%; /* JAVÍTVA: Kerekítés */
 }
 
 /* Info section */
