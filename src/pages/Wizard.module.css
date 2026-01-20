@@ -204,9 +204,60 @@
   color: var(--color-primary);
 }
 
+/* ÚJ: Finomhangoló gombok */
+.fineTuneSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  margin-top: 8px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-border);
+}
+
+.fineTuneLabel {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-muted);
+  font-weight: 600;
+}
+
+.fineTuneGrid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+  width: 100%;
+}
+
+.fineTuneButton {
+  padding: 10px;
+  border-radius: 20px; /* Kerekítettebb */
+  background-color: var(--color-surface-light);
+  border: 1px solid var(--color-border);
+  color: var(--color-foreground);
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.fineTuneButton:hover {
+  background-color: var(--color-surface);
+  border-color: var(--color-muted);
+}
+
+.fineTuneButton:active {
+  transform: scale(0.95);
+  background-color: var(--color-primary);
+  color: #121212;
+  border-color: var(--color-primary);
+}
+
 .customMinuteSection {
   display: flex;
   justify-content: center;
+  margin-top: 16px;
 }
 
 .customButton {
@@ -217,6 +268,11 @@
   font-weight: 600;
   cursor: pointer;
   text-decoration: underline;
+  opacity: 0.8;
+}
+
+.customButton:hover {
+  opacity: 1;
 }
 
 .customInputRow {
