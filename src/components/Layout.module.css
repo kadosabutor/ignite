@@ -19,28 +19,28 @@
 
 .tabBar {
   position: fixed;
-  bottom: 24px;
+  /* 12. PONT JAVÍTÁSA: Lejjebb hozzuk a sávot, közvetlenül a safe area fölé */
+  bottom: calc(10px + env(safe-area-inset-bottom, 0)); 
   left: 50%;
   transform: translateX(-50%);
-  width: calc(100% - 32px);
-  max-width: 448px;
+  width: calc(100% - 24px); /* Kicsit szélesebb, hogy ne legyen nagy rés */
+  max-width: 456px;
   
   display: flex;
   justify-content: space-between;
   align-items: center;
   
   /* --- APPLE LIQUID GLASS EFFECT --- */
-  background-color: rgba(30, 30, 30, 0.65); /* Átlátszóbb sötét háttér */
-  backdrop-filter: blur(25px) saturate(180%); /* Erős blur és telítettség */
-  -webkit-backdrop-filter: blur(25px) saturate(180%); /* Safari támogatás */
-  border: 1px solid rgba(255, 255, 255, 0.12); /* Finom, üveges keret */
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5); /* Mély árnyék */
+  background-color: rgba(30, 30, 30, 0.85); /* Kevésbé átlátszó, hogy jobban fedjen */
+  backdrop-filter: blur(25px) saturate(180%);
+  -webkit-backdrop-filter: blur(25px) saturate(180%);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5);
   
-  border-radius: 28px;
-  padding: 10px 16px;
+  border-radius: 24px; /* Kicsit kevésbé kerekített, hogy illeszkedjen az új pozícióhoz */
+  padding: 8px 12px; /* Kompaktabb padding */
   z-index: 1000;
 
-  /* JAVÍTÁS: Megakadályozza, hogy a nav bar érintése görgetést indítson a háttérben */
   touch-action: none;
 }
 
@@ -50,16 +50,15 @@
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  gap: 4px;
+  gap: 2px; /* Kisebb gap */
   padding: 4px 0;
   background: none;
   border: none;
   color: var(--color-muted);
   cursor: pointer;
   transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-  min-width: 0; /* Engedi a zsugorodást */
+  min-width: 0;
   
-  /* Hogy ne legyen kék kijelölés mobilon */
   -webkit-tap-highlight-color: transparent;
 }
 
@@ -69,22 +68,22 @@
 
 .tabActive {
   color: var(--color-primary);
-  /* Finom ragyogás az aktív ikon körül */
   text-shadow: 0 0 12px rgba(255, 112, 51, 0.4);
 }
 
+/* 11. PONT JAVÍTÁSA: Nagyobb ikonok */
 .tabIcon {
-  font-size: 22px;
-  margin-bottom: 2px;
+  font-size: 28px; /* Növelve 22px-ről */
+  margin-bottom: 0;
   transition: transform 0.3s ease;
 }
 
 .tabActive .tabIcon {
-  transform: translateY(-3px);
+  transform: translateY(-2px);
 }
 
 .tabLabel {
-  font-size: 9px;
+  font-size: 10px; /* Picit nagyobb betű */
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -99,7 +98,7 @@
   opacity: 1;
 }
 
-/* Kisebb képernyőkre (iPhone SE, régebbi modellek) */
+/* Kisebb képernyőkre */
 @media (max-width: 370px) {
   .tabBar {
     width: calc(100% - 16px);
@@ -107,12 +106,12 @@
   }
   
   .tabLabel {
-    font-size: 8px;
+    font-size: 9px;
     letter-spacing: 0;
   }
   
   .tabIcon {
-    font-size: 20px;
+    font-size: 24px;
   }
 }
 
