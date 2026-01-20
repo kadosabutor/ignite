@@ -156,13 +156,11 @@ export async function saveUserProfile(profile: Partial<UserProfile> & { id: stri
   if (error) throw error;
 }
 
-// JAVÍTOTT FÜGGVÉNY: Törli a régieket feltöltés előtt
 export async function uploadAvatar(userId: string, file: File): Promise<string> {
   // 1. LÉPÉS: Megkeressük a felhasználó összes eddigi fájlját a tárolóban
-  // Mivel a fájlnevek úgy kezdődnek, hogy "userId-...", erre tudunk keresni.
   const { data: oldFiles } = await supabase.storage
     .from('avatars')
-    .list('', { search: userId }); // A root mappában keresünk a userId stringre
+    .list('', { search: userId });
 
   // 2. LÉPÉS: Ha találtunk régi fájlokat, töröljük őket
   if (oldFiles && oldFiles.length > 0) {
@@ -174,7 +172,7 @@ export async function uploadAvatar(userId: string, file: File): Promise<string> 
     console.log('Régi avatarok törölve:', filesToRemove);
   }
 
-  // 3. LÉPÉS: Feltöltjük az új képet (a szokásos módon)
+  // 3. LÉPÉS: Feltöltjük az új képet
   const fileExt = file.name.split('.').pop();
   const fileName = `${userId}-${Date.now()}.${fileExt}`;
   
@@ -402,11 +400,26 @@ export async function updateStreak(userId: string): Promise<StreakData> {
   }
 
   let streak = 0;
-  const today = getTodayString();
-  let checkDate = new Date(today);
-
+  
+  // 7. PONT JAVÍTÁSA: Streak logika finomhangolása
+  // Meghatározzuk az effektív mai napot (4:00 AM cutoff figyelembevételével)
   const now = new Date();
+  const effectiveToday = new Date();
   if (now.getHours() < 4) {
+    effectiveToday.setDate(effectiveToday.getDate() - 1);
+  }
+  const effectiveTodayStr = effectiveToday.toISOString().split('T')[0];
+
+  // Megnézzük, van-e bejegyzés a mai napra
+  const hasEntryToday = entries.some(e => e.date === effectiveTodayStr);
+
+  // A számolást az effektív mai naptól kezdjük
+  let checkDate = new Date(effectiveToday);
+  
+  // HA NINCS mai bejegyzés, akkor NEM nullázzuk le azonnal a streaket,
+  // hanem visszalépünk tegnapra, és onnan kezdjük a számolást.
+  // Így a streak "függőben" marad (a tegnapi értéken), amíg ma nem rögzítünk vagy nem mulasztunk.
+  if (!hasEntryToday) {
     checkDate.setDate(checkDate.getDate() - 1);
   }
 
@@ -437,6 +450,7 @@ export async function updateStreak(userId: string): Promise<StreakData> {
     longestStreak,
     level,
     cryoFreezeCount: cryoEarned,
+    // A legutolsó bejegyzés dátuma (ez lehet a mai vagy egy régebbi, ha ma még nincs)
     lastEntryDate: entries[0]?.date || null,
     phoenixActive: currentData?.phoenix_active || false,
     phoenixDaysRemaining: currentData?.phoenix_days_remaining || 0,
