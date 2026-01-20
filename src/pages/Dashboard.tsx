@@ -163,8 +163,9 @@ export function Dashboard() {
           )}
         </div>
 
-        {/* GYORS MŰVELETEK SZEKCIÓ */}
+        {/* GYORS MŰVELETEK SZEKCIÓ - Bővítve */}
         <div className={styles.quickActions}>
+          {/* Felső sor: Pozitív szokások */}
           <button 
             className={`${styles.quickBtn} ${todayEntry?.exercise ? styles.active : ''}`}
             onClick={() => handleQuickToggle('exercise')}
@@ -185,8 +186,35 @@ export function Dashboard() {
             className={`${styles.quickBtn} ${todayEntry?.paradigm ? styles.active : ''}`}
             onClick={() => handleQuickToggle('paradigm')}
           >
-            <span className={styles.quickIcon}>🧠</span>
+            <span className={styles.quickIcon}>🙏</span>
             <span className={styles.quickLabel}>Paradigma</span>
+          </button>
+
+          {/* Alsó sor: Negatív szokások (ezek akkor "aktívak", ha megtörténtek - tehát rosszak) */}
+          {/* Megjegyzés: A HabitEntryben false = jó, true = rossz (történt) ezeknél */}
+          
+          <button 
+            className={`${styles.quickBtn} ${todayEntry?.satisfaction ? styles.activeBad : ''}`}
+            onClick={() => handleQuickToggle('satisfaction')}
+          >
+            <span className={styles.quickIcon}>💦</span>
+            <span className={styles.quickLabel}>Kielégülés</span>
+          </button>
+
+          <button 
+            className={`${styles.quickBtn} ${todayEntry?.dopamineContent ? styles.activeBad : ''}`}
+            onClick={() => handleQuickToggle('dopamineContent')}
+          >
+            <span className={styles.quickIcon}>🧠</span>
+            <span className={styles.quickLabel}>Dopamin</span>
+          </button>
+
+          <button 
+            className={`${styles.quickBtn} ${todayEntry?.gaming ? styles.activeBad : ''}`}
+            onClick={() => handleQuickToggle('gaming')}
+          >
+            <span className={styles.quickIcon}>🎮</span>
+            <span className={styles.quickLabel}>Gaming</span>
           </button>
         </div>
 
