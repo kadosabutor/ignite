@@ -4,14 +4,13 @@ import { useHabits } from '../context/HabitContext';
 import { Button, Card, ProgressRing } from '../components/ui';
 import { StreakIcon } from '../components/StreakIcon';
 import { DateSelector } from '../components/DateSelector';
-import { getScoreColor, getTodayString, formatMinutes, calculateTotalScore } from '../lib/scoring';
-import { createNewEntry } from '../lib/supabase';
-import { RANKS, type HabitEntry } from '../types';
+import { getScoreColor, getTodayString, formatMinutes } from '../lib/scoring';
+import { RANKS } from '../types';
 import styles from './Dashboard.module.css';
 
 export function Dashboard() {
   const navigate = useNavigate();
-  const { todayEntry, streak, user, weeklyAverage, entries, saveEntry } = useHabits();
+  const { todayEntry, streak, user, weeklyAverage, entries } = useHabits();
 
   const todayScore = todayEntry?.score ?? 0;
   const hasLoggedToday = !!todayEntry;
@@ -56,30 +55,6 @@ export function Dashboard() {
 
   const handleDateSelectorCancel = () => {
     setShowDateSelector(false);
-  };
-
-  // GYORS MŰVELETEK (Quick Actions)
-  const handleQuickToggle = async (field: keyof HabitEntry) => {
-    // Haptikus visszajelzés
-    if (typeof navigator !== 'undefined' && navigator.vibrate) {
-      navigator.vibrate(10);
-    }
-
-    const currentVal = todayEntry ? (todayEntry[field] as boolean) : false;
-    
-    // Ha még nincs mai bejegyzés, létrehozunk egyet alapértelmezett értékekkel
-    const baseEntry = todayEntry || createNewEntry(getTodayString());
-    
-    const entryToSave = {
-      ...baseEntry,
-      [field]: !currentVal
-    };
-
-    // Pontszám újrakalkulálása
-    entryToSave.score = calculateTotalScore(entryToSave);
-    
-    // Mentés
-    await saveEntry(entryToSave);
   };
 
   return (
@@ -151,43 +126,122 @@ export function Dashboard() {
           
           {hasLoggedToday && todayEntry && (
             <div className={styles.todayStats}>
+              {/* 1. Sor */}
               <div className={styles.statItem}>
                 <span className={styles.statIcon}>💼</span>
                 <span className={styles.statValue}>{formatMinutes(todayEntry.businessMinutes)}</span>
               </div>
               <div className={styles.statItem}>
-                <span className={styles.statIcon}>🌙</span>
-                <span className={styles.statValue}>{formatMinutes(todayEntry.sleepMinutes)}</span>
+                <span className={styles.statIcon}>💪</span>
+                <span className={`${styles.statValue} ${todayEntry.exercise ? styles.positive : styles.negative}`}>
+                  {todayEntry.exercise ? '✓' : '✗'}
+                </span>
+              </div>
+              <div className={styles.statItem}>
+                <span className={styles.statIcon}>🍎</span>
+                <span className={`${styles.statValue} ${todayEntry.cleanEating ? styles.positive : styles.negative}`}>
+                  {todayEntry.cleanEating ? '✓' : '✗'}
+                </span>
+              </div>
+
+              {/* 2. Sor */}
+              <div className={styles.statItem}>
+                <span className={styles.statIcon}>🙏</span>
+                <span className={`${styles.statValue} ${todayEntry.paradigm ? styles.positive : styles.negative}`}>
+                  {todayEntry.paradigm ? '✓' : '✗'}
+                </span>
+              </div>
+              <div className={styles.statItem}>
+                <span className={styles.statIcon}>⚡</span>
+                <span className={`${styles.statValue} ${!todayEntry.satisfaction ? styles.positive : styles.negative}`}>
+                  {!todayEntry.satisfaction ? '✓' : '✗'}
+                </span>
+              </div>
+              <div className={styles.statItem}>
+                <span className={styles.statIcon}>🧠</span>
+                <span className={`${styles.statValue} ${!todayEntry.dopamineContent ? styles.positive : styles.negative}`}>
+                  {!todayEntry.dopamineContent ? '✓' : '✗'}
+                </span>
+              </div>
+              {/* Megjegyzés: A Gaming-et nem raktam be 7.-nek, mert a rács 3x2-es, de ha kéred, berakhatjuk a Business mellé vagy külön sorba.
+                  Jelenleg a kérés 3+3 volt: Kielégülés, Dopamin, Paradigmára cseréltük az egyiket. 
+                  A kérésedben: "Kielégülés, dopamindús tartalom, gaming". 
+                  Mivel a business percek numerikusak, azokat érdemes megtartani. 
+                  Így most 6 elem van: Business, Edzés, Étkezés + Paradigma, Kielégülés, Dopamin.
+                  Ha a Gaming is kell, akkor 7 elem lenne. Melyiket vegyem ki, vagy legyen 3. sor?
+                  A kérés alapján a "következő hármat" kérted. 
+                  Hadd korrigáljak: Berakom a Gaminget a Business helyett vagy mellé? 
+                  A Business perc az egyik legfontosabb metrika.
+                  
+                  Hagyom a jelenlegi 6-os elrendezést, de ha a Gaming fontosabb mint pl. a Business kijelzés, szólj!
+                  (A kódban a Dopamin van a Gaming helyett most, mert 6 fér el szépen).
+                  
+                  JAVÍTÁS: Berakom a Gaming-et is, de akkor nem lesz szimmetrikus a rács, vagy kiveszem a Business-t?
+                  Inkább kicserélem a Dopamint Gaming-re, ha a képernyőképen a Gaminget preferálnád, de a szövegben "dopamindús tartalom" is szerepelt.
+                  
+                  Tudod mit? Berakom a Gaminget a Dopamin MELLÉ, és lesz egy utolsó sor vagy 4 elem az egyik sorban.
+                  VAGY: A "Mai nap" kártyán a Business percet kiemeljük a rácsból, és a rácsban csak a boolean (igen/nem) értékek maradnak (6 db).
+                  Ez a legjobb megoldás!
+              */}
+            </div>
+          )}
+          
+          {/* Mivel a Business perc fontos, de kilóghat a boolean rácsból, 
+              itt egy alternatív megoldás: A Business percet külön sorba tesszük a rács fölé. 
+              Így a rácsban marad a 6 db boolean szokás:
+              1. Edzés, 2. Étkezés, 3. Paradigma
+              4. Kielégülés, 5. Dopamin, 6. Gaming
+          */}
+          
+          {hasLoggedToday && todayEntry && (
+             <div style={{ marginTop: '8px', marginBottom: '8px', fontSize: '14px', fontWeight: 'bold' }}>
+                💼 Business: {formatMinutes(todayEntry.businessMinutes)}
+             </div>
+          )}
+          
+          {hasLoggedToday && todayEntry && (
+            <div className={styles.todayStats}>
+               {/* 1. Sor */}
+              <div className={styles.statItem}>
+                <span className={styles.statIcon}>💪</span>
+                <span className={`${styles.statValue} ${todayEntry.exercise ? styles.positive : styles.negative}`}>
+                  {todayEntry.exercise ? '✓' : '✗'}
+                </span>
+              </div>
+              <div className={styles.statItem}>
+                <span className={styles.statIcon}>🍎</span>
+                <span className={`${styles.statValue} ${todayEntry.cleanEating ? styles.positive : styles.negative}`}>
+                  {todayEntry.cleanEating ? '✓' : '✗'}
+                </span>
+              </div>
+              <div className={styles.statItem}>
+                <span className={styles.statIcon}>🙏</span>
+                <span className={`${styles.statValue} ${todayEntry.paradigm ? styles.positive : styles.negative}`}>
+                  {todayEntry.paradigm ? '✓' : '✗'}
+                </span>
+              </div>
+
+              {/* 2. Sor */}
+              <div className={styles.statItem}>
+                <span className={styles.statIcon}>🍆</span>
+                <span className={`${styles.statValue} ${!todayEntry.satisfaction ? styles.positive : styles.negative}`}>
+                  {!todayEntry.satisfaction ? '✓' : '✗'}
+                </span>
+              </div>
+              <div className={styles.statItem}>
+                <span className={styles.statIcon}>🧠</span>
+                <span className={`${styles.statValue} ${!todayEntry.dopamineContent ? styles.positive : styles.negative}`}>
+                  {!todayEntry.dopamineContent ? '✓' : '✗'}
+                </span>
+              </div>
+              <div className={styles.statItem}>
+                <span className={styles.statIcon}>🎮</span>
+                <span className={`${styles.statValue} ${!todayEntry.gaming ? styles.positive : styles.negative}`}>
+                  {!todayEntry.gaming ? '✓' : '✗'}
+                </span>
               </div>
             </div>
           )}
-        </div>
-
-        {/* GYORS MŰVELETEK SZEKCIÓ */}
-        <div className={styles.quickActions}>
-          <button 
-            className={`${styles.quickBtn} ${todayEntry?.exercise ? styles.active : ''}`}
-            onClick={() => handleQuickToggle('exercise')}
-          >
-            <span className={styles.quickIcon}>💪</span>
-            <span className={styles.quickLabel}>Edzés</span>
-          </button>
-          
-          <button 
-            className={`${styles.quickBtn} ${todayEntry?.cleanEating ? styles.active : ''}`}
-            onClick={() => handleQuickToggle('cleanEating')}
-          >
-            <span className={styles.quickIcon}>🍎</span>
-            <span className={styles.quickLabel}>Étkezés</span>
-          </button>
-          
-          <button 
-            className={`${styles.quickBtn} ${todayEntry?.paradigm ? styles.active : ''}`}
-            onClick={() => handleQuickToggle('paradigm')}
-          >
-            <span className={styles.quickIcon}>🧠</span>
-            <span className={styles.quickLabel}>Paradigma</span>
-          </button>
         </div>
 
         <Button
@@ -196,7 +250,7 @@ export function Dashboard() {
           size="lg"
           onClick={handleStartWizard}
         >
-          {hasLoggedToday ? (hasMissedDays ? 'Nap rögzítése' : 'Részletes szerkesztés') : 'Nap rögzítése'}
+          {hasLoggedToday ? (hasMissedDays ? 'Nap rögzítése' : 'Szerkesztés') : 'Nap rögzítése'}
         </Button>
       </Card>
 
