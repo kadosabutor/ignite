@@ -1,389 +1,280 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
 import { Button, Card } from '../components/ui';
-import { StreakIcon } from '../components/StreakIcon';
-import { AVATARS, RANKS } from '../types';
-import { getScoreColor } from '../lib/scoring';
+import { ProfileCard } from '../components/ProfileCard';
+import { AVATARS, RANKS, type Friend } from '../types';
 import { getRandomPingMessage, getRandomFireMessage } from '../lib/push';
 import styles from './Arena.module.css';
 
-type TabType = 'feed' | 'leaderboard' | 'friends';
 type LeaderboardPeriod = 'today' | 'week' | 'month';
 
 export function Arena() {
   const navigate = useNavigate();
-  const { user, friends, getLeaderboard } = useHabits();
-  const [activeTab, setActiveTab] = useState<TabType>('feed');
-  const [leaderboardPeriod, setLeaderboardPeriod] = useState<LeaderboardPeriod>('today');
-  const [leaderboardData, setLeaderboardData] = useState<any[]>([]);
-  const [isLoadingLeaderboard, setIsLoadingLeaderboard] = useState(false);
+  const { user, friends, getLeaderboard, todayEntry } = useHabits();
+  
+  // State
+  const [period, setPeriod] = useState<LeaderboardPeriod>('today');
+  const [leaderboard, setLeaderboard] = useState<any[]>([]);
+  const [selectedProfile, setSelectedProfile] = useState<Friend | null>(null); // Modalhoz
+  const [isLoading, setIsLoading] = useState(false);
 
-  const colorMap = {
-    success: 'var(--color-success)',
-    warning: 'var(--color-warning)',
-    error: 'var(--color-error)',
-  };
-
-  // Check if it's after 18:00 for ping feature
-  const canPing = new Date().getHours() >= 18;
-
-  // Load leaderboard when tab or period changes
+  // Ranglista betöltése
   useEffect(() => {
-    if (activeTab === 'leaderboard') {
-      loadLeaderboard();
-    }
-  }, [activeTab, leaderboardPeriod]);
+    const loadLeaderboard = async () => {
+      setIsLoading(true);
+      try {
+        const data = await getLeaderboard(period);
+        setLeaderboard(data);
+      } catch (error) {
+        console.error('Failed to load leaderboard:', error);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    loadLeaderboard();
+  }, [period, getLeaderboard]);
 
-  const loadLeaderboard = async () => {
-    setIsLoadingLeaderboard(true);
-    try {
-      const data = await getLeaderboard(leaderboardPeriod);
-      setLeaderboardData(data);
-    } catch (error) {
-      console.error('Failed to load leaderboard:', error);
-    } finally {
-      setIsLoadingLeaderboard(false);
-    }
-  };
+  // Story Rail adatok előkészítése
+  const stories = useMemo(() => {
+    if (!user) return [];
 
-  const handlePing = async (e: React.MouseEvent, friendId: string) => {
+    // 1. Saját magad (Te)
+    const me = {
+      id: user.id,
+      username: user.username,
+      displayName: 'Te',
+      avatar: user.avatar,
+      rank: user.rank,
+      streak: user.streak,
+      todayCompleted: !!todayEntry,
+      monthlyAverage: user.monthlyAverage,
+      status: 'connected' as const,
+      todayScore: todayEntry?.score || null,
+      todayEntry: todayEntry ? {
+        score: todayEntry.score,
+        businessMinutes: todayEntry.businessMinutes,
+        sleepMinutes: todayEntry.sleepMinutes,
+        exercise: todayEntry.exercise,
+        cleanEating: todayEntry.cleanEating,
+        satisfaction: todayEntry.satisfaction,
+        dopamineContent: todayEntry.dopamineContent,
+        gaming: todayEntry.gaming,
+      } : undefined,
+      lastPingedAt: null
+    };
+
+    // 2. Barátok szétválogatása
+    const activeFriends = friends.filter(f => f.todayCompleted);
+    const sleepingFriends = friends.filter(f => !f.todayCompleted);
+
+    // 3. Összefűzés: Te -> Aktívak -> Alvók
+    return [me, ...activeFriends, ...sleepingFriends];
+  }, [user, friends, todayEntry]);
+
+  // Akciók (Ping / Fire)
+  const handlePing = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!selectedProfile) return;
+    
     try {
       const { sendPushNotification } = await import('../lib/supabase');
-      const randomMessage = getRandomPingMessage();
-      const randomBody = getRandomFireMessage();
       await sendPushNotification(
-        friendId,
-        randomMessage,
-        `${user?.displayName || 'Valaki'} üzeni: ${randomBody} 🎉`,
+        selectedProfile.id,
+        getRandomPingMessage(),
+        `${user?.displayName || 'Valaki'} üzeni: ${getRandomFireMessage()} 🔔`,
         'ping',
         { senderId: user?.id }
       );
       alert('Ping elküldve! 🔔');
+      setSelectedProfile(null); // Modal bezárása
     } catch (error) {
       console.error('Error sending ping:', error);
-      alert('Hiba a ping küldésekor');
     }
   };
 
-  const handleFire = async (e: React.MouseEvent, friendId: string) => {
+  const handleFire = async (e: React.MouseEvent) => {
     e.stopPropagation();
+    if (!selectedProfile) return;
+
     try {
       const { sendPushNotification } = await import('../lib/supabase');
-      const randomTitle = getRandomPingMessage();
-      const randomBody = getRandomFireMessage();
       await sendPushNotification(
-        friendId,
-        randomTitle,
-        `${user?.displayName || 'Valaki'} üzeni: ${randomBody} 🎉`,
+        selectedProfile.id,
+        getRandomFireMessage(),
+        `${user?.displayName || 'Valaki'} gratulál a mai napodhoz! 🔥`,
         'fire',
         { senderId: user?.id }
       );
       alert('🔥 Tűz elismerés elküldve!');
+      setSelectedProfile(null); // Modal bezárása
     } catch (error) {
       console.error('Error sending fire:', error);
-      alert('Hiba a tűz küldésekor');
     }
   };
 
-  const handleVS = (e: React.MouseEvent, friendId: string) => {
-    e.stopPropagation(); // Prevent double navigation
-    navigate(`/friend/${friendId}?mode=vs`);
-  };
-
-  const handleViewProfile = (friendId: string) => {
-    navigate(`/friend/${friendId}`);
-  };
-
-  const handleViewLeaderboardProfile = (userId: string, isCurrentUser: boolean) => {
-    if (isCurrentUser) {
-      navigate('/profile');
-    } else {
-      // Check if this user is a friend
-      const isFriend = friends.some(f => f.id === userId);
-      if (isFriend) {
-        navigate(`/friend/${userId}`);
-      }
-      // If not a friend, we can't view their profile (privacy)
-    }
-  };
-
-  if (!user) {
-    return (
-      <div className={styles.container}>
-        <div className={styles.empty}>
-          <span className={styles.emptyIcon}>⚔️</span>
-          <h2 className={styles.emptyTitle}>Üdv az Arénában!</h2>
-          <p className={styles.emptyText}>Jelentkezz be a közösségi funkciók használatához.</p>
-          <Button onClick={() => navigate('/auth')}>Bejelentkezés</Button>
-        </div>
-      </div>
-    );
-  }
+  // Pódium logika (Top 3)
+  const top3 = leaderboard.slice(0, 3);
+  // Átrendezés a pódiumhoz: 2. - 1. - 3.
+  const podiumOrder = [top3[1], top3[0], top3[2]].filter(Boolean);
+  const restOfLeaderboard = leaderboard.slice(3);
 
   return (
     <div className={styles.container}>
+      {/* 1. Fejléc */}
       <header className={styles.header}>
         <h1 className={styles.title}>Aréna</h1>
-        <Button size="sm" variant="secondary" onClick={() => navigate('/friends')}>
-          + Barát
-        </Button>
+        <button 
+          className={styles.friendsButton} 
+          onClick={() => navigate('/friends')}
+          aria-label="Barátok kezelése"
+        >
+          👥
+        </button>
       </header>
 
-      {/* Story Bar (Horizontal List) */}
-      <div className={styles.storyBar}>
-        {/* Current User (Te) - Kiemelt */}
-        <div 
-          className={styles.storyItem}
-          onClick={() => navigate('/profile')}
-        >
-          <div className={`${styles.storyAvatarWrapper} ${styles.currentUserStory}`}>
-            <img 
-              src={AVATARS[user.avatar]?.icon || AVATARS.lion.icon}
-              alt="Te"
-              className={styles.storyAvatar}
-            />
-            <div className={styles.storyBadge}>🔥</div>
-          </div>
-          <span className={styles.storyName}>Te</span>
-        </div>
-
-        {/* Friends */}
-        {friends.map(friend => (
-          <div 
-            key={friend.id} 
-            className={styles.storyItem} 
-            onClick={() => handleViewProfile(friend.id)}
-          >
+      {/* 2. Story Sáv (Story Rail) */}
+      <div className={styles.storyRailWrapper}>
+        <div className={styles.storyRail}>
+          {stories.map((story) => (
             <div 
-              className={styles.storyAvatarWrapper}
-              style={{ borderColor: RANKS[friend.rank]?.color || '#888' }}
+              key={story.id} 
+              className={styles.storyItem}
+              onClick={() => setSelectedProfile(story as Friend)}
             >
-              <img 
-                src={AVATARS[friend.avatar]?.icon || AVATARS.lion.icon}
-                alt={friend.displayName}
-                className={styles.storyAvatar}
-              />
-              <div className={styles.storyBadge}>🔥</div>
+              <div className={`${styles.storyRing} ${story.todayCompleted ? styles.ringActive : styles.ringInactive}`}>
+                <img 
+                  src={AVATARS[story.avatar]?.icon} 
+                  alt={story.displayName} 
+                  className={styles.storyAvatar} 
+                />
+                {story.todayCompleted && (
+                  <span className={styles.fireBadge}>🔥</span>
+                )}
+              </div>
+              <span className={styles.storyName}>{story.displayName.split(' ')[0]}</span>
             </div>
-            <span className={styles.storyName}>{friend.displayName}</span>
-          </div>
-        ))}
-      </div>
-
-      {/* Tabs */}
-      <div className={styles.tabs}>
-        <button
-          className={`${styles.tab} ${activeTab === 'feed' ? styles.tabActive : ''}`}
-          onClick={() => setActiveTab('feed')}
-        >
-          Feed
-        </button>
-        <button
-          className={`${styles.tab} ${activeTab === 'leaderboard' ? styles.tabActive : ''}`}
-          onClick={() => setActiveTab('leaderboard')}
-        >
-          Ranglista
-        </button>
-        <button
-          className={`${styles.tab} ${activeTab === 'friends' ? styles.tabActive : ''}`}
-          onClick={() => setActiveTab('friends')}
-        >
-          Barátok
-        </button>
-      </div>
-
-      {/* Feed Tab */}
-      {activeTab === 'feed' && (
-        <div className={styles.feed}>
-          {friends.length === 0 ? (
-            <Card className={styles.emptyCard}>
-              <p>Adj hozzá barátokat, hogy lásd a tevékenységüket!</p>
-              <Button size="sm" onClick={() => navigate('/friends')}>Barátok keresése</Button>
-            </Card>
-          ) : (
-            friends.map(friend => {
-              const hasLoggedToday = friend.todayCompleted;
-              const scoreColor = friend.todayScore ? getScoreColor(friend.todayScore) : null;
-
-              return (
-                <Card
-                  key={friend.id}
-                  className={`${styles.feedCard} ${!hasLoggedToday ? styles.sleepingAgent : ''}`}
-                  onClick={() => handleViewProfile(friend.id)}
-                >
-                  <div className={styles.feedHeader}>
-                    <img
-                      src={AVATARS[friend.avatar]?.icon || AVATARS.lion.icon}
-                      alt={friend.displayName}
-                      className={styles.feedAvatar}
-                      style={{ borderColor: RANKS[friend.rank]?.color || '#888' }}
-                    />
-                    <div className={styles.feedInfo}>
-                      <span className={styles.feedName}>{friend.displayName}</span>
-                      <span className={styles.feedUsername}>@{friend.username}</span>
-                    </div>
-                    <StreakIcon level={friend.streak.level} days={friend.streak.currentStreak} size="sm" />
-                  </div>
-
-                  {hasLoggedToday && friend.todayScore !== null ? (
-                    <div className={styles.feedScore}>
-                      <span
-                        className={styles.scoreValue}
-                        style={{ color: colorMap[scoreColor!] }}
-                      >
-                        {Math.round(friend.todayScore)}
-                      </span>
-                      <span className={styles.scoreLabel}>pont ma</span>
-                    </div>
-                  ) : (
-                    <div className={styles.feedPending}>
-                      <span className={styles.pendingText}>💤 Még nem rögzített ma</span>
-                      {canPing && (
-                        <Button size="sm" variant="ghost" onClick={(e) => handlePing(e, friend.id)}>
-                          🔔 Ping
-                        </Button>
-                      )}
-                    </div>
-                  )}
-
-                  <div className={styles.feedActions}>
-                    <button
-                      className={styles.vsButton}
-                      onClick={(e) => handleVS(e, friend.id)}
-                      title="VS Mode - Összehasonlítás"
-                    >
-                      ⚔️ VS
-                    </button>
-                    <button
-                      className={styles.fireButton}
-                      onClick={(e) => handleFire(e, friend.id)}
-                      title="Tűz elismerés"
-                    >
-                      🔥
-                    </button>
-                  </div>
-                </Card>
-              );
-            })
-          )}
+          ))}
         </div>
-      )}
+      </div>
 
-      {/* Leaderboard Tab */}
-      {activeTab === 'leaderboard' && (
-        <div className={styles.leaderboard}>
-          {/* Period selector */}
+      {/* 3. Ranglista Szekció */}
+      <div className={styles.leaderboardSection}>
+        <div className={styles.sectionHeader}>
+          <h2 className={styles.sectionTitle}>Ranglista</h2>
+          {/* Időszak váltó */}
           <div className={styles.periodSelector}>
-            {(['today', 'week', 'month'] as LeaderboardPeriod[]).map(period => (
+            {(['today', 'week', 'month'] as const).map((p) => (
               <button
-                key={period}
-                className={`${styles.periodButton} ${leaderboardPeriod === period ? styles.periodActive : ''}`}
-                onClick={() => setLeaderboardPeriod(period)}
+                key={p}
+                className={`${styles.periodTab} ${period === p ? styles.periodActive : ''}`}
+                onClick={() => setPeriod(p)}
               >
-                {period === 'today' ? 'Ma' : period === 'week' ? 'Hét' : 'Hónap'}
+                {p === 'today' ? 'Ma' : p === 'week' ? 'Hét' : 'Hónap'}
               </button>
             ))}
           </div>
-
-          {/* Leaderboard list */}
-          <div className={styles.leaderboardList}>
-            {isLoadingLeaderboard ? (
-              <div className={styles.loading}>Betöltés...</div>
-            ) : leaderboardData.length === 0 ? (
-              <Card className={styles.emptyCard}>
-                <p>Még nincs adat a ranglistához.</p>
-                <p>Adj hozzá barátokat és rögzíts adatokat!</p>
-              </Card>
-            ) : (
-              leaderboardData.map((entry) => {
-                const medal = entry.position === 1 ? '🥇' : entry.position === 2 ? '🥈' : entry.position === 3 ? '🥉' : null;
-                const isFriend = friends.some(f => f.id === entry.user.id);
-                const isClickable = entry.isCurrentUser || isFriend;
-
-                return (
-                  <Card
-                    key={entry.user.id}
-                    className={`${styles.leaderboardCard} ${entry.isCurrentUser ? styles.currentUser : ''} ${isClickable ? styles.clickable : ''}`}
-                    onClick={() => isClickable && handleViewLeaderboardProfile(entry.user.id, entry.isCurrentUser)}
-                  >
-                    <span className={styles.position}>
-                      {medal || `#${entry.position}`}
-                    </span>
-                    <img
-                      src={AVATARS[entry.user.avatar as keyof typeof AVATARS]?.icon || AVATARS.lion.icon}
-                      alt={entry.user.displayName}
-                      className={styles.leaderboardAvatar}
-                      style={{ borderColor: RANKS[entry.user.rank as keyof typeof RANKS]?.color || '#888' }}
-                    />
-                    <div className={styles.leaderboardInfo}>
-                      <span className={styles.leaderboardName}>
-                        {entry.user.displayName}
-                        {entry.isCurrentUser && <span className={styles.youBadge}>Te</span>}
-                      </span>
-                      <span className={styles.leaderboardRank} style={{ color: RANKS[entry.user.rank as keyof typeof RANKS]?.color || '#888' }}>
-                        {RANKS[entry.user.rank as keyof typeof RANKS]?.emoji || '👤'} {RANKS[entry.user.rank as keyof typeof RANKS]?.name || 'Unknown'}
-                      </span>
-                    </div>
-                    <div className={styles.leaderboardRight}>
-                      <span className={styles.leaderboardScore}>{Math.round(entry.score)}</span>
-                      {isFriend && !entry.isCurrentUser && (
-                        <button
-                          className={styles.miniVsButton}
-                          onClick={(e) => handleVS(e, entry.user.id)}
-                        >
-                          ⚔️
-                        </button>
-                      )}
-                    </div>
-                  </Card>
-                );
-              })
-            )}
-          </div>
         </div>
-      )}
 
-      {/* Friends Tab */}
-      {activeTab === 'friends' && (
-        <div className={styles.friendsList}>
-          {friends.length === 0 ? (
-            <Card className={styles.emptyCard}>
-              <p>Még nincsenek barátaid.</p>
-              <Button size="sm" onClick={() => navigate('/friends')}>Barátok keresése</Button>
-            </Card>
-          ) : (
-            friends.map(friend => (
-              <Card
-                key={friend.id}
-                className={`${styles.friendCard} ${styles.clickable}`}
-                onClick={() => handleViewProfile(friend.id)}
-              >
-                <img
-                  src={AVATARS[friend.avatar]?.icon || AVATARS.lion.icon}
-                  alt={friend.displayName}
-                  className={styles.friendAvatar}
-                  style={{ borderColor: RANKS[friend.rank]?.color || '#888' }}
+        {/* Pódium és Loading állapot kezelése */}
+        {isLoading ? (
+          <div className={styles.emptyState}>
+            <p>Ranglista betöltése...</p>
+          </div>
+        ) : leaderboard.length > 0 ? (
+          <div className={styles.podium}>
+            {podiumOrder.map((entry) => {
+              const isFirst = entry.position === 1;
+              const isSecond = entry.position === 2;
+              
+              return (
+                <div key={entry.user.id} className={`${styles.podiumItem} ${isFirst ? styles.first : ''} ${isSecond ? styles.second : styles.third}`}>
+                  <div className={styles.podiumAvatarWrapper}>
+                    <span className={styles.medal}>
+                      {entry.position === 1 ? '🥇' : entry.position === 2 ? '🥈' : '🥉'}
+                    </span>
+                    <img 
+                      src={AVATARS[entry.user.avatar as keyof typeof AVATARS]?.icon} 
+                      className={styles.podiumAvatar}
+                      style={{ borderColor: RANKS[entry.user.rank as keyof typeof RANKS]?.color }}
+                    />
+                  </div>
+                  <div className={styles.podiumInfo}>
+                    <span className={styles.podiumName}>{entry.user.displayName.split(' ')[0]}</span>
+                    <span className={styles.podiumScore}>{Math.round(entry.score)}</span>
+                  </div>
+                  <div className={styles.podiumBar} />
+                </div>
+              );
+            })}
+          </div>
+        ) : (
+          <div className={styles.emptyState}>
+            <p>Még nincs adat a ranglistához.</p>
+          </div>
+        )}
+
+        {/* Lista (4. helytől) - Csak ha nem tölt */}
+        {!isLoading && (
+          <div className={styles.leaderboardList}>
+            {restOfLeaderboard.map((entry) => (
+              <Card key={entry.user.id} className={styles.listItem}>
+                <span className={styles.listPosition}>#{entry.position}</span>
+                <img 
+                  src={AVATARS[entry.user.avatar as keyof typeof AVATARS]?.icon} 
+                  className={styles.listAvatar}
                 />
-                <div className={styles.friendInfo}>
-                  <span className={styles.friendName}>{friend.displayName}</span>
-                  <span className={styles.friendRank} style={{ color: RANKS[friend.rank]?.color || '#888' }}>
-                    {RANKS[friend.rank]?.emoji || '👤'} {RANKS[friend.rank]?.name || 'Unknown'}
+                <div className={styles.listInfo}>
+                  <span className={styles.listName}>
+                    {entry.user.displayName}
+                    {entry.isCurrentUser && <span className={styles.youBadge}>Te</span>}
+                  </span>
+                  <span className={styles.listRank}>
+                    {RANKS[entry.user.rank as keyof typeof RANKS]?.name}
                   </span>
                 </div>
-                <div className={styles.friendRight}>
-                  <StreakIcon level={friend.streak.level} days={friend.streak.currentStreak} size="sm" />
-                  <button
-                    className={styles.miniVsButton}
-                    onClick={(e) => handleVS(e, friend.id)}
-                  >
-                    ⚔️
-                  </button>
-                </div>
+                <span className={styles.listScore}>{Math.round(entry.score)}</span>
               </Card>
-            ))
-          )}
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* MODAL (Pop-up) */}
+      {selectedProfile && (
+        <div className={styles.modalOverlay} onClick={() => setSelectedProfile(null)}>
+          <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
+            <ProfileCard
+              id={selectedProfile.id}
+              username={selectedProfile.username}
+              displayName={selectedProfile.displayName}
+              avatar={selectedProfile.avatar}
+              rank={selectedProfile.rank}
+              streak={selectedProfile.streak}
+              monthlyAverage={selectedProfile.monthlyAverage}
+              todayEntry={selectedProfile.todayEntry}
+              viewType={selectedProfile.id === user?.id ? 'self' : 'friend'}
+              expandable={false}
+            />
+            
+            {/* Akció gombok a modal alján */}
+            {selectedProfile.id !== user?.id && (
+              <div className={styles.modalActions}>
+                {selectedProfile.todayCompleted ? (
+                  <Button fullWidth onClick={handleFire} className={styles.fireAction}>
+                    🔥 Gratulálok! (Tűz)
+                  </Button>
+                ) : (
+                  <Button fullWidth variant="secondary" onClick={handlePing}>
+                    🔔 Ébresztő! (Ping)
+                  </Button>
+                )}
+                <Button fullWidth variant="ghost" onClick={() => navigate(`/friend/${selectedProfile.id}`)}>
+                  Teljes profil megtekintése
+                </Button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
