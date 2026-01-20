@@ -6,14 +6,13 @@ import { StreakIcon } from '../components/StreakIcon';
 import { DateSelector } from '../components/DateSelector';
 import { getScoreColor, getTodayString, formatMinutes, calculateTotalScore } from '../lib/scoring';
 import { createNewEntry } from '../lib/supabase';
-import { RANKS } from '../types';
+import { RANKS, type HabitEntry } from '../types'; // HabitEntry importálása
 import styles from './Dashboard.module.css';
 
 export function Dashboard() {
   const navigate = useNavigate();
   const { todayEntry, streak, user, weeklyAverage, entries, saveEntry } = useHabits();
 
-  // Ha nincs még mai bejegyzés, akkor nullának tekintjük a pontokat, de a UI-n kezeljük
   const todayScore = todayEntry?.score ?? 0;
   const hasLoggedToday = !!todayEntry;
   const scoreColor = getScoreColor(todayScore);
@@ -27,26 +26,22 @@ export function Dashboard() {
   };
 
   // Gyors váltó gomb kezelése
-  const handleToggle = async (key: keyof typeof todayEntry, isNegativeHabit = false) => {
-    // Ha nincs még mai entry, létrehozzuk
+  // JAVÍTVA: 'keyof typeof todayEntry' helyett 'keyof HabitEntry'
+  const handleToggle = async (key: keyof HabitEntry, isNegativeHabit = false) => {
+    // Ha nincs még mai bejegyzés, létrehozzuk az alapértelmezettet
     const baseEntry = todayEntry || createNewEntry(getTodayString());
     
     // Az új érték meghatározása
-    // Negatív szokásnál (pl. Gaming): Ha Zöld (false) volt, akkor most rányomtunk -> Szürke (true) lett (tehát csináltuk).
-    // De a kérés: "rányomok -> zöld lesz -> pontot ad". 
-    // Tehát: Gray (Rossz/Semleges) -> Green (Jó/Pont).
-    // Pozitív szokás (Edzés): false -> true (Jó).
-    // Negatív szokás (Gaming): true (Rossz) -> false (Jó).
-    
     let newValue;
     if (isNegativeHabit) {
-       // Negatívnál a "Jó" állapot a false. Ha most "Jó" (false), akkor kikapcsoljuk (true). Ha "Rossz" (true), akkor bekapcsoljuk (false).
-       // De várj, alapból (undefined/null) a negative habit false (Jó). 
-       // A gomb vizuális állapota: Zöld = Jó (false), Szürke = Rossz (true).
+       // Negatív szokásoknál (pl. Gaming):
+       // Ha eddig TRUE volt (rossz), akkor most FALSE lesz (jó/zöld - elkerülted).
+       // Ha eddig FALSE volt (jó), akkor most TRUE lesz (rossz/szürke - csináltad).
        const currentValue = baseEntry[key] as boolean;
-       newValue = !currentValue; // Toggle
+       newValue = !currentValue;
     } else {
-       // Pozitívnál: true = Jó (Zöld).
+       // Pozitív szokásoknál (pl. Edzés):
+       // true = Jó (Zöld/Megcsináltad).
        const currentValue = baseEntry[key] as boolean;
        newValue = !currentValue;
     }
@@ -56,36 +51,30 @@ export function Dashboard() {
       [key]: newValue,
     };
 
-    // Pontszám újrakalkulálása
+    // Pontszám újrakalkulálása (kliens oldalon is a gyors frissítésért)
     updatedEntry.score = calculateTotalScore(updatedEntry);
 
-    // Mentés
+    // Mentés az adatbázisba
     await saveEntry(updatedEntry);
   };
 
-  // Helper a gomb stílushoz
-  // isActive: akkor igaz, ha a szokás "teljesítve van" (tehát pontot ér)
-  const renderQuickButton = (label: string, icon: string, key: string, isNegativeHabit = false) => {
-    // Ha nincs entry, akkor alapértelmezett (pl. false).
-    // Pozitívnál: false -> nem aktív.
-    // Negatívnál: false -> aktív (mert elkerültük). DE a felhasználó azt mondta "rányomok -> zöld lesz".
-    // Ez azt feltételezi, hogy alapból szürke.
-    // Ha a `todayEntry` null, akkor még nem rögzítettünk semmit. Ilyenkor minden szürke legyen?
-    // Vagy feltételezzük a default értékeket? 
-    // A `createNewEntry` defaultjai: cleanEating: false (szürke), gaming: false (ZÖLD lenne alapból).
-    // Hogy a UX jó legyen ("rányomok -> zöld"), a negatív szokásoknál a UI logika:
-    // Gomb Zöld = "Elkerültem" (entry[key] === false).
-    // Gomb Szürke = "Nem kerültem el / Még nem nyilatkoztam?" -> Inkább legyen bináris.
+  // Helper a gomb stílushoz és rendereléshez
+  // JAVÍTVA: a key paraméter típusa itt is 'keyof HabitEntry'
+  const renderQuickButton = (label: string, icon: string, key: keyof HabitEntry, isNegativeHabit = false) => {
+    // Érték lekérése. Ha nincs entry:
+    // - Negatív szokásnál (pl. Gaming): true-nak (rossznak/szürkének) tekintjük alapból, hogy rányomhass és "zöldüljön" (siker).
+    // - Pozitív szokásnál (pl. Edzés): false-nak (szürkének) tekintjük.
+    const value = todayEntry ? (todayEntry[key] as boolean) : (isNegativeHabit ? true : false); 
     
-    const value = todayEntry ? todayEntry[key as keyof typeof todayEntry] as boolean : (isNegativeHabit ? true : false); 
-    // Trükk: Ha nincs entry, a negatívat true-nak (Rossznak/Szürkének) mutatjuk, hogy rányomhasson és zöld legyen.
-    
+    // Státusz meghatározása a színezéshez (Zöld = Siker)
+    // Pozitívnál: value === true -> Siker
+    // Negatívnál: value === false -> Siker (mert elkerülted a rosszat)
     const isSuccess = isNegativeHabit ? !value : value;
 
     return (
       <button 
         className={`${styles.quickButton} ${isSuccess ? styles.active : ''}`}
-        onClick={() => handleToggle(key as any, isNegativeHabit)}
+        onClick={() => handleToggle(key, isNegativeHabit)}
       >
         <span className={styles.quickButtonIcon}>{icon}</span>
         <span className={styles.quickButtonLabel}>{label}</span>
@@ -93,7 +82,7 @@ export function Dashboard() {
     );
   };
 
-  // Get last 7 days for mini chart
+  // Utolsó 7 nap lekérése a mini grafikonhoz
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const date = new Date();
     date.setDate(date.getDate() - (6 - i));
@@ -106,8 +95,15 @@ export function Dashboard() {
     };
   });
 
+  // Ellenőrizzük, van-e kihagyott nap az elmúlt héten
+  const hasMissedDays = last7Days.some(day => !day.hasEntry && day.date !== getTodayString());
+
   const handleStartWizard = () => {
-    navigate(`/wizard?date=${getTodayString()}`);
+    if (hasMissedDays || !hasLoggedToday) {
+      setShowDateSelector(true);
+    } else {
+      navigate(`/wizard?date=${getTodayString()}`);
+    }
   };
 
   const handleDateSelect = (date: string) => {
@@ -139,7 +135,7 @@ export function Dashboard() {
         )}
       </header>
 
-      {/* Streak */}
+      {/* Streak Section */}
       <section className={styles.streakSection}>
         <StreakIcon
           level={streak.level}
@@ -182,7 +178,7 @@ export function Dashboard() {
             <span className={styles.scoreUnit}>PONT</span>
           </ProgressRing>
           
-          {/* Business & Sleep Stats (VISSZAKERÜLT) */}
+          {/* Business & Sleep Stats */}
           <div className={styles.mainStatsRow}>
             <div className={styles.mainStat}>
               <span className={styles.mainStatIcon}>💼</span>
@@ -205,7 +201,8 @@ export function Dashboard() {
             {renderQuickButton('EDZÉS', '💪', 'exercise')}
             {renderQuickButton('ÉTKEZÉS', '🍎', 'cleanEating')}
             {renderQuickButton('PARADIGMA', '🙏', 'paradigm')}
-            {renderQuickButton('KIELÉGÜLÉS', '🍼', 'satisfaction', true)}
+            {/* A második sor (Tisztaság) elemei negatív szokások, tehát true = rossz, false = jó */}
+            {renderQuickButton('KIELÉGÜLÉS', '⚡', 'satisfaction', true)}
             {renderQuickButton('DOPAMIN', '🧠', 'dopamineContent', true)}
             {renderQuickButton('GAMING', '🎮', 'gaming', true)}
           </div>
