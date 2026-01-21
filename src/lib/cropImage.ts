@@ -60,7 +60,7 @@ export default async function getCroppedImg(
     }
   }
 
-  // 4. Blob-bá (fájllá) alakítás JPEG formátumban
+  // 4. Blob-bá (fájllá) alakítás WebP formátumban (kisebb méret)
   return new Promise((resolve, reject) => {
     finalCanvas.toBlob(
       (blob) => {
@@ -68,12 +68,12 @@ export default async function getCroppedImg(
           reject(new Error('Canvas is empty'));
           return;
         }
-        // Fájl objektum létrehozása (ez megy majd a Supabase-re)
-        const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+        // Fájl objektum létrehozása WebP formátumban
+        const file = new File([blob], 'avatar.webp', { type: 'image/webp' });
         resolve(file);
       },
-      'image/jpeg',
-      0.8 // Minőség: 80% (Ez drasztikusan csökkenti a méretet)
+      'image/webp', // WebP használata
+      0.75 // Minőség: 75% (elég jó minőség, kis méret)
     );
   });
 }
