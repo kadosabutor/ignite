@@ -43,7 +43,31 @@
   transform: scale(0.95);
   background: var(--color-surface-light);
 }
+/* ... (A fájl eleje marad) ... */
 
+.storyItem:active .storyRing {
+  transform: scale(0.95);
+}
+
+.ringActive {
+  background: linear-gradient(45deg, #ff7033, #FFD700);
+  animation: pulse 3s infinite;
+}
+
+/* ÚJ: Látott (szürke) állapot */
+.ringViewed {
+  border: 2px solid var(--color-border);
+  background: transparent;
+  opacity: 0.6;
+}
+
+.ringInactive {
+  border: 1px solid rgba(255,255,255,0.1);
+  background: transparent;
+  opacity: 0.4;
+}
+
+/* ... (Többi marad) ... */
 /* --- STORY RAIL --- */
 .storyRailWrapper {
   width: 100%;
