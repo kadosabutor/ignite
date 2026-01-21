@@ -6,7 +6,7 @@ import { StreakIcon } from '../components/StreakIcon';
 import { RadarChart } from '../components/RadarChart';
 import { RANKS, AVATARS, getAvatarSrc, type AvatarType } from '../types';
 import { calculateRadarStats } from '../lib/scoring';
-import { generateInsight, type InsightResult } from '../lib/insight-engine'; // ÚJ IMPORT
+import { generateInsight } from '../lib/insight-engine'; // JAVÍTÁS: Típus import eltávolítva
 import * as supabase from '../lib/supabase';
 import { useToast } from '../context/ToastContext';
 import { ImageCropper } from '../components/ImageCropper';
@@ -32,6 +32,7 @@ export function Profile() {
   const [bio, setBio] = useState(user?.bio || '');
   const [showSettings, setShowSettings] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
+  
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
   
   const [notifications, setNotifications] = useState({
@@ -45,13 +46,12 @@ export function Profile() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Stats calculation
   const radarStats = useMemo(() => {
     const last30Days = entries.slice(0, 30);
     return calculateRadarStats(last30Days);
   }, [entries]);
 
-  // ÚJ: Insight generálás (Jelen vs Múlt)
+  // Insight generálás (Jelen vs Múlt)
   const selfInsight = useMemo(() => {
     if (entries.length < 14) return null; // Kell legalább 2 hét adat
     
@@ -68,9 +68,6 @@ export function Profile() {
       friendName: 'A Múltbéli Éned'
     });
   }, [entries]);
-
-  // ... (A fájl többi része: useEffect-ek, handleSave, stb. - változatlan) ...
-  // Csak a renderelést módosítjuk lentebb!
 
   useEffect(() => {
     if (authUser) {
@@ -116,6 +113,7 @@ export function Profile() {
       setCropImageSrc(reader.result?.toString() || null);
     });
     reader.readAsDataURL(file);
+    
     e.target.value = '';
   };
 
@@ -154,7 +152,6 @@ export function Profile() {
   if (!user) return <div className={styles.loading}>Betöltés...</div>;
 
   if (isEditing) {
-    // ... (Szerkesztő nézet változatlan) ...
     return (
       <div className={styles.container}>
         <header className={styles.header}>
@@ -162,6 +159,7 @@ export function Profile() {
           <button className={styles.cancelButton} onClick={() => setIsEditing(false)}>Mégse</button>
         </header>
 
+        {/* CROPPER MODAL */}
         {cropImageSrc && (
           <ImageCropper
             imageSrc={cropImageSrc}
@@ -247,7 +245,6 @@ export function Profile() {
       </header>
 
       {showSettings ? (
-        // ... (Beállítások nézet változatlan) ...
         <div className={styles.settingsSection}>
           <Card className={styles.settingsCard}>
             <h3 className={styles.sectionTitle}>Értesítések</h3>
@@ -277,7 +274,6 @@ export function Profile() {
 
           {viewMode === 'overview' ? (
             <>
-              {/* ... (Overview nézet változatlan) ... */}
               <Card className={styles.profileCard}>
                 <div className={styles.profileHeader}>
                   <img
@@ -328,7 +324,7 @@ export function Profile() {
               {selfInsight && (
                 <Card className={styles.explanationCard} style={{ border: '1px solid var(--color-primary)' }}>
                   <h3 style={{ color: 'var(--color-primary)', fontSize: '16px', marginBottom: '8px' }}>
-                    Jelen vs Múlt (14 nap)
+                    {selfInsight.title} {/* JAVÍTÁS: Dinamikus cím használata */}
                   </h3>
                   <p style={{ marginBottom: '12px', fontSize: '14px', lineHeight: '1.5' }}>{selfInsight.factualText}</p>
                   <div style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '10px', borderRadius: '8px' }}>
