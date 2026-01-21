@@ -2,8 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
 import { useToast } from '../context/ToastContext';
-import { Card } from '../components/ui'; // Button már nem kell külön, mert a HeroCard-ban van
-import { HeroCard } from '../components/HeroCard'; // ÚJ
+import { Card } from '../components/ui'; 
+import { HeroCard } from '../components/HeroCard'; 
 import { RANKS, type Friend, getAvatarSrc } from '../types';
 import { getRandomPingMessage, getRandomFireMessage } from '../lib/push';
 import styles from './Arena.module.css';
@@ -17,9 +17,14 @@ export function Arena() {
   
   const [period, setPeriod] = useState<LeaderboardPeriod>('today');
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
-  // Hero Card állapota: index alapján tudjuk, kit mutatunk épp
+  
+  // Hero Card állapota
   const [activeStoryIndex, setActiveStoryIndex] = useState<number | null>(null);
   const [viewedStories, setViewedStories] = useState<Record<string, string>>({}); // ID -> Timestamp
+  
+  // ÚJ: Snapshot a sztorik sorrendjéről a megnyitás pillanatában
+  const [storyQueue, setStoryQueue] = useState<any[]>([]);
+  
   const [isLoading, setIsLoading] = useState(false);
 
   // 1. LocalStorage betöltése induláskor
@@ -47,6 +52,7 @@ export function Arena() {
   }, [period, getLeaderboard]);
 
   // 3. Sztorik (Barátok) listájának összeállítása és rendezése
+  // Ez az ÉLŐ lista a rail-hez
   const stories = useMemo(() => {
     if (!user) return [];
 
@@ -71,17 +77,15 @@ export function Arena() {
         satisfaction: todayEntry.satisfaction,
         dopamineContent: todayEntry.dopamineContent,
         gaming: todayEntry.gaming,
-        // Fontos: Kell az updatedAt a verziókövetéshez (ha nincs, használjuk a mostanit)
-        updatedAt: todayEntry.updatedAt || new Date().toISOString()
+        updatedAt: todayEntry.updatedAt || new Date().toISOString(),
+        paradigm: todayEntry.paradigm
       } : undefined,
       lastPingedAt: null
     };
 
-    // Barátok szétválogatása
-    // 1. Csoport: Akiknek van mai bejegyzése
     const activeFriends = friends.filter(f => f.todayCompleted);
     
-    // Rendezés: Előre azokat, akiket még NEM láttam, vagy frissültek
+    // Rendezés: Frissek előre
     activeFriends.sort((a, b) => {
       const aViewedAt = viewedStories[a.id];
       const bViewedAt = viewedStories[b.id];
@@ -94,10 +98,8 @@ export function Arena() {
       return 0;
     });
 
-    // 2. Csoport: Akiknek nincs mai bejegyzése (Alvó)
     const sleepingFriends = friends.filter(f => !f.todayCompleted);
 
-    // Saját magam mindig legelöl
     return [me, ...activeFriends, ...sleepingFriends];
   }, [user, friends, todayEntry, viewedStories]);
 
@@ -107,71 +109,93 @@ export function Arena() {
     }
   };
 
-  // Sztori megnyitása és "Látott"-nak jelölése
+  // Sztori megnyitása - SNAPSHOT KÉSZÍTÉS
   const handleOpenStory = (index: number) => {
-    const story = stories[index];
+    // 1. Lefotózzuk a jelenlegi listát
+    const currentQueue = [...stories];
+    setStoryQueue(currentQueue);
     
-    // Csak akkor nyitjuk meg, ha van tartalma (vagy ha én vagyok)
+    // 2. Ellenőrizzük, hogy érvényes-e a megnyitás
+    const story = currentQueue[index];
     if (!story.todayCompleted && story.id !== user?.id) return;
 
     vibrate(5);
     setActiveStoryIndex(index);
 
-    // Mentés a localStorage-ba
+    // 3. Mentés (ez kiváltja majd a háttérben a stories újrarendezését, de a storyQueue fix marad)
     const newViewed = { ...viewedStories, [story.id]: new Date().toISOString() };
     setViewedStories(newViewed);
     localStorage.setItem('ignite_viewed_stories', JSON.stringify(newViewed));
   };
 
-  // Navigáció a kártyák között
+  // Belső navigáció - A SNAPSHOT LISTÁN HALADUNK
+  const handleInternalNavigation = (newIndex: number) => {
+    const story = storyQueue[newIndex];
+    if (story) {
+      setActiveStoryIndex(newIndex);
+      
+      // Itt is mentjük a megtekintést
+      const newViewed = { ...viewedStories, [story.id]: new Date().toISOString() };
+      setViewedStories(newViewed);
+      localStorage.setItem('ignite_viewed_stories', JSON.stringify(newViewed));
+    } else {
+      handleCloseStory();
+    }
+  };
+
   const handleNextStory = () => {
     if (activeStoryIndex === null) return;
     
-    // Keresünk a következő olyat, akinek van tartalma
+    // Keressük a következőt a FIX listában
     let nextIndex = activeStoryIndex + 1;
-    while (nextIndex < stories.length && !stories[nextIndex].todayCompleted) {
-      nextIndex++; // Átugorjuk az üreseket
+    // Átugorjuk az üreseket
+    while (nextIndex < storyQueue.length && !storyQueue[nextIndex].todayCompleted) {
+      nextIndex++;
     }
 
-    if (nextIndex < stories.length) {
-      handleOpenStory(nextIndex); // Ez elvégzi a mentést is
+    if (nextIndex < storyQueue.length) {
+      handleInternalNavigation(nextIndex);
     } else {
-      setActiveStoryIndex(null); // Kilépés
+      handleCloseStory();
     }
   };
 
   const handlePrevStory = () => {
     if (activeStoryIndex === null) return;
 
-    // Keresünk előzőt, akinek van tartalma
     let prevIndex = activeStoryIndex - 1;
-    while (prevIndex >= 0 && !stories[prevIndex].todayCompleted && stories[prevIndex].id !== user?.id) {
+    while (prevIndex >= 0 && !storyQueue[prevIndex].todayCompleted && storyQueue[prevIndex].id !== user?.id) {
       prevIndex--;
     }
 
     if (prevIndex >= 0) {
-      handleOpenStory(prevIndex);
+      handleInternalNavigation(prevIndex);
     } else {
-      setActiveStoryIndex(null); // Kilépés
+      handleCloseStory();
     }
+  };
+
+  const handleCloseStory = () => {
+    setActiveStoryIndex(null);
+    setStoryQueue([]); // Töröljük a snapshotot
   };
 
   const handleVSMode = () => {
     if (activeStoryIndex === null) return;
-    const friend = stories[activeStoryIndex];
+    const friend = storyQueue[activeStoryIndex];
     if (friend.id === user?.id) {
-        navigate('/profile'); // Saját magamnál a profilra visz
+        navigate('/profile'); 
     } else {
-        navigate(`/friend/${friend.id}`); // Barátnál a profiljára (ahol a VS nézet van)
+        navigate(`/friend/${friend.id}`); 
     }
-    setActiveStoryIndex(null);
+    handleCloseStory();
   };
 
   const handleReaction = async (emoji: string) => {
     if (activeStoryIndex === null) return;
-    const friend = stories[activeStoryIndex];
+    const friend = storyQueue[activeStoryIndex];
     
-    if (friend.id === user?.id) return; // Magamnak nem küldök
+    if (friend.id === user?.id) return; 
 
     vibrate([50, 30]);
     showToast(`${emoji} elküldve!`, 'success');
@@ -201,7 +225,6 @@ export function Arena() {
     }
   };
 
-  // Az első három helyezett kiválasztása
   const top3 = leaderboard.slice(0, 3);
   const podiumOrder = [top3[1], top3[0], top3[2]].filter(Boolean);
   const restOfLeaderboard = leaderboard.slice(3);
@@ -219,22 +242,20 @@ export function Arena() {
         </button>
       </header>
 
-      {/* --- STORY SÁV --- */}
       <div className={styles.storyRailWrapper}>
         <div className={styles.storyRail}>
           {stories.map((story, index) => {
             const isMe = story.id === user?.id;
             const lastViewed = viewedStories[story.id];
-            // Friss, ha van adat ÉS (még nem láttuk VAGY frissebb az adat mint a látogatás)
             const isNew = story.todayCompleted && (!lastViewed || (story.todayEntry?.updatedAt || '') > lastViewed);
             
-            let ringStyle = styles.ringInactive; // Alap: nincs adat (szürke/halvány)
+            let ringStyle = styles.ringInactive;
 
             if (story.todayCompleted || isMe) {
                 if (isMe) {
                     ringStyle = isNew ? styles.ringMeActive : styles.ringMeInactive;
                 } else {
-                    ringStyle = isNew ? styles.ringActive : styles.ringViewed; // ringActive = Gradiens, ringViewed = Vékony szürke
+                    ringStyle = isNew ? styles.ringActive : styles.ringViewed;
                 }
             }
 
@@ -261,11 +282,11 @@ export function Arena() {
         </div>
       </div>
 
-      {/* --- HERO CARD OVERLAY --- */}
-      {activeStoryIndex !== null && (
+      {/* Hero Card a SNAPSHOT LISTÁBÓL dolgozik */}
+      {activeStoryIndex !== null && storyQueue.length > 0 && (
         <HeroCard
-          friend={stories[activeStoryIndex] as Friend}
-          onClose={() => setActiveStoryIndex(null)}
+          friend={storyQueue[activeStoryIndex] as Friend}
+          onClose={handleCloseStory}
           onNext={handleNextStory}
           onPrev={handlePrevStory}
           onVS={handleVSMode}
@@ -273,7 +294,6 @@ export function Arena() {
         />
       )}
 
-      {/* --- LEADERBOARD --- */}
       <div className={styles.leaderboardSection}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Ranglista</h2>
