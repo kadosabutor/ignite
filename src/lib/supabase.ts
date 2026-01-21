@@ -545,7 +545,7 @@ export async function getAllFriends(userId: string): Promise<Friend[]> {
 
     const { data: todayEntry } = await supabase
       .from('entries')
-      .select('score, business_minutes, sleep_minutes, exercise, clean_eating, satisfaction, dopamine_content, gaming')
+      .select('score, business_minutes, sleep_minutes, exercise, clean_eating, satisfaction, dopamine_content, gaming, paradigm, updated_at')
       .eq('user_id', friend.id)
       .eq('date', getTodayString())
       .single();
@@ -589,6 +589,8 @@ export async function getAllFriends(userId: string): Promise<Friend[]> {
         satisfaction: todayEntry.satisfaction,
         dopamineContent: (todayEntry as any).dopamine_content,
         gaming: todayEntry.gaming,
+        paradigm: (todayEntry.paradigm ?? 0) >= 1,
+        updatedAt: todayEntry.updated_at,
       } : undefined,
     });
   }
