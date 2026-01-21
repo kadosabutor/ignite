@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
 import { Card, Button } from '../components/ui';
@@ -8,8 +8,15 @@ import styles from './History.module.css';
 
 export function History() {
   const navigate = useNavigate();
-  const { entries, deleteEntry } = useHabits();
+  const { entries, deleteEntry, fetchAllEntries, hasFullHistory } = useHabits();
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+
+  // Töltsük be a teljes előzményt az History oldalon is
+  useEffect(() => {
+    if (!hasFullHistory) {
+      fetchAllEntries();
+    }
+  }, [hasFullHistory, fetchAllEntries]);
 
   const colorMap = {
     success: 'var(--color-success)',
