@@ -5,6 +5,7 @@ import { Button, Card } from '../components/ui';
 import { ProfileCard } from '../components/ProfileCard';
 import { RadarChart } from '../components/RadarChart';
 import { calculateRadarStats } from '../lib/scoring';
+import { generateInsight, type InsightResult } from '../lib/insight-engine'; // ÚJ IMPORT
 import type { HabitEntry } from '../types';
 import * as supabase from '../lib/supabase';
 import styles from './FriendProfile.module.css';
@@ -26,6 +27,7 @@ export function FriendProfile() {
   const [viewMode, setViewMode] = useState<'details' | 'vs'>('details');
   const [friendEntries, setFriendEntries] = useState<HabitEntry[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [insight, setInsight] = useState<InsightResult | null>(null); // ÚJ STATE
   
   // Find friend
   const friend = friends.find(f => f.id === friendId);
@@ -36,8 +38,16 @@ export function FriendProfile() {
       const loadData = async () => {
         setIsLoading(true);
         try {
-          const entries = await supabase.getFriendEntries(friendId, 30);
-          setFriendEntries(entries);
+          // JAVÍTÁS: 90 nap lekérése a pontosabb "Trend" elemzéshez
+          const entries = await supabase.getFriendEntries(friendId, 90);
+          
+          // JAVÍTÁS: Biztosítjuk, hogy csökkenő sorrendben legyenek (legújabbtól visszafelé)
+          // hogy passzoljon a myEntries sorrendjéhez
+          const sortedEntries = entries.sort((a: HabitEntry, b: HabitEntry) => 
+            b.date.localeCompare(a.date)
+          );
+          
+          setFriendEntries(sortedEntries);
         } catch (err) {
           console.error(err);
         } finally {
@@ -47,10 +57,25 @@ export function FriendProfile() {
       loadData();
     }
   }, [viewMode, friendId, friendEntries.length]);
+
+  // Insight generálás, ha megjöttek az adatok
+  useEffect(() => {
+    if (friendEntries.length > 0 && myEntries.length > 0 && friend) {
+      // Csak a közös metszetet nézzük (pl. ha nekem csak 30 napom van, neki meg 90, akkor csak az utolsó 30-at hasonlítjuk)
+      const commonLength = Math.min(myEntries.length, friendEntries.length);
+      
+      const result = generateInsight({
+        userEntries: myEntries.slice(0, commonLength),
+        friendEntries: friendEntries.slice(0, commonLength),
+        friendName: friend.displayName
+      });
+      setInsight(result);
+    }
+  }, [friendEntries, myEntries, friend]);
   
-  // Calculate stats
+  // Calculate stats (Radarhoz csak az utolsó 30 napot nézzük, hogy a "jelenlegi formát" mutassa)
   const myRadarStats = useMemo(() => calculateRadarStats(myEntries.slice(0, 30)), [myEntries]);
-  const friendRadarStats = useMemo(() => calculateRadarStats(friendEntries), [friendEntries]);
+  const friendRadarStats = useMemo(() => calculateRadarStats(friendEntries.slice(0, 30)), [friendEntries]);
   
   if (!friend) {
     return (
@@ -174,6 +199,48 @@ export function FriendProfile() {
                     <span>{friend.displayName}</span>
                   </div>
                 </div>
+
+                {/* ÚJ: INSIGHT KÁRTYA */}
+                {insight && (
+                  <Card 
+                    className={styles.bioCard} 
+                    style={{ 
+                      border: insight.mood === 'roast' ? '1px solid var(--color-error)' : '1px solid var(--color-success)',
+                      background: insight.mood === 'roast' ? 'rgba(248, 113, 113, 0.05)' : 'rgba(74, 222, 128, 0.05)'
+                    }}
+                  >
+                    <h3 style={{ 
+                      color: insight.mood === 'roast' ? 'var(--color-error)' : 'var(--color-success)', 
+                      fontSize: '16px',
+                      marginBottom: '8px'
+                    }}>
+                      {insight.title}
+                    </h3>
+                    <p style={{ marginBottom: '16px', fontSize: '14px', lineHeight: '1.5' }}>
+                      {insight.factualText}
+                    </p>
+                    <div style={{ 
+                      backgroundColor: 'rgba(0,0,0,0.2)', 
+                      padding: '12px', 
+                      borderRadius: '8px',
+                      borderLeft: `3px solid ${insight.mood === 'roast' ? 'var(--color-error)' : 'var(--color-success)'}`
+                    }}>
+                      <strong style={{ 
+                        display: 'block', 
+                        fontSize: '11px', 
+                        color: 'var(--color-muted)', 
+                        marginBottom: '4px', 
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em'
+                      }}>
+                        TL;DR
+                      </strong>
+                      <span style={{ fontStyle: 'italic', fontWeight: '600', fontSize: '13px' }}>
+                        "{insight.tldrText}"
+                      </span>
+                    </div>
+                  </Card>
+                )}
 
                 <Card className={styles.explanationCard}>
                   <h3 className={styles.cardTitle}>Kategóriák</h3>
