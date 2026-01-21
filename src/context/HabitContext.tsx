@@ -10,7 +10,6 @@ interface HabitContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   authUser: any | null;
-  // JAVÍTVA: avatar típusa most már string
   signUp: (email: string, password: string, username: string, displayName: string, avatar: string) => Promise<void>;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
@@ -22,6 +21,8 @@ interface HabitContextType {
   deleteEntry: (date: string) => Promise<void>;
   getEntryByDate: (date: string) => HabitEntry | undefined;
   refreshEntries: () => Promise<void>;
+  fetchAllEntries: () => Promise<void>; // ÚJ: Teljes előzmény letöltése
+  hasFullHistory: boolean; // ÚJ: Jelzi, hogy megvan-e minden adat
   
   // User
   user: UserProfile | null;
@@ -57,6 +58,7 @@ export function HabitProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<UserProfile | null>(null);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [pendingRequests, setPendingRequests] = useState<{ incoming: Friend[]; outgoing: Friend[] }>({ incoming: [], outgoing: [] });
+  const [hasFullHistory, setHasFullHistory] = useState(false);
   
   const { showToast } = useToast();
   
@@ -91,6 +93,7 @@ export function HabitProvider({ children }: { children: ReactNode }) {
         setUser(null);
         setFriends([]);
         setPendingRequests({ incoming: [], outgoing: [] });
+        setHasFullHistory(false);
       }
     });
     
@@ -108,9 +111,10 @@ export function HabitProvider({ children }: { children: ReactNode }) {
         friendshipSubscriptionRef.current = null;
       }
       
+      // JAVÍTÁS: Csak az utolsó 30 napot kérjük le induláskor
       const [loadedProfile, loadedEntries, loadedFriends, loadedPendingRequests] = await Promise.all([
         supabase.getUserProfile(userId),
-        supabase.getAllEntries(userId),
+        supabase.getRecentEntries(userId, 30),
         supabase.getAllFriends(userId),
         supabase.getPendingFriendRequests(userId),
       ]);
@@ -147,6 +151,7 @@ export function HabitProvider({ children }: { children: ReactNode }) {
       setEntries(loadedEntries);
       setFriends(loadedFriends);
       setPendingRequests(loadedPendingRequests);
+      setHasFullHistory(false); // Még csak a frissek vannak meg
 
       supabase.subscribeToEntries(userId, (payload) => {
         if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
@@ -199,7 +204,6 @@ export function HabitProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  // JAVÍTVA: avatar paraméter típusa string
   const signUp = useCallback(async (email: string, password: string, username: string, displayName: string, avatar: string) => {
     await supabase.signUp(email, password, username, displayName, avatar);
   }, []);
@@ -215,17 +219,34 @@ export function HabitProvider({ children }: { children: ReactNode }) {
     setEntries([]);
     setUser(null);
     setFriends([]);
+    setHasFullHistory(false);
   }, []);
 
   const refreshEntries = useCallback(async () => {
     if (!authUser) return;
     
-    const loadedEntries = await supabase.getAllEntries(authUser.id);
+    // Ha már lekértük a teljeset, akkor frissítsük az egészet, ha nem, akkor csak a frisseket
+    const loadedEntries = hasFullHistory 
+      ? await supabase.getAllEntries(authUser.id)
+      : await supabase.getRecentEntries(authUser.id, 30);
+      
     setEntries(loadedEntries);
     
     const loadedProfile = await supabase.getUserProfile(authUser.id);
     setUser(loadedProfile);
-  }, [authUser]);
+  }, [authUser, hasFullHistory]);
+
+  const fetchAllEntries = useCallback(async () => {
+    if (!authUser || hasFullHistory) return;
+    
+    try {
+      const allEntries = await supabase.getAllEntries(authUser.id);
+      setEntries(allEntries);
+      setHasFullHistory(true);
+    } catch (error) {
+      console.error('Failed to fetch full history:', error);
+    }
+  }, [authUser, hasFullHistory]);
 
   const saveEntry = useCallback(async (entry: HabitEntry) => {
     if (!authUser) return;
@@ -364,6 +385,8 @@ export function HabitProvider({ children }: { children: ReactNode }) {
         deleteEntry,
         getEntryByDate,
         refreshEntries,
+        fetchAllEntries,
+        hasFullHistory,
         user,
         streak,
         saveUser,
