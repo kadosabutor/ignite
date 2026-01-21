@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom'; // <--- IMPORT
 import type { Friend } from '../types';
 import { getAvatarSrc, RANKS } from '../types';
 import { getScoreLabel } from '../lib/scoring';
@@ -37,9 +38,9 @@ export function HeroCard({ friend, onClose, onNext, onPrev, onVS, onReaction }: 
         
         setProgress(newProgress);
 
-        // 4 másodperc után az animációk "statikusabbá" válnak (opcionális logika, ha kellene)
+        // 4 másodperc után az animációk "statikusabbá" válnak (opcionális logika)
         if (elapsed > ANIMATION_DURATION) {
-           // Itt lehetne kikapcsolni specifikus animációkat, de a CSS kezeli a legtöbbet
+           // Itt lehetne kikapcsolni specifikus animációkat
         }
 
         if (newProgress >= 100) {
@@ -48,7 +49,7 @@ export function HeroCard({ friend, onClose, onNext, onPrev, onVS, onReaction }: 
           animationFrameRef.current = requestAnimationFrame(tick);
         }
       } else {
-        // Ha szünetel, akkor is fenntartjuk a loopot, de nem növeljük a progress-t
+        // Ha szünetel, akkor is fenntartjuk a loopot
         animationFrameRef.current = requestAnimationFrame(tick);
       }
     };
@@ -64,7 +65,6 @@ export function HeroCard({ friend, onClose, onNext, onPrev, onVS, onReaction }: 
     startTimeRef.current = Date.now();
     pausedTimeRef.current = 0;
     setShowAnimations(false);
-    // Kicsi késleltetés, hogy az animációk újrainduljanak (React key change is megoldja, de ez biztosabb)
     requestAnimationFrame(() => setShowAnimations(true));
   }, [friend.id]);
 
@@ -82,9 +82,6 @@ export function HeroCard({ friend, onClose, onNext, onPrev, onVS, onReaction }: 
 
   // Navigációs zónák
   const handleZoneClick = (direction: 'prev' | 'next') => {
-    // Csak akkor navigálunk, ha nem "tartás" történt, hanem gyors kattintás
-    // Ezt a pointer események sorrendje miatt itt egyszerűsíthetjük:
-    // Ha ide eljutunk, az onClick esemény, ami a mouseUp után fut le.
     if (direction === 'prev') onPrev();
     else onNext();
   };
@@ -103,22 +100,23 @@ export function HeroCard({ friend, onClose, onNext, onPrev, onVS, onReaction }: 
 
   // Grid elemek állapota
   const gridItems = [
-    { id: 'work', icon: '💼', label: 'Business', active: (entry?.businessMinutes || 0) > 240 }, // 4 óra+
-    { id: 'sleep', icon: '🌙', label: 'Alvás', active: (entry?.sleepMinutes || 0) > 420 }, // 7 óra+
+    { id: 'work', icon: '💼', label: 'Business', active: (entry?.businessMinutes || 0) > 240 },
+    { id: 'sleep', icon: '🌙', label: 'Alvás', active: (entry?.sleepMinutes || 0) > 420 },
     { id: 'health', icon: '💪', label: 'Egészség', active: entry?.exercise || entry?.cleanEating },
     { id: 'mind', icon: '🧠', label: 'Elme', active: entry?.paradigm },
   ];
 
-  if (!showAnimations) return null; // Villogás elkerülése váltáskor
+  if (!showAnimations) return null;
 
-  return (
+  // PORTAL HASZNÁLATA: Ez teszi a kártyát mindennek a tetejére (a Tab Bar fölé is)
+  return createPortal(
     <div 
       className={styles.overlay}
       onTouchStart={handlePressStart}
       onTouchEnd={handlePressEnd}
       onMouseDown={handlePressStart}
       onMouseUp={handlePressEnd}
-      onContextMenu={(e) => e.preventDefault()} // Jobb klikk tiltása
+      onContextMenu={(e) => e.preventDefault()}
     >
       {/* 1. Háttér */}
       <div 
@@ -218,6 +216,7 @@ export function HeroCard({ friend, onClose, onNext, onPrev, onVS, onReaction }: 
           </div>
         </div>
       </div>
-    </div>
+    </div>,
+    document.body // Ide rendereljük közvetlenül a body végére
   );
 }
