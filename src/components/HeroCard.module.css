@@ -265,13 +265,13 @@
 }
 
 /* Tap Zones (Láthatatlan gombok navigációhoz) */
+/* JAVÍTÁS: Csak 20-20% szélesség, hogy középen nagy hely maradjon a HOLD-nak */
 .tapZoneLeft, .tapZoneRight {
   position: absolute;
   top: 70px; /* Header alatt */
   bottom: 120px; /* Footer felett */
-  width: 30%;
-  z-index: 20; /* Content felett, de Footer alatt */
-  /* Debugoláshoz bekapcsolhatod: background: rgba(255,0,0,0.1); */
+  width: 20%; /* 30% helyett 20% */
+  z-index: 20; 
 }
 
 .tapZoneLeft { left: 0; }
