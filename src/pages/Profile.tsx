@@ -6,6 +6,7 @@ import { StreakIcon } from '../components/StreakIcon';
 import { RadarChart } from '../components/RadarChart';
 import { RANKS, AVATARS, getAvatarSrc, type AvatarType } from '../types';
 import { calculateRadarStats } from '../lib/scoring';
+import { generateInsight, type InsightResult } from '../lib/insight-engine'; // ÚJ IMPORT
 import * as supabase from '../lib/supabase';
 import { useToast } from '../context/ToastContext';
 import { ImageCropper } from '../components/ImageCropper';
@@ -31,7 +32,6 @@ export function Profile() {
   const [bio, setBio] = useState(user?.bio || '');
   const [showSettings, setShowSettings] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
-  
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
   
   const [notifications, setNotifications] = useState({
@@ -45,10 +45,32 @@ export function Profile() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Stats calculation
   const radarStats = useMemo(() => {
     const last30Days = entries.slice(0, 30);
     return calculateRadarStats(last30Days);
   }, [entries]);
+
+  // ÚJ: Insight generálás (Jelen vs Múlt)
+  const selfInsight = useMemo(() => {
+    if (entries.length < 14) return null; // Kell legalább 2 hét adat
+    
+    // Az elmúlt 14 nap
+    const currentEntries = entries.slice(0, 14);
+    // Az azt megelőző 14 nap
+    const pastEntries = entries.slice(14, 28);
+    
+    if (pastEntries.length < 7) return null; // Ha nincs elég múltbeli adat
+
+    return generateInsight({
+      userEntries: currentEntries,
+      friendEntries: pastEntries,
+      friendName: 'A Múltbéli Éned'
+    });
+  }, [entries]);
+
+  // ... (A fájl többi része: useEffect-ek, handleSave, stb. - változatlan) ...
+  // Csak a renderelést módosítjuk lentebb!
 
   useEffect(() => {
     if (authUser) {
@@ -94,7 +116,6 @@ export function Profile() {
       setCropImageSrc(reader.result?.toString() || null);
     });
     reader.readAsDataURL(file);
-    
     e.target.value = '';
   };
 
@@ -133,6 +154,7 @@ export function Profile() {
   if (!user) return <div className={styles.loading}>Betöltés...</div>;
 
   if (isEditing) {
+    // ... (Szerkesztő nézet változatlan) ...
     return (
       <div className={styles.container}>
         <header className={styles.header}>
@@ -140,7 +162,6 @@ export function Profile() {
           <button className={styles.cancelButton} onClick={() => setIsEditing(false)}>Mégse</button>
         </header>
 
-        {/* CROPPER MODAL */}
         {cropImageSrc && (
           <ImageCropper
             imageSrc={cropImageSrc}
@@ -226,6 +247,7 @@ export function Profile() {
       </header>
 
       {showSettings ? (
+        // ... (Beállítások nézet változatlan) ...
         <div className={styles.settingsSection}>
           <Card className={styles.settingsCard}>
             <h3 className={styles.sectionTitle}>Értesítések</h3>
@@ -255,6 +277,7 @@ export function Profile() {
 
           {viewMode === 'overview' ? (
             <>
+              {/* ... (Overview nézet változatlan) ... */}
               <Card className={styles.profileCard}>
                 <div className={styles.profileHeader}>
                   <img
@@ -285,19 +308,12 @@ export function Profile() {
                 </div>
               </Card>
 
-              {/* GOMBOK CSOPORTJA - Új Előzmények gombbal */}
               <div className={styles.friendsButtonWrapper} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                
-                {/* 1. Barátok kezelése */}
                 <div style={{ position: 'relative' }}>
                   <Button variant="secondary" fullWidth onClick={() => navigate('/friends')}>👥 Barátok kezelése</Button>
                   {pendingRequests.incoming.length > 0 && <span className={styles.notificationDot}>{pendingRequests.incoming.length}</span>}
                 </div>
-
-                {/* 2. ÚJ: Előzmények (History) */}
                 <Button variant="secondary" fullWidth onClick={() => navigate('/history')}>📅 Előzmények megtekintése</Button>
-
-                {/* 3. Kijelentkezés */}
                 <Button variant="danger" fullWidth onClick={handleSignOut}>Kijelentkezés</Button>
               </div>
             </>
@@ -307,6 +323,21 @@ export function Profile() {
                 <h3 className={styles.radarTitle}>Képességek</h3>
                 <RadarChart stats={radarStats} primaryLabel="Te" />
               </Card>
+
+              {/* ÚJ: SELF INSIGHT (Jelen vs Múlt) */}
+              {selfInsight && (
+                <Card className={styles.explanationCard} style={{ border: '1px solid var(--color-primary)' }}>
+                  <h3 style={{ color: 'var(--color-primary)', fontSize: '16px', marginBottom: '8px' }}>
+                    Jelen vs Múlt (14 nap)
+                  </h3>
+                  <p style={{ marginBottom: '12px', fontSize: '14px', lineHeight: '1.5' }}>{selfInsight.factualText}</p>
+                  <div style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '10px', borderRadius: '8px' }}>
+                    <strong style={{ display: 'block', fontSize: '11px', color: 'var(--color-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>TL;DR</strong>
+                    <span style={{ fontStyle: 'italic', fontWeight: '600' }}>{selfInsight.tldrText}</span>
+                  </div>
+                </Card>
+              )}
+
               <Card className={styles.explanationCard}>
                 <h3 className={styles.explanationTitle}>Magyarázatok</h3>
                 <div className={styles.explanationList}>
