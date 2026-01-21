@@ -22,7 +22,7 @@ export function Arena() {
   const [activeStoryIndex, setActiveStoryIndex] = useState<number | null>(null);
   const [viewedStories, setViewedStories] = useState<Record<string, string>>({}); // ID -> Timestamp
   
-  // ÚJ: Snapshot a sztorik sorrendjéről a megnyitás pillanatában
+  // Snapshot a sztorik sorrendjéről a megnyitás pillanatában
   const [storyQueue, setStoryQueue] = useState<any[]>([]);
   
   const [isLoading, setIsLoading] = useState(false);
@@ -52,7 +52,6 @@ export function Arena() {
   }, [period, getLeaderboard]);
 
   // 3. Sztorik (Barátok) listájának összeállítása és rendezése
-  // Ez az ÉLŐ lista a rail-hez
   const stories = useMemo(() => {
     if (!user) return [];
 
@@ -109,32 +108,28 @@ export function Arena() {
     }
   };
 
-  // Sztori megnyitása - SNAPSHOT KÉSZÍTÉS
+  // Sztori megnyitása
   const handleOpenStory = (index: number) => {
-    // 1. Lefotózzuk a jelenlegi listát
     const currentQueue = [...stories];
     setStoryQueue(currentQueue);
     
-    // 2. Ellenőrizzük, hogy érvényes-e a megnyitás
     const story = currentQueue[index];
     if (!story.todayCompleted && story.id !== user?.id) return;
 
     vibrate(5);
     setActiveStoryIndex(index);
 
-    // 3. Mentés (ez kiváltja majd a háttérben a stories újrarendezését, de a storyQueue fix marad)
     const newViewed = { ...viewedStories, [story.id]: new Date().toISOString() };
     setViewedStories(newViewed);
     localStorage.setItem('ignite_viewed_stories', JSON.stringify(newViewed));
   };
 
-  // Belső navigáció - A SNAPSHOT LISTÁN HALADUNK
+  // Belső navigáció
   const handleInternalNavigation = (newIndex: number) => {
     const story = storyQueue[newIndex];
     if (story) {
       setActiveStoryIndex(newIndex);
       
-      // Itt is mentjük a megtekintést
       const newViewed = { ...viewedStories, [story.id]: new Date().toISOString() };
       setViewedStories(newViewed);
       localStorage.setItem('ignite_viewed_stories', JSON.stringify(newViewed));
@@ -146,9 +141,7 @@ export function Arena() {
   const handleNextStory = () => {
     if (activeStoryIndex === null) return;
     
-    // Keressük a következőt a FIX listában
     let nextIndex = activeStoryIndex + 1;
-    // Átugorjuk az üreseket
     while (nextIndex < storyQueue.length && !storyQueue[nextIndex].todayCompleted) {
       nextIndex++;
     }
@@ -177,16 +170,19 @@ export function Arena() {
 
   const handleCloseStory = () => {
     setActiveStoryIndex(null);
-    setStoryQueue([]); // Töröljük a snapshotot
+    setStoryQueue([]);
   };
 
+  // JAVÍTVA: Átadjuk a state-et a navigációnál
   const handleVSMode = () => {
     if (activeStoryIndex === null) return;
     const friend = storyQueue[activeStoryIndex];
     if (friend.id === user?.id) {
-        navigate('/profile'); 
+        // Saját magunknál az analízis fülre ugrunk (ami a profil oldalon a "vs" megfelelője)
+        navigate('/profile', { state: { mode: 'analysis' } }); 
     } else {
-        navigate(`/friend/${friend.id}`); 
+        // Barátnál a VS módra ugrunk
+        navigate(`/friend/${friend.id}`, { state: { mode: 'vs' } }); 
     }
     handleCloseStory();
   };
@@ -282,7 +278,6 @@ export function Arena() {
         </div>
       </div>
 
-      {/* Hero Card a SNAPSHOT LISTÁBÓL dolgozik */}
       {activeStoryIndex !== null && storyQueue.length > 0 && (
         <HeroCard
           friend={storyQueue[activeStoryIndex] as Friend}
