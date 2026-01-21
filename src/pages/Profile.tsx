@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom'; // useLocation hozzáadva
 import { useHabits } from '../context/HabitContext';
 import { Button, Card, Input, Switch } from '../components/ui';
 import { StreakIcon } from '../components/StreakIcon';
 import { RadarChart } from '../components/RadarChart';
 import { RANKS, AVATARS, getAvatarSrc, type AvatarType } from '../types';
 import { calculateRadarStats } from '../lib/scoring';
-import { generateInsight } from '../lib/insight-engine'; // JAVÍTÁS: Típus import eltávolítva
+import { generateInsight } from '../lib/insight-engine';
 import * as supabase from '../lib/supabase';
 import { useToast } from '../context/ToastContext';
 import { ImageCropper } from '../components/ImageCropper';
@@ -22,6 +22,7 @@ const CATEGORY_EXPLANATIONS = {
 
 export function Profile() {
   const navigate = useNavigate();
+  const location = useLocation(); // Location hook
   const { user, streak, saveUser, monthlyAverage, signOut, authUser, pendingRequests, entries } = useHabits();
   const { showToast } = useToast();
   
@@ -45,6 +46,13 @@ export function Profile() {
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Navigációs state kezelése
+  useEffect(() => {
+    if (location.state && (location.state as any).mode === 'analysis') {
+      setViewMode('analysis');
+    }
+  }, [location.state]);
 
   const radarStats = useMemo(() => {
     const last30Days = entries.slice(0, 30);
@@ -315,24 +323,37 @@ export function Profile() {
             </>
           ) : (
             <>
+              {/* ÚJ: SELF INSIGHT (FELKERÜLT ÉS MÓDOSÍTOTT DESIGN) */}
+              {selfInsight && (
+                <Card 
+                  className={styles.explanationCard} 
+                  style={{ 
+                    border: selfInsight.mood === 'roast' ? '1px solid var(--color-error)' : '1px solid var(--color-success)',
+                    background: selfInsight.mood === 'roast' ? 'rgba(248, 113, 113, 0.05)' : 'rgba(74, 222, 128, 0.05)'
+                  }}
+                >
+                  <h3 style={{ 
+                    color: selfInsight.mood === 'roast' ? 'var(--color-error)' : 'var(--color-success)', 
+                    fontSize: '16px', 
+                    marginBottom: '12px' 
+                  }}>
+                    ELEMZÉS
+                  </h3>
+                  <p style={{ 
+                    marginBottom: '0', 
+                    fontSize: '16px', 
+                    lineHeight: '1.6', 
+                    fontWeight: '500' 
+                  }}>
+                    {selfInsight.factualText}
+                  </p>
+                </Card>
+              )}
+
               <Card className={styles.radarCard}>
                 <h3 className={styles.radarTitle}>Képességek</h3>
                 <RadarChart stats={radarStats} primaryLabel="Te" />
               </Card>
-
-              {/* ÚJ: SELF INSIGHT (Jelen vs Múlt) */}
-              {selfInsight && (
-                <Card className={styles.explanationCard} style={{ border: '1px solid var(--color-primary)' }}>
-                  <h3 style={{ color: 'var(--color-primary)', fontSize: '16px', marginBottom: '8px' }}>
-                    {selfInsight.title} {/* JAVÍTÁS: Dinamikus cím használata */}
-                  </h3>
-                  <p style={{ marginBottom: '12px', fontSize: '14px', lineHeight: '1.5' }}>{selfInsight.factualText}</p>
-                  <div style={{ backgroundColor: 'rgba(255,255,255,0.05)', padding: '10px', borderRadius: '8px' }}>
-                    <strong style={{ display: 'block', fontSize: '11px', color: 'var(--color-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>TL;DR</strong>
-                    <span style={{ fontStyle: 'italic', fontWeight: '600' }}>{selfInsight.tldrText}</span>
-                  </div>
-                </Card>
-              )}
 
               <Card className={styles.explanationCard}>
                 <h3 className={styles.explanationTitle}>Magyarázatok</h3>
