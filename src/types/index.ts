@@ -79,6 +79,9 @@ export interface Friend {
     satisfaction: boolean;
     dopamineContent: boolean;
     gaming: boolean;
+    // ÚJ MEZŐK:
+    paradigm: boolean;
+    updatedAt: string;
   };
 }
 
