@@ -2,8 +2,8 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
 import { useToast } from '../context/ToastContext';
-import { Button, Card } from '../components/ui';
-import { ProfileCard } from '../components/ProfileCard';
+import { Card } from '../components/ui'; // Button már nem kell külön, mert a HeroCard-ban van
+import { HeroCard } from '../components/HeroCard'; // ÚJ
 import { RANKS, type Friend, getAvatarSrc } from '../types';
 import { getRandomPingMessage, getRandomFireMessage } from '../lib/push';
 import styles from './Arena.module.css';
@@ -17,9 +17,20 @@ export function Arena() {
   
   const [period, setPeriod] = useState<LeaderboardPeriod>('today');
   const [leaderboard, setLeaderboard] = useState<any[]>([]);
-  const [selectedProfile, setSelectedProfile] = useState<Friend | null>(null);
+  // Hero Card állapota: index alapján tudjuk, kit mutatunk épp
+  const [activeStoryIndex, setActiveStoryIndex] = useState<number | null>(null);
+  const [viewedStories, setViewedStories] = useState<Record<string, string>>({}); // ID -> Timestamp
   const [isLoading, setIsLoading] = useState(false);
 
+  // 1. LocalStorage betöltése induláskor
+  useEffect(() => {
+    const stored = localStorage.getItem('ignite_viewed_stories');
+    if (stored) {
+      setViewedStories(JSON.parse(stored));
+    }
+  }, []);
+
+  // 2. Leaderboard betöltése
   useEffect(() => {
     const loadLeaderboard = async () => {
       setIsLoading(true);
@@ -35,9 +46,11 @@ export function Arena() {
     loadLeaderboard();
   }, [period, getLeaderboard]);
 
+  // 3. Sztorik (Barátok) listájának összeállítása és rendezése
   const stories = useMemo(() => {
     if (!user) return [];
 
+    // Saját magam
     const me = {
       id: user.id,
       username: user.username,
@@ -58,15 +71,35 @@ export function Arena() {
         satisfaction: todayEntry.satisfaction,
         dopamineContent: todayEntry.dopamineContent,
         gaming: todayEntry.gaming,
+        // Fontos: Kell az updatedAt a verziókövetéshez (ha nincs, használjuk a mostanit)
+        updatedAt: todayEntry.updatedAt || new Date().toISOString()
       } : undefined,
       lastPingedAt: null
     };
 
+    // Barátok szétválogatása
+    // 1. Csoport: Akiknek van mai bejegyzése
     const activeFriends = friends.filter(f => f.todayCompleted);
+    
+    // Rendezés: Előre azokat, akiket még NEM láttam, vagy frissültek
+    activeFriends.sort((a, b) => {
+      const aViewedAt = viewedStories[a.id];
+      const bViewedAt = viewedStories[b.id];
+      
+      const aIsNew = !aViewedAt || (a.todayEntry?.updatedAt || '') > aViewedAt;
+      const bIsNew = !bViewedAt || (b.todayEntry?.updatedAt || '') > bViewedAt;
+
+      if (aIsNew && !bIsNew) return -1;
+      if (!aIsNew && bIsNew) return 1;
+      return 0;
+    });
+
+    // 2. Csoport: Akiknek nincs mai bejegyzése (Alvó)
     const sleepingFriends = friends.filter(f => !f.todayCompleted);
 
+    // Saját magam mindig legelöl
     return [me, ...activeFriends, ...sleepingFriends];
-  }, [user, friends, todayEntry]);
+  }, [user, friends, todayEntry, viewedStories]);
 
   const vibrate = (pattern: number | number[] = 10) => {
     if (navigator.vibrate) {
@@ -74,51 +107,101 @@ export function Arena() {
     }
   };
 
-  const handlePing = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!selectedProfile) return;
+  // Sztori megnyitása és "Látott"-nak jelölése
+  const handleOpenStory = (index: number) => {
+    const story = stories[index];
     
-    vibrate([50]);
-    setSelectedProfile(null);
-    showToast('Ping elküldve! 🔔', 'info');
+    // Csak akkor nyitjuk meg, ha van tartalma (vagy ha én vagyok)
+    if (!story.todayCompleted && story.id !== user?.id) return;
 
-    try {
-      const { sendPushNotification } = await import('../lib/supabase');
-      await sendPushNotification(
-        selectedProfile.id,
-        getRandomPingMessage(),
-        `${user?.displayName || 'Valaki'} üzeni: ${getRandomFireMessage()} 🔔`,
-        'ping',
-        { senderId: user?.id }
-      );
-    } catch (error) {
-      console.error('Error sending ping:', error);
+    vibrate(5);
+    setActiveStoryIndex(index);
+
+    // Mentés a localStorage-ba
+    const newViewed = { ...viewedStories, [story.id]: new Date().toISOString() };
+    setViewedStories(newViewed);
+    localStorage.setItem('ignite_viewed_stories', JSON.stringify(newViewed));
+  };
+
+  // Navigáció a kártyák között
+  const handleNextStory = () => {
+    if (activeStoryIndex === null) return;
+    
+    // Keresünk a következő olyat, akinek van tartalma
+    let nextIndex = activeStoryIndex + 1;
+    while (nextIndex < stories.length && !stories[nextIndex].todayCompleted) {
+      nextIndex++; // Átugorjuk az üreseket
+    }
+
+    if (nextIndex < stories.length) {
+      handleOpenStory(nextIndex); // Ez elvégzi a mentést is
+    } else {
+      setActiveStoryIndex(null); // Kilépés
     }
   };
 
-  const handleFire = async (e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!selectedProfile) return;
+  const handlePrevStory = () => {
+    if (activeStoryIndex === null) return;
 
-    vibrate([50, 50, 50]);
-    setSelectedProfile(null);
-    showToast('🔥 Tűz elismerés elküldve!', 'success');
+    // Keresünk előzőt, akinek van tartalma
+    let prevIndex = activeStoryIndex - 1;
+    while (prevIndex >= 0 && !stories[prevIndex].todayCompleted && stories[prevIndex].id !== user?.id) {
+      prevIndex--;
+    }
+
+    if (prevIndex >= 0) {
+      handleOpenStory(prevIndex);
+    } else {
+      setActiveStoryIndex(null); // Kilépés
+    }
+  };
+
+  const handleVSMode = () => {
+    if (activeStoryIndex === null) return;
+    const friend = stories[activeStoryIndex];
+    if (friend.id === user?.id) {
+        navigate('/profile'); // Saját magamnál a profilra visz
+    } else {
+        navigate(`/friend/${friend.id}`); // Barátnál a profiljára (ahol a VS nézet van)
+    }
+    setActiveStoryIndex(null);
+  };
+
+  const handleReaction = async (emoji: string) => {
+    if (activeStoryIndex === null) return;
+    const friend = stories[activeStoryIndex];
+    
+    if (friend.id === user?.id) return; // Magamnak nem küldök
+
+    vibrate([50, 30]);
+    showToast(`${emoji} elküldve!`, 'success');
 
     try {
       const { sendPushNotification } = await import('../lib/supabase');
+      let title = 'Reakció érkezett!';
+      let body = `${user?.displayName || 'Valaki'} reagált a napodra: ${emoji}`;
+      
+      if (emoji === '🔥') {
+        title = 'Tűz elismerés! 🔥';
+        body = getRandomFireMessage();
+      } else if (emoji === '👋') {
+        title = 'Ping! 👋';
+        body = getRandomPingMessage();
+      }
+
       await sendPushNotification(
-        selectedProfile.id,
-        getRandomFireMessage(),
-        `${user?.displayName || 'Valaki'} gratulál a mai napodhoz! 🔥`,
+        friend.id,
+        title,
+        body,
         'fire',
         { senderId: user?.id }
       );
     } catch (error) {
-      console.error('Error sending fire:', error);
+      console.error('Error sending reaction:', error);
     }
   };
 
-  // Az első három helyezett kiválasztása és sorrendezése: 2. (bal), 1. (közép), 3. (jobb)
+  // Az első három helyezett kiválasztása
   const top3 = leaderboard.slice(0, 3);
   const podiumOrder = [top3[1], top3[0], top3[2]].filter(Boolean);
   const restOfLeaderboard = leaderboard.slice(3);
@@ -136,26 +219,30 @@ export function Arena() {
         </button>
       </header>
 
+      {/* --- STORY SÁV --- */}
       <div className={styles.storyRailWrapper}>
         <div className={styles.storyRail}>
-          {stories.map((story) => {
+          {stories.map((story, index) => {
             const isMe = story.id === user?.id;
-            let ringStyle = styles.ringInactive;
+            const lastViewed = viewedStories[story.id];
+            // Friss, ha van adat ÉS (még nem láttuk VAGY frissebb az adat mint a látogatás)
+            const isNew = story.todayCompleted && (!lastViewed || (story.todayEntry?.updatedAt || '') > lastViewed);
             
-            if (isMe) {
-              ringStyle = story.todayCompleted ? styles.ringMeActive : styles.ringMeInactive;
-            } else {
-              ringStyle = story.todayCompleted ? styles.ringActive : styles.ringInactive;
+            let ringStyle = styles.ringInactive; // Alap: nincs adat (szürke/halvány)
+
+            if (story.todayCompleted || isMe) {
+                if (isMe) {
+                    ringStyle = isNew ? styles.ringMeActive : styles.ringMeInactive;
+                } else {
+                    ringStyle = isNew ? styles.ringActive : styles.ringViewed; // ringActive = Gradiens, ringViewed = Vékony szürke
+                }
             }
 
             return (
               <div 
                 key={story.id} 
                 className={styles.storyItem}
-                onClick={() => {
-                  vibrate(5);
-                  setSelectedProfile(story as Friend);
-                }}
+                onClick={() => handleOpenStory(index)}
               >
                 <div className={`${styles.storyRing} ${ringStyle}`}>
                   <img 
@@ -163,7 +250,7 @@ export function Arena() {
                     alt={story.displayName} 
                     className={styles.storyAvatar} 
                   />
-                  {story.todayCompleted && (
+                  {story.todayCompleted && isNew && (
                     <span className={styles.fireBadge}>🔥</span>
                   )}
                 </div>
@@ -174,6 +261,19 @@ export function Arena() {
         </div>
       </div>
 
+      {/* --- HERO CARD OVERLAY --- */}
+      {activeStoryIndex !== null && (
+        <HeroCard
+          friend={stories[activeStoryIndex] as Friend}
+          onClose={() => setActiveStoryIndex(null)}
+          onNext={handleNextStory}
+          onPrev={handlePrevStory}
+          onVS={handleVSMode}
+          onReaction={handleReaction}
+        />
+      )}
+
+      {/* --- LEADERBOARD --- */}
       <div className={styles.leaderboardSection}>
         <div className={styles.sectionHeader}>
           <h2 className={styles.sectionTitle}>Ranglista</h2>
@@ -202,11 +302,6 @@ export function Arena() {
             {podiumOrder.map((entry) => {
               const isFirst = entry.position === 1;
               const isSecond = entry.position === 2;
-              
-              // JAVÍTVA: Kivettem a "const isThird = ..." sort, mert nem használtuk, és ez okozta a hibát.
-              
-              // CSS osztály kiválasztása a helyezés alapján
-              // Ha nem első és nem második, akkor a styles.third lép életbe (ez a fallback)
               const podiumClass = isFirst ? styles.first : isSecond ? styles.second : styles.third;
               
               return (
@@ -260,42 +355,6 @@ export function Arena() {
           </div>
         )}
       </div>
-
-      {selectedProfile && (
-        <div className={styles.modalOverlay} onClick={() => setSelectedProfile(null)}>
-          <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
-            <ProfileCard
-              id={selectedProfile.id}
-              username={selectedProfile.username}
-              displayName={selectedProfile.displayName}
-              avatar={selectedProfile.avatar}
-              rank={selectedProfile.rank}
-              streak={selectedProfile.streak}
-              monthlyAverage={selectedProfile.monthlyAverage}
-              todayEntry={selectedProfile.todayEntry}
-              viewType={selectedProfile.id === user?.id ? 'self' : 'friend'}
-              expandable={false}
-            />
-            
-            {selectedProfile.id !== user?.id && (
-              <div className={styles.modalActions}>
-                {selectedProfile.todayCompleted ? (
-                  <Button fullWidth onClick={handleFire} className={styles.fireAction}>
-                    🔥 Gratulálok! (Tűz)
-                  </Button>
-                ) : (
-                  <Button fullWidth variant="secondary" onClick={handlePing}>
-                    🔔 Ébresztő! (Ping)
-                  </Button>
-                )}
-                <Button fullWidth variant="ghost" onClick={() => navigate(`/friend/${selectedProfile.id}`)}>
-                  Teljes profil megtekintése
-                </Button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
     </div>
   );
 }
