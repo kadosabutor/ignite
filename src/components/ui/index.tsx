@@ -1,4 +1,4 @@
-import { type ReactNode, type ButtonHTMLAttributes, type InputHTMLAttributes, forwardRef } from 'react';
+import { type ReactNode, type ButtonHTMLAttributes, type InputHTMLAttributes, forwardRef, type CSSProperties } from 'react';
 import styles from './ui.module.css';
 
 // Segédfüggvény a haptikus visszajelzéshez (Progressive Enhancement)
@@ -53,9 +53,10 @@ interface CardProps {
   className?: string;
   onClick?: () => void;
   variant?: 'default' | 'interactive' | 'glow';
+  style?: CSSProperties; // JAVÍTÁS: style prop hozzáadása
 }
 
-export function Card({ children, className = '', onClick, variant = 'default' }: CardProps) {
+export function Card({ children, className = '', onClick, variant = 'default', style }: CardProps) {
   const Component = onClick ? 'button' : 'div';
   
   let variantClass = '';
@@ -74,6 +75,7 @@ export function Card({ children, className = '', onClick, variant = 'default' }:
     <Component
       className={`${styles.card} ${variantClass} ${className}`}
       onClick={onClick ? handleClick : undefined}
+      style={style} // JAVÍTÁS: style átadása a DOM elemnek
     >
       {children}
     </Component>
