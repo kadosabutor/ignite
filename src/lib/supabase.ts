@@ -157,22 +157,17 @@ export async function saveUserProfile(profile: Partial<UserProfile> & { id: stri
 }
 
 export async function uploadAvatar(userId: string, file: File): Promise<string> {
-  // 1. LÉPÉS: Megkeressük a felhasználó összes eddigi fájlját a tárolóban
   const { data: oldFiles } = await supabase.storage
     .from('avatars')
     .list('', { search: userId });
 
-  // 2. LÉPÉS: Ha találtunk régi fájlokat, töröljük őket
   if (oldFiles && oldFiles.length > 0) {
     const filesToRemove = oldFiles.map(x => x.name);
     await supabase.storage
       .from('avatars')
       .remove(filesToRemove);
-    
-    console.log('Régi avatarok törölve:', filesToRemove);
   }
 
-  // 3. LÉPÉS: Feltöltjük az új képet
   const fileExt = file.name.split('.').pop();
   const fileName = `${userId}-${Date.now()}.${fileExt}`;
   
@@ -226,6 +221,43 @@ export async function searchUsers(query: string): Promise<UserProfile[]> {
 }
 
 // ============ ENTRIES ============
+
+// ÚJ: Csak a legutóbbi X nap lekérése
+export async function getRecentEntries(userId: string, days: number = 30): Promise<HabitEntry[]> {
+  const date = new Date();
+  date.setDate(date.getDate() - days);
+  const dateStr = date.toISOString().split('T')[0];
+
+  const { data, error } = await supabase
+    .from('entries')
+    .select('*')
+    .eq('user_id', userId)
+    .gte('date', dateStr)
+    .order('date', { ascending: false });
+
+  if (error) throw error;
+
+  return (data || []).map((e: any) => ({
+    id: e.id,
+    date: e.date,
+    wakeUpTime: e.wake_up_time,
+    bedTime: e.bed_time,
+    businessMinutes: e.business_minutes,
+    sleepMinutes: e.sleep_minutes,
+    cleanEating: e.clean_eating,
+    exercise: e.exercise,
+    paradigm: (e.paradigm ?? 0) >= 1,
+    satisfaction: e.satisfaction,
+    dopamineContent: e.dopamine_content,
+    gaming: e.gaming,
+    approachedGoal: e.reflection_goal,
+    businessObstacle: e.reflection_obstacle,
+    personalObstacle: e.reflection_personal,
+    score: e.score,
+    createdAt: e.created_at,
+    updatedAt: e.updated_at,
+  }));
+}
 
 export async function getAllEntries(userId: string): Promise<HabitEntry[]> {
   const { data, error } = await supabase
@@ -370,6 +402,8 @@ export async function getStreak(userId: string): Promise<StreakData> {
 }
 
 export async function updateStreak(userId: string): Promise<StreakData> {
+  // A streak számításhoz szükség lehet a teljes előzményre, de optimalizálhatunk
+  // Jelenleg lekérjük az összeset, hogy pontos legyen. Ez ritkábban fut (csak mentéskor/törléskor).
   const entries = await getAllEntries(userId);
 
   if (entries.length === 0) {
@@ -400,9 +434,6 @@ export async function updateStreak(userId: string): Promise<StreakData> {
   }
 
   let streak = 0;
-  
-  // 7. PONT JAVÍTÁSA: Streak logika finomhangolása
-  // Meghatározzuk az effektív mai napot (4:00 AM cutoff figyelembevételével)
   const now = new Date();
   const effectiveToday = new Date();
   if (now.getHours() < 4) {
@@ -410,15 +441,9 @@ export async function updateStreak(userId: string): Promise<StreakData> {
   }
   const effectiveTodayStr = effectiveToday.toISOString().split('T')[0];
 
-  // Megnézzük, van-e bejegyzés a mai napra
   const hasEntryToday = entries.some(e => e.date === effectiveTodayStr);
-
-  // A számolást az effektív mai naptól kezdjük
   let checkDate = new Date(effectiveToday);
   
-  // HA NINCS mai bejegyzés, akkor NEM nullázzuk le azonnal a streaket,
-  // hanem visszalépünk tegnapra, és onnan kezdjük a számolást.
-  // Így a streak "függőben" marad (a tegnapi értéken), amíg ma nem rögzítünk vagy nem mulasztunk.
   if (!hasEntryToday) {
     checkDate.setDate(checkDate.getDate() - 1);
   }
@@ -450,7 +475,6 @@ export async function updateStreak(userId: string): Promise<StreakData> {
     longestStreak,
     level,
     cryoFreezeCount: cryoEarned,
-    // A legutolsó bejegyzés dátuma (ez lehet a mai vagy egy régebbi, ha ma még nincs)
     lastEntryDate: entries[0]?.date || null,
     phoenixActive: currentData?.phoenix_active || false,
     phoenixDaysRemaining: currentData?.phoenix_days_remaining || 0,
