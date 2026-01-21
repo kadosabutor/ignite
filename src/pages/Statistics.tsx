@@ -1,4 +1,4 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { useHabits } from '../context/HabitContext';
 import { Card } from '../components/ui';
 import { MetricsChart } from '../components/MetricsChart';
@@ -6,8 +6,15 @@ import { getScoreColor } from '../lib/scoring';
 import styles from './Statistics.module.css';
 
 export function Statistics() {
-  const { entries, weeklyAverage, monthlyAverage } = useHabits();
+  const { entries, weeklyAverage, monthlyAverage, fetchAllEntries, hasFullHistory } = useHabits();
   
+  // Töltsük be a teljes előzményt, ha a statisztikákra lépünk
+  useEffect(() => {
+    if (!hasFullHistory) {
+      fetchAllEntries();
+    }
+  }, [hasFullHistory, fetchAllEntries]);
+
   // Dátum állapot inicializálása
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
@@ -83,8 +90,6 @@ export function Statistics() {
     const days: { date: string | null; score: number | null }[] = [];
     
     // Üres cellák a hónap elejére (Hétfői kezdéssel: 0=Hétfő helyett igazítás)
-    // getDay(): 0=Vasárnap, 1=Hétfő ... 6=Szombat
-    // Cél: 0=Hétfő ... 6=Vasárnap
     const adjustedStartingDay = startingDay === 0 ? 6 : startingDay - 1;
     
     for (let i = 0; i < adjustedStartingDay; i++) {
@@ -107,7 +112,6 @@ export function Statistics() {
     month: 'long',
   });
 
-  // Segédfüggvény: van-e adat más hónapokban?
   const hasAnyData = entries.length > 0;
   const isCurrentMonthEmpty = monthStats.count === 0;
 
@@ -119,7 +123,6 @@ export function Statistics() {
 
       {/* Metrics Chart */}
       <Card className={styles.chartCard}>
-        {/* Ha nincs adat az aktuális hónapban, de van amúgy adat, jelezzük a lapozást */}
         {isCurrentMonthEmpty && hasAnyData && (
           <div style={{ textAlign: 'center', marginBottom: '10px', fontSize: '12px', color: 'var(--color-warning)' }}>
             ⚠️ Ebben a hónapban nincs adat. Lapozz a nyilakkal!
