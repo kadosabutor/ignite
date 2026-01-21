@@ -107,7 +107,7 @@ export function FriendProfile() {
       {/* 3. Tartalom */}
       <div className={styles.contentArea}>
         {viewMode === 'details' ? (
-          /* RÉSZLETEK NÉZET */
+          /* RÉSZLETEK NÉZET - CSAK A MAI NAP ÉS BIO (History eltávolítva) */
           <div className={styles.detailsView}>
             {friend.todayEntry ? (
               <div className={styles.gridStats}>
@@ -175,7 +175,6 @@ export function FriendProfile() {
                   </div>
                 </div>
 
-                {/* Itt használjuk fel a CATEGORY_EXPLANATIONS konstanst, így eltűnik a hiba */}
                 <Card className={styles.explanationCard}>
                   <h3 className={styles.cardTitle}>Kategóriák</h3>
                   <div className={styles.explanationList}>
