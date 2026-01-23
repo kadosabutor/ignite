@@ -1,47 +1,43 @@
-import { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useState, useEffect, useMemo, useRef } from 'react';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
 import { Button, Card } from '../components/ui';
 import { ProfileCard } from '../components/ProfileCard';
 import { RadarChart } from '../components/RadarChart';
 import { calculateRadarStats } from '../lib/scoring';
-import { generateInsight } from '../lib/insight-engine';
+import { generateInsight, type InsightResult } from '../lib/insight-engine';
 import * as supabase from '../lib/supabase';
 import styles from './FriendProfile.module.css';
-
-// Típus az új válaszhoz
-interface EnhancedInsight {
-  title: string;
-  analysis: string;
-  verdict: string;
-  winner: 'user' | 'friend' | 'draw';
-  keyMetric?: string;
-  userValue?: number | string;
-  friendValue?: number | string;
-}
-
-const CATEGORY_EXPLANATIONS = {
-  business: { name: 'Business Idő', desc: 'Munkaórák' },
-  discipline: { name: 'Fegyelem', desc: 'Tisztaság & Kontroll' },
-  body: { name: 'Test', desc: 'Edzés & Étkezés' },
-  mind: { name: 'Elme', desc: 'Paradigma & Tanulás' },
-  sleep: { name: 'Alvás', desc: 'Pihenés minősége' }
-};
 
 export function FriendProfile() {
   const { friendId } = useParams<{ friendId: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { friends, entries: myEntries, user } = useHabits();
   
-  const [viewMode, setViewMode] = useState<'details' | 'vs'>('details');
+  // Tab kezelés: URL-ből olvassa ki, alapértelmezett a 'details'
+  const initialTab = searchParams.get('tab') === 'vs' ? 'vs' : 'details';
+  const [viewMode, setViewMode] = useState<'details' | 'vs'>(initialTab);
+  
   const [friendEntries, setFriendEntries] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
-  // Loot Box Állapotok
-  const [insight, setInsight] = useState<EnhancedInsight | null>(null);
-  const [lootState, setLootState] = useState<'idle' | 'shaking' | 'exploding' | 'revealed'>('idle');
-
+  // --- ENERGY HOLD STATES ---
+  const [insight, setInsight] = useState<InsightResult | null>(null);
+  const [holdProgress, setHoldProgress] = useState(0);
+  const [isExploding, setIsExploding] = useState(false);
+  const [isGenerating, setIsGenerating] = useState(false);
+  
+  const holdIntervalRef = useRef<number | null>(null);
   const friend = friends.find(f => f.id === friendId);
+
+  // Navigáció szinkronizálása a state-tel
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    if (tab === 'vs' && viewMode !== 'vs') {
+      setViewMode('vs');
+    }
+  }, [searchParams]);
 
   // Adatok betöltése VS nézetben
   useEffect(() => {
@@ -61,35 +57,80 @@ export function FriendProfile() {
     }
   }, [viewMode, friendId, friendEntries.length]);
 
+  // --- HOLD INTERACTION LOGIC ---
+  const startHold = () => {
+    if (insight || isGenerating) return; // Ha már van, vagy tölt, ne induljon újra
+    
+    // Haptikus visszajelzés induláskor
+    if (navigator.vibrate) navigator.vibrate(10);
+
+    let progress = 0;
+    const intervalTime = 20; // ms
+    const duration = 2000; // 2 másodperc kell a töltéshez
+    const step = 100 / (duration / intervalTime);
+
+    holdIntervalRef.current = window.setInterval(() => {
+      progress += step;
+      setHoldProgress(Math.min(progress, 100));
+
+      // Rezgés intenzitás növelése
+      if (progress % 20 < step && navigator.vibrate) {
+        navigator.vibrate(5);
+      }
+
+      if (progress >= 100) {
+        completeHold();
+      }
+    }, intervalTime);
+  };
+
+  const endHold = () => {
+    if (holdIntervalRef.current) {
+      clearInterval(holdIntervalRef.current);
+      holdIntervalRef.current = null;
+    }
+    if (holdProgress < 100 && !isExploding) {
+      setHoldProgress(0); // Reset ha elengedte idő előtt
+    }
+  };
+
+  const completeHold = async () => {
+    if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
+    
+    // Haptikus robbanás
+    if (navigator.vibrate) navigator.vibrate([50, 50, 50, 50, 200]);
+    
+    setIsExploding(true);
+    setIsGenerating(true);
+
+    // AI Generálás indítása
+    await handleGenerateInsight();
+    
+    // Robbanás animáció vége
+    setTimeout(() => {
+      setIsExploding(false);
+    }, 800);
+  };
+
   const handleGenerateInsight = async () => {
     if (!friend || friendEntries.length === 0 || myEntries.length === 0) return;
-    
-    // 1. Animáció indítása (remegés)
-    setLootState('shaking');
     
     try {
       const commonLength = Math.min(myEntries.length, friendEntries.length);
       
-      // 2. Lekérés a háttérben
-      const result: any = await generateInsight({
+      const result = await generateInsight({
         userEntries: myEntries.slice(0, commonLength),
         friendEntries: friendEntries.slice(0, commonLength),
         userName: user?.displayName || 'Te',
         friendName: friend.displayName
       });
       
-      // 3. Ha kész, "robbanás" animáció
-      setLootState('exploding');
-      
-      // 4. Rövid szünet után megjelenítés
-      setTimeout(() => {
-        setInsight(result);
-        setLootState('revealed');
-      }, 500); // Fél mp robbanás
-
+      setInsight(result);
     } catch (error) {
       console.error(error);
-      setLootState('idle'); // Hiba esetén reset
+      setHoldProgress(0); // Reset hiba esetén
+    } finally {
+      setIsGenerating(false);
     }
   };
   
@@ -105,51 +146,106 @@ export function FriendProfile() {
     );
   }
 
-  // Segéd a chart rajzoláshoz
-  const renderComparisonChart = () => {
-    if (!insight || !insight.keyMetric) return null;
-    
-    // Próbáljuk számmá alakítani az értékeket a százalékos szélességhez
-    const uVal = typeof insight.userValue === 'number' ? insight.userValue : parseFloat(String(insight.userValue)) || 0;
-    const fVal = typeof insight.friendValue === 'number' ? insight.friendValue : parseFloat(String(insight.friendValue)) || 0;
-    
-    const max = Math.max(uVal, fVal, 1); // 0 osztás elkerülése
-    const uWidth = (uVal / max) * 100;
-    const fWidth = (fVal / max) * 100;
+  // --- RENDER HELPERS ---
+  const renderEnergyButton = () => (
+    <div className={styles.energyButtonContainer}>
+      <div 
+        className={styles.energyButton}
+        onMouseDown={startHold}
+        onMouseUp={endHold}
+        onMouseLeave={endHold}
+        onTouchStart={startHold}
+        onTouchEnd={endHold}
+      >
+        <div className={styles.energyFill} style={{ width: `${holdProgress}%` }} />
+        <div className={styles.energyText}>
+          {isGenerating ? 'ELEMZÉS...' : 'HOLD TO ANALYZE'}
+        </div>
+      </div>
+    </div>
+  );
+
+  const renderInsightCard = () => {
+    if (!insight) return null;
+
+    const winnerColor = insight.winnerId === 'user' ? 'var(--color-success)' : 
+                        insight.winnerId === 'friend' ? 'var(--color-error)' : 
+                        'var(--color-warning)';
 
     return (
-      <div className={styles.comparisonChart}>
-        <span className={styles.metricTitle}>{insight.keyMetric}</span>
+      <div className={`${styles.insightCard} ${insight.winnerId === 'user' ? styles.winnerUser : insight.winnerId === 'friend' ? styles.winnerFriend : ''}`}>
         
-        {/* User Bar */}
-        <div className={styles.barContainer}>
-          <span className={styles.barLabel}>TE</span>
-          <div className={styles.barTrack}>
-            <div 
-              className={styles.barFill} 
-              style={{ width: `${uWidth}%`, backgroundColor: 'var(--color-primary)' }} 
-            />
-          </div>
-          <span className={styles.barValue}>{insight.userValue}</span>
+        {/* Header */}
+        <div className={styles.insightHeader}>
+          <span className={styles.winnerBadge}>
+            {insight.winnerId === 'user' ? '🏆' : insight.winnerId === 'friend' ? '💀' : '🤝'}
+          </span>
+          <h3 className={styles.insightTitle} style={{ color: winnerColor }}>
+            {insight.title}
+          </h3>
+          <p className={styles.insightVerdict}>{insight.verdict_short}</p>
         </div>
 
-        {/* Friend Bar */}
-        <div className={styles.barContainer}>
-          <span className={styles.barLabel}>Ő</span>
-          <div className={styles.barTrack}>
-            <div 
-              className={styles.barFill} 
-              style={{ width: `${fWidth}%`, backgroundColor: '#33CCFF' }} 
-            />
-          </div>
-          <span className={styles.barValue}>{insight.friendValue}</span>
+        {/* Key Stats Grid */}
+        <div className={styles.keyStatsGrid}>
+          {insight.key_stats.map((stat, idx) => (
+            <div key={idx} className={styles.keyStatItem}>
+              <span className={styles.keyStatLabel}>{stat.label}</span>
+              <span className={styles.keyStatValue} style={{ 
+                color: stat.advantage === 'user' ? 'var(--color-success)' : 
+                       stat.advantage === 'friend' ? 'var(--color-error)' : 'var(--color-foreground)' 
+              }}>
+                {stat.diff}
+              </span>
+            </div>
+          ))}
         </div>
+
+        {/* Detailed Sections with Charts */}
+        <div className={styles.sectionList}>
+          {insight.sections.map((section, idx) => (
+            <div key={idx} className={styles.sectionItem}>
+              <div className={styles.sectionHeader}>
+                <span className={styles.sectionTitle}>
+                  {section.type === 'productivity' ? '💼' : section.type === 'health' ? '❤️' : '🧠'} {section.title}
+                </span>
+              </div>
+              
+              {/* Tug of War Chart */}
+              <div className={styles.tugBar}>
+                <div className={styles.tugLeft} style={{ width: `${section.scoreUser}%` }} />
+                <div className={styles.tugRight} style={{ width: `${section.scoreFriend}%` }} />
+              </div>
+
+              <p className={styles.sectionText}>{section.text}</p>
+            </div>
+          ))}
+        </div>
+
+        {/* Daily Mission */}
+        <div className={styles.missionBox}>
+          <span className={styles.missionLabel}>MAI KÜLDETÉS</span>
+          <span className={styles.missionText}>{insight.daily_mission}</span>
+        </div>
+
+        <Button 
+          variant="ghost" 
+          fullWidth 
+          onClick={() => {
+            setInsight(null);
+            setHoldProgress(0);
+          }}
+        >
+          ÚJRA
+        </Button>
       </div>
     );
   };
 
   return (
     <div className={styles.container}>
+      {isExploding && <div className={styles.explosionOverlay} />}
+
       <header className={styles.header}>
         <button className={styles.backButton} onClick={() => navigate(-1)}>
           ← Vissza
@@ -191,6 +287,7 @@ export function FriendProfile() {
       <div className={styles.contentArea}>
         {viewMode === 'details' ? (
           <div className={styles.detailsView}>
+            {/* ... (Részletek nézet változatlan) ... */}
             {friend.todayEntry ? (
               <div className={styles.gridStats}>
                 <div className={styles.statBox}>
@@ -233,9 +330,13 @@ export function FriendProfile() {
         ) : (
           <div className={styles.vsView}>
             {isLoading ? (
-              <div className={styles.loading}>Adatok betöltése...</div>
+              <div className={styles.loadingText}>Adatok betöltése...</div>
             ) : (
               <>
+                {/* 1. AI LOOT BOX (Legfelül) */}
+                {insight ? renderInsightCard() : renderEnergyButton()}
+
+                {/* 2. RADAR CHART */}
                 <Card className={styles.chartCard}>
                   <h3 className={styles.cardTitle}>Képességek Összehasonlítása</h3>
                   <RadarChart 
@@ -255,60 +356,6 @@ export function FriendProfile() {
                     <span>{friend.displayName}</span>
                   </div>
                 </div>
-
-                {/* AI LOOT BOX SZEKCIÓ */}
-                <div className={styles.lootBoxContainer}>
-                  {lootState === 'idle' && (
-                    <button className={styles.magicButton} onClick={handleGenerateInsight}>
-                      🔮 Elemzés Feltörése
-                    </button>
-                  )}
-
-                  {(lootState === 'shaking' || lootState === 'exploding') && (
-                    <div className={`${styles.mysteryOrb} ${lootState === 'shaking' ? styles.shaking : styles.exploding}`}>
-                      🔮
-                    </div>
-                  )}
-
-                  {lootState === 'revealed' && insight && (
-                    <div className={`${styles.insightCard} ${insight.winner === 'user' ? styles.winnerUser : styles.winnerFriend}`}>
-                      <div className={styles.insightHeader}>
-                        <h3 className={styles.insightTitle} style={{ color: insight.winner === 'user' ? 'var(--color-success)' : 'var(--color-error)' }}>
-                          {insight.title}
-                        </h3>
-                        <span className={styles.winnerIcon}>{insight.winner === 'user' ? '🏆' : insight.winner === 'friend' ? '💀' : '🤝'}</span>
-                      </div>
-
-                      {/* ÖSSZEHASONLÍTÓ CHART HELYE */}
-                      {renderComparisonChart()}
-
-                      <p className={styles.insightBody}>
-                        {insight.analysis}
-                      </p>
-                      
-                      <div className={styles.verdictBox} style={{ borderColor: insight.winner === 'user' ? 'var(--color-success)' : 'var(--color-error)' }}>
-                        <span className={styles.verdictLabel}>Ítélet</span>
-                        <span className={styles.verdictText}>"{insight.verdict}"</span>
-                      </div>
-                      
-                      <Button variant="ghost" size="sm" onClick={() => setLootState('idle')} style={{marginTop: '12px', width: '100%'}}>
-                        Újra
-                      </Button>
-                    </div>
-                  )}
-                </div>
-
-                <Card className={styles.explanationCard}>
-                  <h3 className={styles.cardTitle}>Kategóriák</h3>
-                  <div className={styles.explanationList}>
-                    {Object.entries(CATEGORY_EXPLANATIONS).map(([key, cat]) => (
-                      <div key={key} className={styles.explanationItem}>
-                        <span className={styles.explanationName}>{cat.name}</span>
-                        <span className={styles.explanationDesc}>{cat.desc}</span>
-                      </div>
-                    ))}
-                  </div>
-                </Card>
               </>
             )}
           </div>
