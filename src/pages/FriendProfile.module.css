@@ -8,14 +8,220 @@
   gap: 20px;
 }
 
-/* Header & Tabs (Régi stílusok megtartva) */
-.header { display: flex; align-items: center; justify-content: space-between; }
-.backButton { background: none; border: none; color: var(--color-primary); font-size: 14px; font-weight: 600; cursor: pointer; padding: 8px 0; }
-.headerTitle { font-size: 16px; font-weight: 700; color: var(--color-foreground); }
-.tabContainer { display: flex; background-color: var(--color-surface); padding: 4px; border-radius: 12px; border: 1px solid var(--color-border); }
-.tabButton { flex: 1; padding: 10px; border: none; background: transparent; color: var(--color-muted); font-size: 13px; font-weight: 600; border-radius: 8px; cursor: pointer; transition: all 0.2s; }
-.activeTab { background-color: var(--color-primary); color: #121212; }
-.contentArea { flex: 1; animation: fadeIn 0.3s ease-out; padding-bottom: 40px; }
+/* Header */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.backButton {
+  background: none;
+  border: none;
+  color: var(--color-primary);
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 8px 0;
+}
+
+.headerTitle {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-foreground);
+}
+
+/* Tab Container */
+.tabContainer {
+  display: flex;
+  background-color: var(--color-surface);
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid var(--color-border);
+}
+
+.tabButton {
+  flex: 1;
+  padding: 10px;
+  border: none;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.activeTab {
+  background-color: var(--color-primary);
+  color: #121212;
+  box-shadow: 0 2px 8px rgba(255, 112, 51, 0.3);
+}
+
+/* Content Area */
+.contentArea {
+  flex: 1;
+  animation: fadeIn 0.3s ease-out;
+  padding-bottom: 40px;
+}
+
+/* Details Grid */
+.gridStats {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  margin-bottom: 20px;
+}
+
+.statBox {
+  background-color: var(--color-surface);
+  border-radius: 16px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 1px solid var(--color-border);
+}
+
+.statIcon {
+  font-size: 24px;
+  margin-bottom: 4px;
+}
+
+.statLabel {
+  font-size: 10px;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.statValue {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--color-foreground);
+}
+
+/* Bio Card */
+.bioCard {
+  background-color: var(--color-surface) !important;
+  padding: 20px !important;
+  border: 1px solid var(--color-border);
+}
+
+.bioCard h3 {
+  font-size: 14px;
+  text-transform: uppercase;
+  color: var(--color-muted);
+  margin: 0 0 12px 0;
+}
+
+.bioCard p {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-foreground);
+  margin: 0;
+}
+
+/* VS View */
+.vsView {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.chartCard, .explanationCard {
+  background-color: var(--color-surface) !important;
+  padding: 20px !important;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  border: 1px solid var(--color-border);
+}
+
+.cardTitle {
+  font-size: 16px;
+  font-weight: 700;
+  margin: 0 0 16px 0;
+  text-align: center;
+}
+
+.legendContainer {
+  display: flex;
+  justify-content: center;
+  gap: 24px;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.legendDot {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+}
+
+/* Explanation Styles */
+.explanationList {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.explanationItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.explanationItem:last-child {
+  border-bottom: none;
+}
+
+.explanationName {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-primary);
+}
+
+.explanationDesc {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.emptyState, .loading, .error {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: var(--color-muted);
+  text-align: center;
+  gap: 12px;
+}
+
+.emptyIcon {
+  font-size: 40px;
+  opacity: 0.5;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
 
 /* --- LOOT BOX & AI REVEAL --- */
 
@@ -89,6 +295,7 @@
   border: 1px solid var(--color-border);
   position: relative;
   overflow: hidden;
+  width: 100%;
 }
 
 .insightCard.winnerUser {
@@ -203,18 +410,7 @@
   color: var(--color-foreground);
 }
 
-/* Régi elemek megtartva */
-.detailsView, .bioCard, .emptyState, .gridStats, .statBox, .loading, .chartCard, .legendContainer, .legendItem, .legendDot, .explanationCard, .explanationList, .explanationItem, .explanationHeader, .explanationName, .explanationDesc, .explanationCalc {
-  /* ... (ezeket a régi fájlból megtartjuk, nem írom ide újra mindet a helytakarékosság miatt, de a fájlban benne kell legyenek) */
-}
-
-/* Animációk */
 @keyframes popIn {
   from { opacity: 0; transform: translateY(20px) scale(0.95); }
   to { opacity: 1; transform: translateY(0) scale(1); }
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
 }
