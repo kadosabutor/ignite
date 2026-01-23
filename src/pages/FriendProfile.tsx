@@ -5,11 +5,21 @@ import { Button, Card } from '../components/ui';
 import { ProfileCard } from '../components/ProfileCard';
 import { RadarChart } from '../components/RadarChart';
 import { calculateRadarStats } from '../lib/scoring';
-import { generateInsight, type InsightResult } from '../lib/insight-engine';
+import { generateInsight } from '../lib/insight-engine';
 import * as supabase from '../lib/supabase';
 import styles from './FriendProfile.module.css';
 
-// Kategória magyarázatok
+// Típus az új válaszhoz
+interface EnhancedInsight {
+  title: string;
+  analysis: string;
+  verdict: string;
+  winner: 'user' | 'friend' | 'draw';
+  keyMetric?: string;
+  userValue?: number | string;
+  friendValue?: number | string;
+}
+
 const CATEGORY_EXPLANATIONS = {
   business: { name: 'Business Idő', desc: 'Munkaórák' },
   discipline: { name: 'Fegyelem', desc: 'Tisztaság & Kontroll' },
@@ -21,28 +31,26 @@ const CATEGORY_EXPLANATIONS = {
 export function FriendProfile() {
   const { friendId } = useParams<{ friendId: string }>();
   const navigate = useNavigate();
-  const { friends, entries: myEntries, user } = useHabits(); // user is kell a nevemhez
+  const { friends, entries: myEntries, user } = useHabits();
   
   const [viewMode, setViewMode] = useState<'details' | 'vs'>('details');
   const [friendEntries, setFriendEntries] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [isInsightLoading, setIsInsightLoading] = useState(false); // Külön töltés állapot az AI-nak
-  const [insight, setInsight] = useState<InsightResult | null>(null);
   
-  // Find friend
+  // Loot Box Állapotok
+  const [insight, setInsight] = useState<EnhancedInsight | null>(null);
+  const [lootState, setLootState] = useState<'idle' | 'shaking' | 'exploding' | 'revealed'>('idle');
+
   const friend = friends.find(f => f.id === friendId);
-  
-  // Load friend's entries ONLY when switching to VS mode
+
+  // Adatok betöltése VS nézetben
   useEffect(() => {
     if (viewMode === 'vs' && friendId && friendEntries.length === 0) {
       const loadData = async () => {
         setIsLoading(true);
         try {
           const entries = await supabase.getFriendEntries(friendId, 90);
-          const sortedEntries = entries.sort((a: any, b: any) => 
-            b.date.localeCompare(a.date)
-          );
-          setFriendEntries(sortedEntries);
+          setFriendEntries(entries);
         } catch (err) {
           console.error(err);
         } finally {
@@ -53,26 +61,35 @@ export function FriendProfile() {
     }
   }, [viewMode, friendId, friendEntries.length]);
 
-  // Insight kézi generálása gombra kattintva
   const handleGenerateInsight = async () => {
     if (!friend || friendEntries.length === 0 || myEntries.length === 0) return;
     
-    setIsInsightLoading(true);
+    // 1. Animáció indítása (remegés)
+    setLootState('shaking');
+    
     try {
       const commonLength = Math.min(myEntries.length, friendEntries.length);
       
-      const result = await generateInsight({
+      // 2. Lekérés a háttérben
+      const result: any = await generateInsight({
         userEntries: myEntries.slice(0, commonLength),
         friendEntries: friendEntries.slice(0, commonLength),
         userName: user?.displayName || 'Te',
         friendName: friend.displayName
       });
       
-      setInsight(result);
+      // 3. Ha kész, "robbanás" animáció
+      setLootState('exploding');
+      
+      // 4. Rövid szünet után megjelenítés
+      setTimeout(() => {
+        setInsight(result);
+        setLootState('revealed');
+      }, 500); // Fél mp robbanás
+
     } catch (error) {
       console.error(error);
-    } finally {
-      setIsInsightLoading(false);
+      setLootState('idle'); // Hiba esetén reset
     }
   };
   
@@ -87,6 +104,49 @@ export function FriendProfile() {
       </div>
     );
   }
+
+  // Segéd a chart rajzoláshoz
+  const renderComparisonChart = () => {
+    if (!insight || !insight.keyMetric) return null;
+    
+    // Próbáljuk számmá alakítani az értékeket a százalékos szélességhez
+    const uVal = typeof insight.userValue === 'number' ? insight.userValue : parseFloat(String(insight.userValue)) || 0;
+    const fVal = typeof insight.friendValue === 'number' ? insight.friendValue : parseFloat(String(insight.friendValue)) || 0;
+    
+    const max = Math.max(uVal, fVal, 1); // 0 osztás elkerülése
+    const uWidth = (uVal / max) * 100;
+    const fWidth = (fVal / max) * 100;
+
+    return (
+      <div className={styles.comparisonChart}>
+        <span className={styles.metricTitle}>{insight.keyMetric}</span>
+        
+        {/* User Bar */}
+        <div className={styles.barContainer}>
+          <span className={styles.barLabel}>TE</span>
+          <div className={styles.barTrack}>
+            <div 
+              className={styles.barFill} 
+              style={{ width: `${uWidth}%`, backgroundColor: 'var(--color-primary)' }} 
+            />
+          </div>
+          <span className={styles.barValue}>{insight.userValue}</span>
+        </div>
+
+        {/* Friend Bar */}
+        <div className={styles.barContainer}>
+          <span className={styles.barLabel}>Ő</span>
+          <div className={styles.barTrack}>
+            <div 
+              className={styles.barFill} 
+              style={{ width: `${fWidth}%`, backgroundColor: '#33CCFF' }} 
+            />
+          </div>
+          <span className={styles.barValue}>{insight.friendValue}</span>
+        </div>
+      </div>
+    );
+  };
 
   return (
     <div className={styles.container}>
@@ -196,70 +256,47 @@ export function FriendProfile() {
                   </div>
                 </div>
 
-                {/* AI INSIGHT SZEKCIÓ */}
-                {!insight && !isInsightLoading && (
-                  <Button 
-                    fullWidth 
-                    variant="secondary" 
-                    onClick={handleGenerateInsight}
-                    style={{ marginTop: '20px', border: '1px solid var(--color-primary)', color: 'var(--color-primary)' }}
-                  >
-                    ✨ AI Elemzés Kérése
-                  </Button>
-                )}
+                {/* AI LOOT BOX SZEKCIÓ */}
+                <div className={styles.lootBoxContainer}>
+                  {lootState === 'idle' && (
+                    <button className={styles.magicButton} onClick={handleGenerateInsight}>
+                      🔮 Elemzés Feltörése
+                    </button>
+                  )}
 
-                {isInsightLoading && (
-                  <div className={styles.loading} style={{ height: '100px' }}>
-                    Az AI éppen analizálja az adatokat... 🤖
-                  </div>
-                )}
+                  {(lootState === 'shaking' || lootState === 'exploding') && (
+                    <div className={`${styles.mysteryOrb} ${lootState === 'shaking' ? styles.shaking : styles.exploding}`}>
+                      🔮
+                    </div>
+                  )}
 
-                {insight && (
-                  <Card 
-                    className={styles.bioCard} 
-                    style={{ 
-                      marginTop: '20px',
-                      border: insight.winner === 'user' ? '1px solid var(--color-success)' : insight.winner === 'friend' ? '1px solid var(--color-error)' : '1px solid var(--color-border)',
-                      background: insight.winner === 'user' ? 'rgba(74, 222, 128, 0.05)' : insight.winner === 'friend' ? 'rgba(248, 113, 113, 0.05)' : 'var(--color-surface)'
-                    }}
-                  >
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                        <h3 style={{ 
-                        color: insight.winner === 'user' ? 'var(--color-success)' : insight.winner === 'friend' ? 'var(--color-error)' : 'var(--color-foreground)', 
-                        fontSize: '18px',
-                        margin: 0
-                        }}>
-                        {insight.title}
+                  {lootState === 'revealed' && insight && (
+                    <div className={`${styles.insightCard} ${insight.winner === 'user' ? styles.winnerUser : styles.winnerFriend}`}>
+                      <div className={styles.insightHeader}>
+                        <h3 className={styles.insightTitle} style={{ color: insight.winner === 'user' ? 'var(--color-success)' : 'var(--color-error)' }}>
+                          {insight.title}
                         </h3>
-                        {insight.winner === 'user' && <span style={{ fontSize: '20px' }}>🏆</span>}
+                        <span className={styles.winnerIcon}>{insight.winner === 'user' ? '🏆' : insight.winner === 'friend' ? '💀' : '🤝'}</span>
+                      </div>
+
+                      {/* ÖSSZEHASONLÍTÓ CHART HELYE */}
+                      {renderComparisonChart()}
+
+                      <p className={styles.insightBody}>
+                        {insight.analysis}
+                      </p>
+                      
+                      <div className={styles.verdictBox} style={{ borderColor: insight.winner === 'user' ? 'var(--color-success)' : 'var(--color-error)' }}>
+                        <span className={styles.verdictLabel}>Ítélet</span>
+                        <span className={styles.verdictText}>"{insight.verdict}"</span>
+                      </div>
+                      
+                      <Button variant="ghost" size="sm" onClick={() => setLootState('idle')} style={{marginTop: '12px', width: '100%'}}>
+                        Újra
+                      </Button>
                     </div>
-                    
-                    <p style={{ marginBottom: '16px', fontSize: '14px', lineHeight: '1.6', color: 'var(--color-foreground)' }}>
-                      {insight.analysis}
-                    </p>
-                    
-                    <div style={{ 
-                      backgroundColor: 'rgba(0,0,0,0.2)', 
-                      padding: '12px', 
-                      borderRadius: '8px',
-                      borderLeft: `3px solid ${insight.winner === 'user' ? 'var(--color-success)' : insight.winner === 'friend' ? 'var(--color-error)' : 'var(--color-muted)'}`
-                    }}>
-                      <strong style={{ 
-                        display: 'block', 
-                        fontSize: '11px', 
-                        color: 'var(--color-muted)', 
-                        marginBottom: '4px', 
-                        textTransform: 'uppercase',
-                        letterSpacing: '0.05em'
-                      }}>
-                        ÍTÉLET
-                      </strong>
-                      <span style={{ fontStyle: 'italic', fontWeight: '600', fontSize: '13px' }}>
-                        "{insight.verdict}"
-                      </span>
-                    </div>
-                  </Card>
-                )}
+                  )}
+                </div>
 
                 <Card className={styles.explanationCard}>
                   <h3 className={styles.cardTitle}>Kategóriák</h3>
