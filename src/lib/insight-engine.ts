@@ -1,40 +1,77 @@
 import { supabase } from './supabase';
 import type { HabitEntry } from '../types';
 
-// Bemeneti típusok
+// ÚJ: Bővített kimeneti típus a strukturált válaszhoz
+export interface InsightResult {
+  title: string;
+  winnerId: 'user' | 'friend' | 'draw';
+  verdict_short: string;
+  daily_mission: string; // A napi konkrét feladat
+  
+  // Tematikus szekciók (pl. Produktivitás, Egészség)
+  sections: {
+    type: 'productivity' | 'health' | 'discipline';
+    title: string;
+    text: string;
+    scoreUser: number;   // 0-100 skálán (grafikonhoz)
+    scoreFriend: number; // 0-100 skálán
+  }[];
+
+  // Kiemelt statisztikák (pl. "+40% Munka")
+  key_stats: {
+    label: string;
+    diff: string;
+    advantage: 'user' | 'friend' | 'draw';
+  }[];
+}
+
+// Bemeneti típus
 interface InsightInput {
   userEntries: HabitEntry[];
   friendEntries: HabitEntry[];
   userName: string;
   friendName: string;
+  userAvatar?: string;
+  friendAvatar?: string;
 }
 
-// Kimeneti típus
-export interface InsightResult {
-  title: string;
-  analysis: string;
-  verdict: string;
-  winner: 'user' | 'friend' | 'draw';
-}
+// Segédfüggvény: Anomáliák és Rekordok keresése
+const findHighlights = (entries: HabitEntry[], name: string) => {
+  if (!entries.length) return [];
+  
+  const highlights: string[] = [];
+  
+  // 1. Alvás extremitások
+  const minSleep = entries.reduce((min, e) => (e.sleepMinutes > 0 && e.sleepMinutes < min.sleepMinutes ? e : min), entries[0]);
+  if (minSleep.sleepMinutes > 0 && minSleep.sleepMinutes < 300) { // 5 óra alatt
+    highlights.push(`${name} egyik nap csak ${Math.round(minSleep.sleepMinutes/60)} órát aludt.`);
+  }
 
-// Segédfüggvény: Adatok összegzése
+  // 2. Munka rekord
+  const maxWork = entries.reduce((max, e) => (e.businessMinutes > max.businessMinutes ? e : max), entries[0]);
+  if (maxWork.businessMinutes > 480) { // 8 óra felett
+    highlights.push(`${name} rekordja: ${Math.round(maxWork.businessMinutes/60)} óra munka egy nap alatt.`);
+  }
+
+  // 3. Gaming binge
+  const gamingDays = entries.filter(e => e.gaming).length;
+  if (gamingDays > entries.length * 0.5) {
+    highlights.push(`${name} a napok több mint felében játszott.`);
+  }
+
+  // 4. Edzés hiánya
+  const exerciseDays = entries.filter(e => e.exercise).length;
+  if (exerciseDays === 0 && entries.length > 3) {
+    highlights.push(`${name} egyszer sem edzett az elmúlt időszakban.`);
+  }
+
+  return highlights;
+};
+
+// Segédfüggvény: Átlagok
 const aggregateStats = (entries: HabitEntry[]) => {
   const count = entries.length || 1;
-  
-  if (count === 0) {
-    return {
-      daysCount: 0,
-      scoreAvg: 0,
-      businessTotal: 0,
-      sleepAvg: 0,
-      exerciseRate: 0,
-      cleanEatingRate: 0,
-      paradigmRate: 0,
-      satisfactionRate: 0,
-      dopamineRate: 0,
-      gamingRate: 0,
-    };
-  }
+  if (count === 0) return {};
 
   return {
     daysCount: count,
@@ -53,68 +90,54 @@ const aggregateStats = (entries: HabitEntry[]) => {
 export async function generateInsight({ userEntries, friendEntries, userName, friendName }: InsightInput): Promise<InsightResult> {
   // 1. Ellenőrzés
   if (!userEntries?.length || !friendEntries?.length) {
-    return {
-      title: 'Nincs elég adat',
-      analysis: 'Még nincs elég közös adatotok egy komoly elemzéshez.',
-      verdict: 'Rögzítsetek több napot!',
-      winner: 'draw'
-    };
+    throw new Error("Nincs elég adat az elemzéshez.");
   }
 
+  // 2. Adatok előkészítése
   const userStats = aggregateStats(userEntries);
   const friendStats = aggregateStats(friendEntries);
+  
+  // 3. Különlegességek keresése
+  const userHighlights = findHighlights(userEntries, "User");
+  const friendHighlights = findHighlights(friendEntries, "Friend");
 
   try {
     console.log("📡 Elemzés kérése a szervertől...");
     
-    // 2. Edge Function hívása
+    // 4. Edge Function hívása (bővített adatokkal)
     const { data, error } = await supabase.functions.invoke('generate-insight', {
       body: {
         userStats,
         friendStats,
+        userHighlights, 
+        friendHighlights, 
         userName,
-        friendName
+        friendName,
+        date: new Date().toISOString() // Dátum a "Napi téma" kiválasztásához
       }
     });
 
-    // Ha a Supabase kliens dob hibát (pl. hálózati hiba, vagy non-2xx válasz)
     if (error) {
-      // Megpróbáljuk kinyerni a részletes üzenetet, ha a szerver JSON-t küldött vissza 500-as kód mellett is
-      let detailedMessage = error.message;
-      try {
-        // Néha a hiba body-ja tartalmazza a mi szerver oldali hibaüzenetünket
-        if (error.context && error.context.json) {
-            const body = await error.context.json();
-            if (body.error) detailedMessage = body.error;
-        }
-      } catch (e) { /* ignore */ }
-
-      console.error('Supabase Invoke Error:', detailedMessage);
-      throw new Error(detailedMessage);
+      console.error('Supabase Invoke Error:', error);
+      throw new Error(error.message || 'Szerver hiba');
     }
 
-    // Ha a válaszban van 'error' mező (a mi szerver kódunk küldte)
     if (data && data.error) {
       throw new Error(data.error);
     }
 
-    // 3. Siker
-    return {
-      title: data.title || 'Elemzés',
-      analysis: data.analysis || 'Nem sikerült elemezni az adatokat.',
-      verdict: data.verdict || 'Nincs konklúzió.',
-      winner: data.winner || 'draw'
-    };
+    return data as InsightResult;
 
   } catch (err: any) {
     console.error('Insight generation failed details:', err);
-    
-    // Itt állítjuk össze a felhasználónak megjelenő hibaüzenetet
+    // Fallback válasz hiba esetén
     return {
       title: 'Hiba történt ⚠️',
-      analysis: `Technikai részletek: ${err.message || 'Ismeretlen hiba'}. Ellenőrizd az API kulcsot és a logokat.`,
-      verdict: 'Kérlek próbáld újra később.',
-      winner: 'draw'
+      winnerId: 'draw',
+      verdict_short: 'Az adatok túl forróak voltak.',
+      daily_mission: 'Próbáld újra később!',
+      sections: [],
+      key_stats: []
     };
   }
 }
