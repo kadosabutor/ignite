@@ -22,7 +22,7 @@ export function Arena() {
   const [activeStoryIndex, setActiveStoryIndex] = useState<number | null>(null);
   const [viewedStories, setViewedStories] = useState<Record<string, string>>({}); // ID -> Timestamp
   
-  // Snapshot a sztorik sorrendjéről a megnyitás pillanatában
+  // ÚJ: Snapshot a sztorik sorrendjéről a megnyitás pillanatában
   const [storyQueue, setStoryQueue] = useState<any[]>([]);
   
   const [isLoading, setIsLoading] = useState(false);
@@ -108,28 +108,40 @@ export function Arena() {
     }
   };
 
-  // Sztori megnyitása
-  const handleOpenStory = (index: number) => {
-    const currentQueue = [...stories];
-    setStoryQueue(currentQueue);
+  // Sztori megnyitása VAGY Profilra navigálás
+  const handleStoryClick = (index: number) => {
+    const story = stories[index];
     
-    const story = currentQueue[index];
-    if (!story.todayCompleted && story.id !== user?.id) return;
+    // Ha van mai bejegyzés, nyissuk meg a sztorit
+    if (story.todayCompleted) {
+        // 1. Lefotózzuk a jelenlegi listát
+        const currentQueue = [...stories];
+        setStoryQueue(currentQueue);
+        
+        vibrate(5);
+        setActiveStoryIndex(index);
 
-    vibrate(5);
-    setActiveStoryIndex(index);
-
-    const newViewed = { ...viewedStories, [story.id]: new Date().toISOString() };
-    setViewedStories(newViewed);
-    localStorage.setItem('ignite_viewed_stories', JSON.stringify(newViewed));
+        // 3. Mentés
+        const newViewed = { ...viewedStories, [story.id]: new Date().toISOString() };
+        setViewedStories(newViewed);
+        localStorage.setItem('ignite_viewed_stories', JSON.stringify(newViewed));
+    } else {
+        // Ha nincs, irány a profil
+        if (story.id === user?.id) {
+            navigate('/profile');
+        } else {
+            navigate(`/friend/${story.id}`);
+        }
+    }
   };
 
-  // Belső navigáció
+  // Belső navigáció - A SNAPSHOT LISTÁN HALADUNK
   const handleInternalNavigation = (newIndex: number) => {
     const story = storyQueue[newIndex];
     if (story) {
       setActiveStoryIndex(newIndex);
       
+      // Itt is mentjük a megtekintést
       const newViewed = { ...viewedStories, [story.id]: new Date().toISOString() };
       setViewedStories(newViewed);
       localStorage.setItem('ignite_viewed_stories', JSON.stringify(newViewed));
@@ -141,7 +153,9 @@ export function Arena() {
   const handleNextStory = () => {
     if (activeStoryIndex === null) return;
     
+    // Keressük a következőt a FIX listában
     let nextIndex = activeStoryIndex + 1;
+    // Átugorjuk az üreseket
     while (nextIndex < storyQueue.length && !storyQueue[nextIndex].todayCompleted) {
       nextIndex++;
     }
@@ -157,7 +171,7 @@ export function Arena() {
     if (activeStoryIndex === null) return;
 
     let prevIndex = activeStoryIndex - 1;
-    while (prevIndex >= 0 && !storyQueue[prevIndex].todayCompleted && storyQueue[prevIndex].id !== user?.id) {
+    while (prevIndex >= 0 && !storyQueue[prevIndex].todayCompleted) {
       prevIndex--;
     }
 
@@ -170,19 +184,16 @@ export function Arena() {
 
   const handleCloseStory = () => {
     setActiveStoryIndex(null);
-    setStoryQueue([]);
+    setStoryQueue([]); // Töröljük a snapshotot
   };
 
-  // JAVÍTVA: Átadjuk a state-et a navigációnál
   const handleVSMode = () => {
     if (activeStoryIndex === null) return;
     const friend = storyQueue[activeStoryIndex];
     if (friend.id === user?.id) {
-        // Saját magunknál az analízis fülre ugrunk (ami a profil oldalon a "vs" megfelelője)
-        navigate('/profile', { state: { mode: 'analysis' } }); 
+        navigate('/profile'); 
     } else {
-        // Barátnál a VS módra ugrunk
-        navigate(`/friend/${friend.id}`, { state: { mode: 'vs' } }); 
+        navigate(`/friend/${friend.id}`); 
     }
     handleCloseStory();
   };
@@ -225,6 +236,15 @@ export function Arena() {
   const podiumOrder = [top3[1], top3[0], top3[2]].filter(Boolean);
   const restOfLeaderboard = leaderboard.slice(3);
 
+  // Függvény a navigációhoz a listából
+  const handleNavigateToProfile = (userId: string) => {
+    if (userId === user?.id) {
+        navigate('/profile');
+    } else {
+        navigate(`/friend/${userId}`);
+    }
+  };
+
   return (
     <div className={styles.container}>
       <header className={styles.header}>
@@ -247,19 +267,22 @@ export function Arena() {
             
             let ringStyle = styles.ringInactive;
 
-            if (story.todayCompleted || isMe) {
+            if (story.todayCompleted) {
                 if (isMe) {
                     ringStyle = isNew ? styles.ringMeActive : styles.ringMeInactive;
                 } else {
                     ringStyle = isNew ? styles.ringActive : styles.ringViewed;
                 }
+            } else {
+                // Ha nincs adat, de "Én" vagyok, akkor is legyen egyedi keret (de inaktív)
+                ringStyle = isMe ? styles.ringMeInactive : styles.ringInactive;
             }
 
             return (
               <div 
                 key={story.id} 
                 className={styles.storyItem}
-                onClick={() => handleOpenStory(index)}
+                onClick={() => handleStoryClick(index)} // Itt hívjuk a módosított függvényt
               >
                 <div className={`${styles.storyRing} ${ringStyle}`}>
                   <img 
@@ -267,7 +290,7 @@ export function Arena() {
                     alt={story.displayName} 
                     className={styles.storyAvatar} 
                   />
-                  {story.todayCompleted && isNew && (
+                  {story.todayCompleted && isNew && !isMe && (
                     <span className={styles.fireBadge}>🔥</span>
                   )}
                 </div>
@@ -278,6 +301,7 @@ export function Arena() {
         </div>
       </div>
 
+      {/* Hero Card megjelenítése */}
       {activeStoryIndex !== null && storyQueue.length > 0 && (
         <HeroCard
           friend={storyQueue[activeStoryIndex] as Friend}
@@ -320,7 +344,12 @@ export function Arena() {
               const podiumClass = isFirst ? styles.first : isSecond ? styles.second : styles.third;
               
               return (
-                <div key={entry.user.id} className={`${styles.podiumItem} ${podiumClass}`}>
+                <div 
+                    key={entry.user.id} 
+                    className={`${styles.podiumItem} ${podiumClass}`}
+                    onClick={() => handleNavigateToProfile(entry.user.id)}
+                    style={{ cursor: 'pointer' }}
+                >
                   <div className={styles.podiumAvatarWrapper}>
                     <span className={styles.medal}>
                       {isFirst ? '🥇' : isSecond ? '🥈' : '🥉'}
@@ -349,7 +378,12 @@ export function Arena() {
         {!isLoading && (
           <div className={styles.leaderboardList}>
             {restOfLeaderboard.map((entry) => (
-              <Card key={entry.user.id} className={styles.listItem}>
+              <Card 
+                key={entry.user.id} 
+                className={styles.listItem}
+                onClick={() => handleNavigateToProfile(entry.user.id)} // Kattintható listaelemek
+                variant="interactive"
+              >
                 <span className={styles.listPosition}>#{entry.position}</span>
                 <img 
                   src={getAvatarSrc(entry.user.avatar)} 
