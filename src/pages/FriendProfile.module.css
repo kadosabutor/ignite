@@ -68,7 +68,271 @@
   padding-bottom: 40px;
 }
 
-/* Details Grid */
+/* VS View Layout */
+.vsView {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+/* --- ENERGY HOLD BUTTON --- */
+.energyButtonContainer {
+  display: flex;
+  justify-content: center;
+  margin: 20px 0;
+}
+
+.energyButton {
+  position: relative;
+  width: 100%;
+  max-width: 280px;
+  height: 64px;
+  border-radius: 32px;
+  background: var(--color-surface);
+  border: 2px solid var(--color-primary);
+  overflow: hidden;
+  cursor: pointer;
+  box-shadow: 0 0 15px rgba(255, 112, 51, 0.2);
+  transition: transform 0.1s;
+  user-select: none;
+  -webkit-tap-highlight-color: transparent;
+}
+
+.energyButton:active {
+  transform: scale(0.98);
+}
+
+/* Töltő csík */
+.energyFill {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: linear-gradient(90deg, #ff7033, #FFD700);
+  width: 0%;
+  transition: width 0.1s linear; /* JavaScripttel hajtjuk meg */
+  box-shadow: 0 0 20px rgba(255, 215, 0, 0.6);
+}
+
+.energyText {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 800;
+  font-size: 16px;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--color-foreground);
+  text-shadow: 0 1px 3px rgba(0,0,0,0.8);
+  pointer-events: none;
+}
+
+/* --- EXPLOSION EFFECT --- */
+.explosionOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: #fff;
+  z-index: 9999;
+  animation: flash 0.8s ease-out forwards;
+  pointer-events: none;
+}
+
+@keyframes flash {
+  0% { opacity: 1; background: #fff; }
+  20% { opacity: 1; background: var(--color-primary); }
+  100% { opacity: 0; display: none; }
+}
+
+/* --- INSIGHT CARD (THE REVEAL) --- */
+.insightCard {
+  background: var(--color-surface);
+  border-radius: 24px;
+  padding: 0; /* Paddingot a belső elemek adják */
+  border: 1px solid var(--color-border);
+  overflow: hidden;
+  animation: slideUpFade 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+}
+
+/* Külön stílus a győztes szerint */
+.insightCard.winnerUser { border: 2px solid var(--color-success); box-shadow: 0 0 30px rgba(74, 222, 128, 0.2); }
+.insightCard.winnerFriend { border: 2px solid var(--color-error); box-shadow: 0 0 30px rgba(248, 113, 113, 0.2); }
+
+.insightHeader {
+  padding: 20px;
+  background: rgba(0,0,0,0.2);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  text-align: center;
+}
+
+.winnerBadge {
+  display: inline-block;
+  font-size: 48px;
+  margin-bottom: 12px;
+  filter: drop-shadow(0 4px 12px rgba(0,0,0,0.3));
+  animation: popIn 0.5s 0.2s cubic-bezier(0.34, 1.56, 0.64, 1) backwards;
+}
+
+.insightTitle {
+  font-size: 20px;
+  font-weight: 900;
+  text-transform: uppercase;
+  margin: 0 0 8px 0;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
+}
+
+.insightVerdict {
+  font-size: 14px;
+  font-style: italic;
+  color: var(--color-muted);
+  font-weight: 500;
+}
+
+/* Mission Box */
+.missionBox {
+  background: linear-gradient(135deg, rgba(255, 112, 51, 0.15) 0%, rgba(255, 112, 51, 0.05) 100%);
+  padding: 16px;
+  margin: 20px;
+  border-radius: 16px;
+  border: 1px solid rgba(255, 112, 51, 0.3);
+  text-align: center;
+}
+
+.missionLabel {
+  display: block;
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--color-primary);
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.missionText {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--color-foreground);
+}
+
+/* Section Cards (Productivity, Health, Discipline) */
+.sectionList {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0 20px 20px 20px;
+}
+
+.sectionItem {
+  background: rgba(255,255,255,0.03);
+  border-radius: 16px;
+  padding: 16px;
+  border: 1px solid rgba(255,255,255,0.05);
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.sectionTitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Tug of War Bar */
+.tugBar {
+  display: flex;
+  height: 8px;
+  border-radius: 4px;
+  overflow: hidden;
+  margin-bottom: 12px;
+  background: rgba(255,255,255,0.1);
+}
+
+.tugLeft { background-color: var(--color-success); transition: width 1s ease-out; }
+.tugRight { background-color: var(--color-error); transition: width 1s ease-out; }
+
+.sectionText {
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--color-foreground);
+}
+
+/* Key Stats */
+.keyStatsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+  padding: 0 20px 20px 20px;
+}
+
+.keyStatItem {
+  background: var(--color-background);
+  padding: 12px;
+  border-radius: 12px;
+  text-align: center;
+  border: 1px solid var(--color-border);
+}
+
+.keyStatLabel {
+  font-size: 10px;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  display: block;
+  margin-bottom: 4px;
+}
+
+.keyStatValue {
+  font-size: 16px;
+  font-weight: 800;
+}
+
+/* Loading/Empty States */
+.loadingText {
+  text-align: center;
+  color: var(--color-muted);
+  font-size: 14px;
+  padding: 20px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  animation: pulse 1.5s infinite;
+}
+
+@keyframes slideUpFade {
+  from { opacity: 0; transform: translateY(40px) scale(0.95); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes popIn {
+  from { opacity: 0; transform: scale(0.5); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes pulse {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Egyéb stílusok a profil részletekhez */
 .gridStats {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
@@ -107,7 +371,6 @@
   color: var(--color-foreground);
 }
 
-/* Bio Card */
 .bioCard {
   background-color: var(--color-surface) !important;
   padding: 20px !important;
@@ -128,14 +391,23 @@
   margin: 0;
 }
 
-/* VS View */
-.vsView {
+.emptyState {
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: var(--color-muted);
+  text-align: center;
+  gap: 12px;
 }
 
-.chartCard, .explanationCard {
+.emptyIcon {
+  font-size: 40px;
+  opacity: 0.5;
+}
+
+.chartCard {
   background-color: var(--color-surface) !important;
   padding: 20px !important;
   display: flex;
@@ -169,248 +441,4 @@
   width: 10px;
   height: 10px;
   border-radius: 50%;
-}
-
-/* Explanation Styles */
-.explanationList {
-  width: 100%;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.explanationItem {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-  border-bottom: 1px solid var(--color-border);
-}
-
-.explanationItem:last-child {
-  border-bottom: none;
-}
-
-.explanationName {
-  font-size: 13px;
-  font-weight: 700;
-  color: var(--color-primary);
-}
-
-.explanationDesc {
-  font-size: 12px;
-  color: var(--color-muted);
-}
-
-.emptyState, .loading, .error {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-  color: var(--color-muted);
-  text-align: center;
-  gap: 12px;
-}
-
-.emptyIcon {
-  font-size: 40px;
-  opacity: 0.5;
-}
-
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(10px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* --- LOOT BOX & AI REVEAL --- */
-
-/* A gomb, ami elindítja */
-.magicButton {
-  background: linear-gradient(135deg, #FFD700 0%, #ff7033 100%);
-  border: none;
-  padding: 16px;
-  border-radius: 16px;
-  color: #121212;
-  font-weight: 800;
-  font-size: 16px;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  width: 100%;
-  cursor: pointer;
-  box-shadow: 0 0 20px rgba(255, 112, 51, 0.4);
-  transition: all 0.2s;
-  position: relative;
-  overflow: hidden;
-  margin-top: 20px;
-}
-
-.magicButton:active { transform: scale(0.95); }
-
-/* A Loot Box Konténer */
-.lootBoxContainer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 40px;
-  background: radial-gradient(circle, rgba(255,112,51,0.1) 0%, rgba(0,0,0,0) 70%);
-}
-
-.mysteryOrb {
-  font-size: 60px;
-  filter: drop-shadow(0 0 20px rgba(255, 112, 51, 0.8));
-  transition: all 0.3s;
-}
-
-/* Animációk */
-.shaking {
-  animation: shake 0.5s cubic-bezier(.36,.07,.19,.97) infinite both;
-}
-
-@keyframes shake {
-  10%, 90% { transform: translate3d(-1px, 0, 0) rotate(-2deg); }
-  20%, 80% { transform: translate3d(2px, 0, 0) rotate(2deg); }
-  30%, 50%, 70% { transform: translate3d(-4px, 0, 0) rotate(-4deg); }
-  40%, 60% { transform: translate3d(4px, 0, 0) rotate(4deg); }
-}
-
-.exploding {
-  animation: explode 0.5s forwards;
-}
-
-@keyframes explode {
-  0% { transform: scale(1); opacity: 1; }
-  50% { transform: scale(1.5); opacity: 0.5; filter: blur(10px); }
-  100% { transform: scale(2); opacity: 0; }
-}
-
-/* Az Insight Kártya (A "Loot") */
-.insightCard {
-  background: var(--color-surface);
-  border-radius: 20px;
-  padding: 24px;
-  margin-top: 20px;
-  animation: popIn 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-  border: 1px solid var(--color-border);
-  position: relative;
-  overflow: hidden;
-  width: 100%;
-}
-
-.insightCard.winnerUser {
-  border: 2px solid var(--color-success);
-  box-shadow: 0 0 30px rgba(74, 222, 128, 0.15);
-}
-
-.insightCard.winnerFriend {
-  border: 2px solid var(--color-error);
-  box-shadow: 0 0 30px rgba(248, 113, 113, 0.15);
-}
-
-.insightHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-  padding-bottom: 12px;
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-}
-
-.insightTitle {
-  font-size: 18px;
-  font-weight: 800;
-  text-transform: uppercase;
-  margin: 0;
-  letter-spacing: -0.5px;
-}
-
-.winnerIcon { font-size: 24px; }
-
-.insightBody {
-  font-size: 14px;
-  line-height: 1.6;
-  color: var(--color-foreground);
-  margin-bottom: 20px;
-}
-
-/* Összehasonlító Chart (Bar) */
-.comparisonChart {
-  background: rgba(0,0,0,0.3);
-  padding: 16px;
-  border-radius: 12px;
-  margin-bottom: 20px;
-}
-
-.metricTitle {
-  font-size: 11px;
-  text-transform: uppercase;
-  color: var(--color-muted);
-  margin-bottom: 8px;
-  display: block;
-  text-align: center;
-  font-weight: 700;
-}
-
-.barContainer {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  margin-bottom: 8px;
-}
-
-.barLabel {
-  font-size: 12px;
-  width: 30px;
-  font-weight: 700;
-}
-
-.barTrack {
-  flex: 1;
-  height: 8px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 4px;
-  overflow: hidden;
-}
-
-.barFill {
-  height: 100%;
-  border-radius: 4px;
-  transition: width 1s ease-out;
-}
-
-.barValue {
-  font-size: 12px;
-  font-weight: 700;
-  width: 40px;
-  text-align: right;
-}
-
-/* Verdict Box */
-.verdictBox {
-  background: rgba(255, 255, 255, 0.05);
-  padding: 12px;
-  border-radius: 12px;
-  border-left: 4px solid var(--color-primary);
-}
-
-.verdictLabel {
-  font-size: 10px;
-  color: var(--color-muted);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  display: block;
-  margin-bottom: 4px;
-}
-
-.verdictText {
-  font-size: 13px;
-  font-weight: 700;
-  font-style: italic;
-  color: var(--color-foreground);
-}
-
-@keyframes popIn {
-  from { opacity: 0; transform: translateY(20px) scale(0.95); }
-  to { opacity: 1; transform: translateY(0) scale(1); }
 }
