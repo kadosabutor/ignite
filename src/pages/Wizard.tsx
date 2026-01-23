@@ -1,138 +1,496 @@
-import { useState } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
+import { Button, TimeInput, Toggle } from '../components/ui';
+import { calculateSleepMinutes, calculateTotalScore, getTodayString } from '../lib/scoring';
 import { createNewEntry } from '../lib/supabase';
-import { calculateTotalScore, getTodayString } from '../lib/scoring';
-import { getDailyRank } from '../lib/gamification';
+import type { HabitEntry } from '../types';
 import styles from './Wizard.module.css';
 
-// Lépések definíciója
 const STEPS = [
-  { id: 'sleep', type: 'number', title: 'Mennyit aludtál?', icon: '🌙', field: 'sleepMinutes', max: 720, step: 30 },
-  { id: 'work', type: 'number', title: 'Mennyit dolgoztál?', icon: '💼', field: 'businessMinutes', max: 960, step: 30 },
-  { id: 'exercise', type: 'bool', title: 'Edzettél ma?', icon: '💪', field: 'exercise' },
-  { id: 'clean', type: 'bool', title: 'Tisztán ettél?', icon: '🍎', field: 'cleanEating' },
-  { id: 'mind', type: 'bool', title: 'Volt paradigma?', icon: '🧠', field: 'paradigm' },
-  { id: 'purity_fap', type: 'bool_neg', title: 'Kielégülés?', icon: '💦', field: 'satisfaction' }, // Negatív = Ha igen, az rossz
-  { id: 'purity_dopa', type: 'bool_neg', title: 'Görgetés?', icon: '📱', field: 'dopamineContent' },
-  { id: 'purity_game', type: 'bool_neg', title: 'Gaming?', icon: '🎮', field: 'gaming' },
+  { id: 'sleep', title: 'Alvás', icon: '🌙' },
+  { id: 'work', title: 'Business', icon: '💼' },
+  { id: 'health', title: 'Egészség', icon: '💪' },
+  { id: 'purity', title: 'Tisztaság', icon: '✨' },
+  { id: 'summary', title: 'Összegzés', icon: '📊' },
 ];
 
 export function Wizard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { saveEntry, getEntryByDate } = useHabits();
+  const { getEntryByDate, saveEntry } = useHabits();
+  
   const dateParam = searchParams.get('date') || getTodayString();
+  const existingEntry = getEntryByDate(dateParam);
   
   const [currentStep, setCurrentStep] = useState(0);
-  const [entry, setEntry] = useState(() => getEntryByDate(dateParam) || createNewEntry(dateParam));
-  const [showResult, setShowResult] = useState(false);
+  const [entry, setEntry] = useState<HabitEntry>(() => 
+    existingEntry || createNewEntry(dateParam)
+  );
+  const [showMinuteInput, setShowMinuteInput] = useState(false);
+  const [customMinutes, setCustomMinutes] = useState('');
+  const [isSaving, setIsSaving] = useState(false);
 
-  const step = STEPS[currentStep];
-  const progress = ((currentStep) / STEPS.length) * 100;
+  // Refs for auto-focus
+  const wakeMinutesRef = useRef<HTMLInputElement>(null);
 
-  const handleUpdate = (value: any) => {
-    setEntry(prev => ({ ...prev, [step.field]: value }));
+  // Update sleep minutes when times change
+  useEffect(() => {
+    if (entry.bedTime && entry.wakeUpTime) {
+      const sleepMins = calculateSleepMinutes(entry.bedTime, entry.wakeUpTime);
+      setEntry(prev => ({ ...prev, sleepMinutes: sleepMins }));
+    }
+  }, [entry.bedTime, entry.wakeUpTime]);
+
+  const updateEntry = (updates: Partial<HabitEntry>) => {
+    setEntry(prev => ({ ...prev, ...updates }));
   };
 
   const handleNext = () => {
-    // Haptikus visszajelzés
-    if (navigator.vibrate) navigator.vibrate(10);
-    
     if (currentStep < STEPS.length - 1) {
       setCurrentStep(prev => prev + 1);
-    } else {
-      // Ez volt az utolsó, de itt még nem mentünk, csak megjelenítjük az Ignite gombot
     }
   };
 
-  const handleIgnite = async () => {
-    // ROBBANÁS
-    if (navigator.vibrate) navigator.vibrate([50, 50, 100]);
-    
-    const finalEntry = { ...entry, score: calculateTotalScore(entry) };
-    await saveEntry(finalEntry);
-    setShowResult(true);
+  const handlePrev = () => {
+    if (currentStep > 0) {
+      setCurrentStep(prev => prev - 1);
+    }
   };
 
-  // Eredmény adatok
-  const score = calculateTotalScore(entry);
-  const rank = getDailyRank(score);
+  const handleSkip = () => {
+    handleNext();
+  };
 
-  if (showResult) {
-    return (
-      <div className={styles.resultOverlay}>
-        <div className={styles.resultScore} style={{ color: rank.color, textShadow: `0 0 40px ${rank.color}` }}>
-          {Math.round(score)}
-        </div>
-        <div className={styles.resultRank} style={{ color: rank.color }}>
-          {rank.title}
-        </div>
-        <p className={styles.resultMsg}>{rank.msg}</p>
-        <button className={styles.finishBtn} onClick={() => navigate('/')}>
-          Tovább a menübe
-        </button>
-      </div>
-    );
-  }
+  const handleSave = async () => {
+    if (isSaving) return;
+    
+    setIsSaving(true);
+    try {
+      const finalEntry = { ...entry, score: calculateTotalScore(entry) };
+      await saveEntry(finalEntry);
+      navigate(`/summary?date=${dateParam}`);
+    } catch (error) {
+      console.error('Mentési hiba:', error);
+      alert('Nem sikerült elmenteni az adatokat. Kérlek próbáld újra!');
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  // Munkaidő kezelő függvények
+  const handleWorkHourSelect = (hours: number) => {
+    updateEntry({ businessMinutes: hours * 60 });
+  };
+
+  // Beállítja a percet az adott negyedórára (megtartva az órát)
+  const handleWorkMinuteSnap = (minutes: number) => {
+    const currentHours = Math.floor(entry.businessMinutes / 60);
+    updateEntry({ businessMinutes: currentHours * 60 + minutes });
+  };
+
+  // Hozzáad vagy elvesz perceket
+  const adjustMinutes = (amount: number) => {
+    const newVal = Math.max(0, entry.businessMinutes + amount);
+    updateEntry({ businessMinutes: newVal });
+  };
+
+  const handleCustomMinutesSubmit = () => {
+    const mins = parseInt(customMinutes, 10);
+    if (!isNaN(mins) && mins >= 0) {
+      updateEntry({ businessMinutes: mins });
+    }
+    setShowMinuteInput(false);
+    setCustomMinutes('');
+  };
+
+  const score = calculateTotalScore(entry);
+
+  const renderStepContent = () => {
+    switch (STEPS[currentStep].id) {
+      case 'sleep':
+        return (
+          <div className={styles.stepContent}>
+            <h2 className={styles.stepTitle}>Mikor aludtál el és keltél fel?</h2>
+            
+            <div className={styles.timeSection}>
+              <div className={styles.timeBlock}>
+                <span className={styles.timeLabel}>Lefekvés</span>
+                <TimeInput
+                  value={entry.bedTime || ''}
+                  onChange={(val) => updateEntry({ bedTime: val })}
+                  onComplete={() => wakeMinutesRef.current?.focus()}
+                />
+              </div>
+              
+              <div className={styles.timeBlock}>
+                <span className={styles.timeLabel}>Ébredés</span>
+                <TimeInput
+                  value={entry.wakeUpTime || ''}
+                  onChange={(val) => updateEntry({ wakeUpTime: val })}
+                />
+              </div>
+            </div>
+            
+            {entry.sleepMinutes > 0 && (
+              <div className={styles.sleepResult}>
+                <span className={styles.sleepIcon}>😴</span>
+                <span className={styles.sleepDuration}>
+                  {Math.floor(entry.sleepMinutes / 60)}ó {entry.sleepMinutes % 60}p alvás
+                </span>
+              </div>
+            )}
+          </div>
+        );
+
+      case 'work':
+        return (
+          <div className={styles.stepContent}>
+            <h2 className={styles.stepTitle}>Mennyit dolgoztál ma?</h2>
+            
+            <div className={styles.currentValue}>
+              <span className={styles.bigNumber}>
+                {Math.floor(entry.businessMinutes / 60)}
+              </span>
+              <span className={styles.unit}>óra</span>
+              <span className={styles.bigNumber}>
+                {entry.businessMinutes % 60}
+              </span>
+              <span className={styles.unit}>perc</span>
+            </div>
+            
+            {/* Hour buttons */}
+            <div className={styles.hourGrid}>
+              {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((hour) => (
+                <button
+                  key={hour}
+                  className={`${styles.hourButton} ${Math.floor(entry.businessMinutes / 60) === hour ? styles.hourActive : ''}`}
+                  onClick={() => handleWorkHourSelect(hour)}
+                >
+                  {hour}h
+                </button>
+              ))}
+            </div>
+            
+            {/* Minute buttons (Snap to quarter) */}
+            <div className={styles.minuteGrid}>
+              {[0, 15, 30, 45].map((min) => (
+                <button
+                  key={min}
+                  className={`${styles.minuteButton} ${entry.businessMinutes % 60 === min ? styles.minuteActive : ''}`}
+                  onClick={() => handleWorkMinuteSnap(min)}
+                >
+                  :{min.toString().padStart(2, '0')}
+                </button>
+              ))}
+            </div>
+
+            {/* Fine tuning buttons */}
+            <div className={styles.fineTuneSection}>
+              <span className={styles.fineTuneLabel}>Finomhangolás</span>
+              <div className={styles.fineTuneGrid}>
+                <button className={styles.fineTuneButton} onClick={() => adjustMinutes(-5)}>-5p</button>
+                <button className={styles.fineTuneButton} onClick={() => adjustMinutes(-1)}>-1p</button>
+                <button className={styles.fineTuneButton} onClick={() => adjustMinutes(1)}>+1p</button>
+                <button className={styles.fineTuneButton} onClick={() => adjustMinutes(5)}>+5p</button>
+              </div>
+            </div>
+            
+            {/* Custom minute input */}
+            <div className={styles.customMinuteSection}>
+              {showMinuteInput ? (
+                <div className={styles.customInputRow}>
+                  <input
+                    type="number"
+                    value={customMinutes}
+                    onChange={(e) => setCustomMinutes(e.target.value)}
+                    placeholder="Percek"
+                    className={styles.customInput}
+                    autoFocus
+                  />
+                  <Button size="sm" onClick={handleCustomMinutesSubmit}>OK</Button>
+                  <Button size="sm" variant="ghost" onClick={() => setShowMinuteInput(false)}>✕</Button>
+                </div>
+              ) : (
+                <button
+                  className={styles.customButton}
+                  onClick={() => setShowMinuteInput(true)}
+                >
+                  Pontos perc megadása (billentyűzet)
+                </button>
+              )}
+            </div>
+          </div>
+        );
+
+      case 'health':
+        return (
+          <div className={styles.stepContent}>
+            <h2 className={styles.stepTitle}>Egészség</h2>
+            
+            <div className={styles.toggleSection}>
+              <div className={styles.toggleItem}>
+                <span className={styles.toggleLabel}>Edzettél ma?</span>
+                <Toggle
+                  value={entry.exercise}
+                  onChange={(val) => updateEntry({ exercise: val })}
+                  positiveLabel="Igen"
+                  negativeLabel="Nem"
+                  positiveColor="success"
+                  negativeColor="error"
+                />
+                <span className={styles.toggleHint}>
+                  {entry.exercise ? '+7 pont' : '0 pont'}
+                </span>
+              </div>
+              
+              <div className={styles.toggleItem}>
+                <span className={styles.toggleLabel}>Tisztán étkeztél?</span>
+                <Toggle
+                  value={entry.cleanEating}
+                  onChange={(val) => updateEntry({ cleanEating: val })}
+                  positiveLabel="Igen"
+                  negativeLabel="Nem"
+                  positiveColor="success"
+                  negativeColor="error"
+                />
+                <span className={styles.toggleHint}>
+                  {entry.cleanEating ? '+6 pont' : '0 pont'}
+                </span>
+              </div>
+              
+              <div className={styles.toggleItem}>
+                <span className={styles.toggleLabel}>Paradigma váltás?</span>
+                <Toggle
+                  value={entry.paradigm}
+                  onChange={(val) => updateEntry({ paradigm: val })}
+                  positiveLabel="Igen"
+                  negativeLabel="Nem"
+                  positiveColor="success"
+                  negativeColor="error"
+                />
+                <span className={styles.toggleHint}>
+                  {entry.paradigm ? '+5 pont' : '0 pont'}
+                </span>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'purity':
+        return (
+          <div className={styles.stepContent}>
+            <h2 className={styles.stepTitle}>Tisztaság</h2>
+            
+            <div className={styles.toggleSection}>
+              <div className={styles.toggleItem}>
+                <span className={styles.toggleLabel}>Volt kielégülés?</span>
+                <Toggle
+                  value={entry.satisfaction}
+                  onChange={(val) => updateEntry({ satisfaction: val })}
+                  positiveLabel="Igen"
+                  negativeLabel="Nem"
+                  positiveColor="error"
+                  negativeColor="success"
+                />
+                <span className={styles.toggleHint}>
+                  {!entry.satisfaction ? '+4 pont' : '0 pont'}
+                </span>
+              </div>
+              
+              <div className={styles.toggleItem}>
+                <span className={styles.toggleLabel}>Dopamindús tartalom?</span>
+                <Toggle
+                  value={entry.dopamineContent}
+                  onChange={(val) => updateEntry({ dopamineContent: val })}
+                  positiveLabel="Igen"
+                  negativeLabel="Nem"
+                  positiveColor="error"
+                  negativeColor="success"
+                />
+                <span className={styles.toggleHint}>
+                  {!entry.dopamineContent ? '+3 pont' : '0 pont'}
+                </span>
+              </div>
+              
+              <div className={styles.toggleItem}>
+                <span className={styles.toggleLabel}>Gaming?</span>
+                <Toggle
+                  value={entry.gaming}
+                  onChange={(val) => updateEntry({ gaming: val })}
+                  positiveLabel="Igen"
+                  negativeLabel="Nem"
+                  positiveColor="error"
+                  negativeColor="success"
+                />
+                <span className={styles.toggleHint}>
+                  {!entry.gaming ? '+5 pont' : '0 pont'}
+                </span>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'summary':
+        return (
+          <div className={styles.stepContent}>
+            <h2 className={styles.stepTitle}>Összegzés</h2>
+            
+            <div className={styles.summaryScore}>
+              <span className={styles.summaryScoreValue}>{Math.round(score)}</span>
+              <span className={styles.summaryScoreLabel}>pont</span>
+            </div>
+            
+            <div className={styles.summaryGrid}>
+              <div className={styles.summaryItem}>
+                <span className={styles.summaryIcon}>🌙</span>
+                <span className={styles.summaryLabel}>Alvás</span>
+                <span className={styles.summaryValue}>
+                  {entry.sleepMinutes > 0 
+                    ? `${Math.floor(entry.sleepMinutes / 60)}ó ${entry.sleepMinutes % 60}p`
+                    : '—'
+                  }
+                </span>
+              </div>
+              <div className={styles.summaryItem}>
+                <span className={styles.summaryIcon}>💼</span>
+                <span className={styles.summaryLabel}>Munka</span>
+                <span className={styles.summaryValue}>
+                  {Math.floor(entry.businessMinutes / 60)}ó {entry.businessMinutes % 60}p
+                </span>
+              </div>
+              <div className={styles.summaryItem}>
+                <span className={styles.summaryIcon}>💪</span>
+                <span className={styles.summaryLabel}>Edzés</span>
+                <span className={styles.summaryValue}>{entry.exercise ? '✓' : '✗'}</span>
+              </div>
+              <div className={styles.summaryItem}>
+                <span className={styles.summaryIcon}>🍎</span>
+                <span className={styles.summaryLabel}>Étkezés</span>
+                <span className={styles.summaryValue}>{entry.cleanEating ? '✓' : '✗'}</span>
+              </div>
+              <div className={styles.summaryItem}>
+                <span className={styles.summaryIcon}>🧠</span>
+                <span className={styles.summaryLabel}>Paradigma</span>
+                <span className={styles.summaryValue}>{entry.paradigm ? '✓' : '✗'}</span>
+              </div>
+              <div className={styles.summaryItem}>
+                <span className={styles.summaryIcon}>✨</span>
+                <span className={styles.summaryLabel}>Tisztaság</span>
+                <span className={styles.summaryValue}>
+                  {!entry.satisfaction && !entry.dopamineContent && !entry.gaming ? '✓' : 'Részben'}
+                </span>
+              </div>
+            </div>
+            
+            {/* JAVÍTOTT REFLEXIÓS KÉRDÉSEK (9. PONT) */}
+            <div className={styles.reflectionSection}>
+              <h3 className={styles.reflectionTitle}>Önreflexió</h3>
+              
+              {/* 1. Napi napló */}
+              <div className={styles.reflectionItem}>
+                <label className={styles.reflectionLabel}>
+                  Hogy telt a napod? (Napló)
+                </label>
+                <textarea
+                  className={styles.reflectionInput}
+                  value={entry.approachedGoal || ''} // DB: reflection_goal
+                  onChange={(e) => updateEntry({ approachedGoal: e.target.value })}
+                  placeholder="Írd le röviden a mai nap eseményeit..."
+                  rows={3}
+                />
+              </div>
+              
+              {/* 2. Akadályok */}
+              <div className={styles.reflectionItem}>
+                <label className={styles.reflectionLabel}>
+                  Akadályozott ma valami/valaki a célod elérésében?
+                </label>
+                <textarea
+                  className={styles.reflectionInput}
+                  value={entry.businessObstacle || ''} // DB: reflection_obstacle
+                  onChange={(e) => updateEntry({ businessObstacle: e.target.value })}
+                  placeholder="Nehézségek, kizökkentő tényezők..."
+                  rows={2}
+                />
+              </div>
+              
+              {/* 3. Fejlődés */}
+              <div className={styles.reflectionItem}>
+                <label className={styles.reflectionLabel}>
+                  Mit rontottál el, és hogyan lehetnél jobb?
+                </label>
+                <textarea
+                  className={styles.reflectionInput}
+                  value={entry.personalObstacle || ''} // DB: reflection_personal
+                  onChange={(e) => updateEntry({ personalObstacle: e.target.value })}
+                  placeholder="Tanulságok a holnapi napra..."
+                  rows={2}
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className={styles.container}>
+      {/* Progress bar */}
       <div className={styles.progressBar}>
-        <div className={styles.progressFill} style={{ width: `${progress}%` }} />
+        {STEPS.map((step, index) => (
+          <div
+            key={step.id}
+            className={`${styles.progressStep} ${index <= currentStep ? styles.progressActive : ''}`}
+          />
+        ))}
       </div>
 
-      <div className={styles.content}>
-        <h2 className={styles.questionTitle}>{step.title}</h2>
-
-        {/* SZÁM BEVITEL (Slider) */}
-        {step.type === 'number' && (
-          <div className={styles.neonInputWrapper}>
-            <div className={styles.neonValue}>
-              {Math.floor((entry[step.field as keyof typeof entry] as number) / 60)}ó
-            </div>
-            <div className={styles.sliderContainer}>
-              <input 
-                type="range" 
-                min="0" 
-                max={step.max} 
-                step={step.step}
-                value={entry[step.field as keyof typeof entry] as number}
-                onChange={(e) => handleUpdate(Number(e.target.value))}
-                className={styles.rangeSlider}
-              />
-            </div>
-            <button className={styles.finishBtn} onClick={handleNext}>TOVÁBB</button>
-          </div>
-        )}
-
-        {/* KÁRTYA BEVITEL (Igen/Nem) */}
-        {(step.type === 'bool' || step.type === 'bool_neg') && (
-          <div className={styles.swipeCard}>
-            <div className={styles.cardIcon}>{step.icon}</div>
-            <div className={styles.swipeActions}>
-              <button className={`${styles.swipeBtn} ${styles.btnNo}`} onClick={() => { handleUpdate(false); handleNext(); }}>
-                ✕
-              </button>
-              <button className={`${styles.swipeBtn} ${styles.btnYes}`} onClick={() => { handleUpdate(true); handleNext(); }}>
-                ✓
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* IGNITE GOMB (Csak az utolsó lépés után jelenik meg, ha már minden kitöltve) */}
-        {/* Itt egy trükk: Ha az utolsó lépésnél vagyunk, és választottunk, akkor jöhet az Ignite */}
-      </div>
-
-      {/* Speciális eset: Ha az utolsó lépésnél vagyunk és ez egy interakció volt */}
-      {currentStep === STEPS.length - 1 && (
-        <div style={{ position: 'absolute', bottom: 40, left: 0, right: 0, display: 'flex', justifyContent: 'center' }}>
-          <button className={styles.igniteBtn} onClick={handleIgnite}>
-            IGNITE DAY 🔥
-          </button>
+      {/* Header */}
+      <header className={styles.header}>
+        <button className={styles.backButton} onClick={() => navigate(-1)}>
+          ← Vissza
+        </button>
+        <div className={styles.stepIndicator}>
+          <span className={styles.stepIcon}>{STEPS[currentStep].icon}</span>
+          <span className={styles.stepName}>{STEPS[currentStep].title}</span>
         </div>
-      )}
+        <span className={styles.stepCount}>
+          {currentStep + 1}/{STEPS.length}
+        </span>
+      </header>
+
+      {/* Content */}
+      <main className={styles.main}>
+        {renderStepContent()}
+      </main>
+
+      {/* Footer */}
+      <footer className={styles.footer}>
+        {currentStep > 0 && (
+          <Button variant="ghost" onClick={handlePrev} disabled={isSaving}>
+            Előző
+          </Button>
+        )}
+        
+        {currentStep < STEPS.length - 1 ? (
+          <>
+            <Button variant="ghost" onClick={handleSkip} disabled={isSaving}>
+              Kihagyás
+            </Button>
+            <Button onClick={handleNext} disabled={isSaving}>
+              Következő
+            </Button>
+          </>
+        ) : (
+          <Button onClick={handleSave} size="lg" disabled={isSaving}>
+            {isSaving ? 'Mentés...' : 'Mentés'}
+          </Button>
+        )}
+      </footer>
     </div>
   );
 }
