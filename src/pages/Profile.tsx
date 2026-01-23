@@ -1,7 +1,7 @@
 import { useState, useMemo, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
-import { Button, Card, Input, Switch } from '../components/ui';
+import { Button, Input, Switch } from '../components/ui'; // Card KIVÉVE
 import { calculateXP, calculateAttributes, ATTRIBUTE_DESCRIPTIONS } from '../lib/gamification';
 import { getAvatarSrc, RANKS, AVATARS, type AvatarType } from '../types';
 import * as supabase from '../lib/supabase';
@@ -354,32 +354,19 @@ export function Profile() {
         </div>
       </div>
 
-      {/* 5. GYORS MENÜ */}
+      {/* 5. MENÜ GOMBOK */}
       <div className={styles.menuGrid}>
-        <Button 
-            className={styles.menuBtn} 
-            variant="secondary" 
-            onClick={() => navigate('/friends')}
-        >
+        <button className={styles.menuBtn} onClick={() => navigate('/friends')}>
           <span className={styles.menuIcon}>👥</span>
           Barátok
-        </Button>
-        <Button 
-            className={styles.menuBtn} 
-            variant="secondary" 
-            onClick={() => navigate('/history')}
-        >
+        </button>
+        <button className={styles.menuBtn} onClick={() => navigate('/history')}>
           <span className={styles.menuIcon}>📜</span>
           Napló
-        </Button>
-        <Button 
-            className={styles.menuBtn} 
-            style={{ gridColumn: 'span 2', borderColor: 'var(--color-error)', color: 'var(--color-error)' }} 
-            variant="ghost"
-            onClick={handleSignOut}
-        >
+        </button>
+        <button className={styles.menuBtn} style={{ gridColumn: 'span 2', borderColor: 'var(--color-error)', color: 'var(--color-error)' }} onClick={handleSignOut}>
           Kijelentkezés
-        </Button>
+        </button>
       </div>
     </div>
   );
