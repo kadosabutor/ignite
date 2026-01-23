@@ -1,12 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
 import { Button, Card } from '../components/ui';
 import { ProfileCard } from '../components/ProfileCard';
 import { RadarChart } from '../components/RadarChart';
 import { calculateRadarStats } from '../lib/scoring';
 import { generateInsight, type InsightResult } from '../lib/insight-engine';
-import type { HabitEntry } from '../types';
 import * as supabase from '../lib/supabase';
 import styles from './FriendProfile.module.css';
 
@@ -22,23 +21,16 @@ const CATEGORY_EXPLANATIONS = {
 export function FriendProfile() {
   const { friendId } = useParams<{ friendId: string }>();
   const navigate = useNavigate();
-  const location = useLocation(); // Navigációs state eléréséhez
-  const { friends, entries: myEntries } = useHabits();
+  const { friends, entries: myEntries, user } = useHabits(); // user is kell a nevemhez
   
   const [viewMode, setViewMode] = useState<'details' | 'vs'>('details');
-  const [friendEntries, setFriendEntries] = useState<HabitEntry[]>([]);
+  const [friendEntries, setFriendEntries] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const [isInsightLoading, setIsInsightLoading] = useState(false); // Külön töltés állapot az AI-nak
   const [insight, setInsight] = useState<InsightResult | null>(null);
   
   // Find friend
   const friend = friends.find(f => f.id === friendId);
-
-  // Navigáció kezelése: Ha 'vs' módban érkezünk
-  useEffect(() => {
-    if (location.state && (location.state as any).mode === 'vs') {
-      setViewMode('vs');
-    }
-  }, [location.state]);
   
   // Load friend's entries ONLY when switching to VS mode
   useEffect(() => {
@@ -47,7 +39,7 @@ export function FriendProfile() {
         setIsLoading(true);
         try {
           const entries = await supabase.getFriendEntries(friendId, 90);
-          const sortedEntries = entries.sort((a: HabitEntry, b: HabitEntry) => 
+          const sortedEntries = entries.sort((a: any, b: any) => 
             b.date.localeCompare(a.date)
           );
           setFriendEntries(sortedEntries);
@@ -61,19 +53,28 @@ export function FriendProfile() {
     }
   }, [viewMode, friendId, friendEntries.length]);
 
-  // Insight generálás
-  useEffect(() => {
-    if (friendEntries.length > 0 && myEntries.length > 0 && friend) {
+  // Insight kézi generálása gombra kattintva
+  const handleGenerateInsight = async () => {
+    if (!friend || friendEntries.length === 0 || myEntries.length === 0) return;
+    
+    setIsInsightLoading(true);
+    try {
       const commonLength = Math.min(myEntries.length, friendEntries.length);
       
-      const result = generateInsight({
+      const result = await generateInsight({
         userEntries: myEntries.slice(0, commonLength),
         friendEntries: friendEntries.slice(0, commonLength),
+        userName: user?.displayName || 'Te',
         friendName: friend.displayName
       });
+      
       setInsight(result);
+    } catch (error) {
+      console.error(error);
+    } finally {
+      setIsInsightLoading(false);
     }
-  }, [friendEntries, myEntries, friend]);
+  };
   
   const myRadarStats = useMemo(() => calculateRadarStats(myEntries.slice(0, 30)), [myEntries]);
   const friendRadarStats = useMemo(() => calculateRadarStats(friendEntries.slice(0, 30)), [friendEntries]);
@@ -89,7 +90,6 @@ export function FriendProfile() {
 
   return (
     <div className={styles.container}>
-      {/* Header */}
       <header className={styles.header}>
         <button className={styles.backButton} onClick={() => navigate(-1)}>
           ← Vissza
@@ -98,7 +98,6 @@ export function FriendProfile() {
         <div style={{ width: 24 }} />
       </header>
       
-      {/* 1. Profil Kártya */}
       <div className={styles.profileSection}>
         <ProfileCard
           id={friend.id}
@@ -114,7 +113,6 @@ export function FriendProfile() {
         />
       </div>
 
-      {/* 2. Nézet Váltó */}
       <div className={styles.tabContainer}>
         <button 
           className={`${styles.tabButton} ${viewMode === 'details' ? styles.activeTab : ''}`}
@@ -130,10 +128,8 @@ export function FriendProfile() {
         </button>
       </div>
 
-      {/* 3. Tartalom */}
       <div className={styles.contentArea}>
         {viewMode === 'details' ? (
-          /* RÉSZLETEK NÉZET */
           <div className={styles.detailsView}>
             {friend.todayEntry ? (
               <div className={styles.gridStats}>
@@ -175,45 +171,11 @@ export function FriendProfile() {
             )}
           </div>
         ) : (
-          /* VS NÉZET */
           <div className={styles.vsView}>
             {isLoading ? (
-              <div className={styles.loading}>Elemzés betöltése...</div>
+              <div className={styles.loading}>Adatok betöltése...</div>
             ) : (
               <>
-                {/* 1. INSIGHT KÁRTYA (FELKERÜLT A CHART FÖLÉ) */}
-                {insight && (
-                  <Card 
-                    className={styles.bioCard} 
-                    style={{ 
-                      border: insight.mood === 'roast' ? '1px solid var(--color-error)' : '1px solid var(--color-success)',
-                      background: insight.mood === 'roast' ? 'rgba(248, 113, 113, 0.05)' : 'rgba(74, 222, 128, 0.05)'
-                    }}
-                  >
-                    {/* Cím: Archetípus helyett fix "ELEMZÉS" */}
-                    <h3 style={{ 
-                      color: insight.mood === 'roast' ? 'var(--color-error)' : 'var(--color-success)', 
-                      fontSize: '16px',
-                      marginBottom: '12px'
-                    }}>
-                      ELEMZÉS
-                    </h3>
-                    
-                    {/* Szöveg: Nagyobb betűméret, csak factual */}
-                    <p style={{ 
-                      marginBottom: '0', 
-                      fontSize: '16px', // Nagyobb betű
-                      lineHeight: '1.6',
-                      fontWeight: '500'
-                    }}>
-                      {insight.factualText}
-                    </p>
-                    
-                    {/* TL;DR ELTÁVOLÍTVA */}
-                  </Card>
-                )}
-
-                {/* 2. CHART KÁRTYA (LEKERÜLT) */}
                 <Card className={styles.chartCard}>
                   <h3 className={styles.cardTitle}>Képességek Összehasonlítása</h3>
                   <RadarChart 
@@ -233,6 +195,71 @@ export function FriendProfile() {
                     <span>{friend.displayName}</span>
                   </div>
                 </div>
+
+                {/* AI INSIGHT SZEKCIÓ */}
+                {!insight && !isInsightLoading && (
+                  <Button 
+                    fullWidth 
+                    variant="secondary" 
+                    onClick={handleGenerateInsight}
+                    style={{ marginTop: '20px', border: '1px solid var(--color-primary)', color: 'var(--color-primary)' }}
+                  >
+                    ✨ AI Elemzés Kérése
+                  </Button>
+                )}
+
+                {isInsightLoading && (
+                  <div className={styles.loading} style={{ height: '100px' }}>
+                    Az AI éppen analizálja az adatokat... 🤖
+                  </div>
+                )}
+
+                {insight && (
+                  <Card 
+                    className={styles.bioCard} 
+                    style={{ 
+                      marginTop: '20px',
+                      border: insight.winner === 'user' ? '1px solid var(--color-success)' : insight.winner === 'friend' ? '1px solid var(--color-error)' : '1px solid var(--color-border)',
+                      background: insight.winner === 'user' ? 'rgba(74, 222, 128, 0.05)' : insight.winner === 'friend' ? 'rgba(248, 113, 113, 0.05)' : 'var(--color-surface)'
+                    }}
+                  >
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                        <h3 style={{ 
+                        color: insight.winner === 'user' ? 'var(--color-success)' : insight.winner === 'friend' ? 'var(--color-error)' : 'var(--color-foreground)', 
+                        fontSize: '18px',
+                        margin: 0
+                        }}>
+                        {insight.title}
+                        </h3>
+                        {insight.winner === 'user' && <span style={{ fontSize: '20px' }}>🏆</span>}
+                    </div>
+                    
+                    <p style={{ marginBottom: '16px', fontSize: '14px', lineHeight: '1.6', color: 'var(--color-foreground)' }}>
+                      {insight.analysis}
+                    </p>
+                    
+                    <div style={{ 
+                      backgroundColor: 'rgba(0,0,0,0.2)', 
+                      padding: '12px', 
+                      borderRadius: '8px',
+                      borderLeft: `3px solid ${insight.winner === 'user' ? 'var(--color-success)' : insight.winner === 'friend' ? 'var(--color-error)' : 'var(--color-muted)'}`
+                    }}>
+                      <strong style={{ 
+                        display: 'block', 
+                        fontSize: '11px', 
+                        color: 'var(--color-muted)', 
+                        marginBottom: '4px', 
+                        textTransform: 'uppercase',
+                        letterSpacing: '0.05em'
+                      }}>
+                        ÍTÉLET
+                      </strong>
+                      <span style={{ fontStyle: 'italic', fontWeight: '600', fontSize: '13px' }}>
+                        "{insight.verdict}"
+                      </span>
+                    </div>
+                  </Card>
+                )}
 
                 <Card className={styles.explanationCard}>
                   <h3 className={styles.cardTitle}>Kategóriák</h3>
