@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
 import { Button, Card, Input, Switch } from '../components/ui';
 import { StreakIcon } from '../components/StreakIcon';
@@ -22,10 +22,14 @@ const CATEGORY_EXPLANATIONS = {
 
 export function Profile() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, streak, saveUser, monthlyAverage, signOut, authUser, pendingRequests, entries } = useHabits();
   const { showToast } = useToast();
   
-  const [viewMode, setViewMode] = useState<'overview' | 'analysis'>('overview');
+  // Tab kezelés: URL-ből, alapértelmezett az 'overview'
+  const initialTab = searchParams.get('tab') === 'analysis' ? 'analysis' : 'overview';
+  const [viewMode, setViewMode] = useState<'overview' | 'analysis'>(initialTab);
+  
   const [isEditing, setIsEditing] = useState(false);
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [selectedAvatar, setSelectedAvatar] = useState<AvatarType>(user?.avatar || 'lion');
@@ -46,36 +50,37 @@ export function Profile() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Radar adatok számítása
   const radarStats = useMemo(() => {
     const last30Days = entries.slice(0, 30);
     return calculateRadarStats(last30Days);
   }, [entries]);
 
-  // Insight (Jelen vs Múlt) állapotok
   const [selfInsight, setSelfInsight] = useState<InsightResult | null>(null);
   const [isInsightLoading, setIsInsightLoading] = useState(false);
 
-  // Insight generálás Effect
+  useEffect(() => {
+    // Navigáció szinkronizálása
+    const tab = searchParams.get('tab');
+    if (tab === 'analysis' && viewMode !== 'analysis') {
+      setViewMode('analysis');
+    }
+  }, [searchParams]);
+
   useEffect(() => {
     const loadSelfInsight = async () => {
-      // Csak akkor futtatjuk, ha az "analysis" nézeten vagyunk, hogy spóroljunk az API hívással,
-      // vagy ha még nincs betöltve.
-      if (entries.length < 14) return; // Kell legalább 2 hét adat
+      if (entries.length < 14) return;
       
-      // Az elmúlt 14 nap
       const currentEntries = entries.slice(0, 14);
-      // Az azt megelőző 14 nap
       const pastEntries = entries.slice(14, 28);
       
-      if (pastEntries.length < 7) return; // Ha nincs elég múltbeli adat
+      if (pastEntries.length < 7) return; 
 
       setIsInsightLoading(true);
       try {
         const result = await generateInsight({
           userEntries: currentEntries,
           friendEntries: pastEntries,
-          userName: 'Jelenlegi Éned', // KÖTELEZŐ PARAMÉTER (ez hiányzott)
+          userName: 'Jelenlegi Éned',
           friendName: 'A Múltbéli Éned'
         });
         setSelfInsight(result);
@@ -86,11 +91,10 @@ export function Profile() {
       }
     };
 
-    // Ha van elég adat és még nincs insight, töltsük be
     if (viewMode === 'analysis' && !selfInsight && entries.length > 0) {
       loadSelfInsight();
     }
-  }, [entries, viewMode, selfInsight]); // Újrafut, ha váltasz analysis nézetre
+  }, [entries, viewMode, selfInsight]);
 
   useEffect(() => {
     if (authUser) {
@@ -182,7 +186,6 @@ export function Profile() {
           <button className={styles.cancelButton} onClick={() => setIsEditing(false)}>Mégse</button>
         </header>
 
-        {/* CROPPER MODAL */}
         {cropImageSrc && (
           <ImageCropper
             imageSrc={cropImageSrc}
@@ -338,12 +341,7 @@ export function Profile() {
             </>
           ) : (
             <>
-              <Card className={styles.radarCard}>
-                <h3 className={styles.radarTitle}>Képességek</h3>
-                <RadarChart stats={radarStats} primaryLabel="Te" />
-              </Card>
-
-              {/* ÚJ: SELF INSIGHT (Jelen vs Múlt) - AI GENERÁLT */}
+              {/* 1. SELF INSIGHT (Jelen vs Múlt) - JAVÍTOTT MEGJELENÍTÉS */}
               {isInsightLoading && (
                 <div style={{ textAlign: 'center', padding: '20px', color: 'var(--color-muted)' }}>
                   Elemzés generálása az elmúlt 28 nap alapján... 🤖
@@ -351,65 +349,78 @@ export function Profile() {
               )}
 
               {selfInsight && !isInsightLoading && (
-                <Card 
-                  className={styles.explanationCard} 
+                <div 
+                  className={styles.insightCard} 
                   style={{ 
-                    // Ha a JELENLEGI ÉNED (user) nyer = ZÖLD
-                    // Ha a MÚLTBÉLI ÉNED (friend) nyer = PIROS (mert romlottál)
-                    border: selfInsight.winner === 'user' 
-                      ? '1px solid var(--color-success)' 
-                      : selfInsight.winner === 'friend' 
-                        ? '1px solid var(--color-error)'
+                    border: selfInsight.winnerId === 'user' 
+                      ? '2px solid var(--color-success)' 
+                      : selfInsight.winnerId === 'friend' 
+                        ? '2px solid var(--color-error)'
                         : '1px solid var(--color-border)',
-                    
-                    background: selfInsight.winner === 'user'
-                      ? 'rgba(74, 222, 128, 0.05)'
-                      : selfInsight.winner === 'friend'
-                        ? 'rgba(248, 113, 113, 0.05)'
-                        : 'var(--color-surface)'
+                    marginBottom: '20px'
                   }}
                 >
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
-                    <h3 style={{ 
-                      color: selfInsight.winner === 'user' 
+                  <div className={styles.insightHeader}>
+                    <span className={styles.winnerBadge}>
+                      {selfInsight.winnerId === 'user' ? '🏆' : selfInsight.winnerId === 'friend' ? '💀' : '🤝'}
+                    </span>
+                    <h3 className={styles.insightTitle} style={{ 
+                      color: selfInsight.winnerId === 'user' 
                         ? 'var(--color-success)' 
-                        : selfInsight.winner === 'friend' 
+                        : selfInsight.winnerId === 'friend' 
                           ? 'var(--color-error)' 
-                          : 'var(--color-foreground)', 
-                      fontSize: '16px', 
-                      margin: 0
+                          : 'var(--color-foreground)' 
                     }}>
                       {selfInsight.title}
                     </h3>
-                    {selfInsight.winner === 'user' && <span style={{ fontSize: '18px' }}>📈</span>}
-                    {selfInsight.winner === 'friend' && <span style={{ fontSize: '18px' }}>📉</span>}
+                    <p className={styles.insightVerdict}>{selfInsight.verdict_short}</p>
                   </div>
 
-                  <p style={{ marginBottom: '12px', fontSize: '14px', lineHeight: '1.5', color: 'var(--color-foreground)' }}>
-                    {selfInsight.analysis}
-                  </p>
-                  
-                  <div style={{ 
-                    backgroundColor: 'rgba(0,0,0,0.2)', 
-                    padding: '10px', 
-                    borderRadius: '8px',
-                    borderLeft: `3px solid ${
-                      selfInsight.winner === 'user' 
-                        ? 'var(--color-success)' 
-                        : selfInsight.winner === 'friend' 
-                          ? 'var(--color-error)' 
-                          : 'var(--color-muted)'
-                    }`
-                  }}>
-                    <strong style={{ display: 'block', fontSize: '11px', color: 'var(--color-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>
-                      JÖVŐKÉP
-                    </strong>
-                    <span style={{ fontStyle: 'italic', fontWeight: '600', fontSize: '13px' }}>
-                      {selfInsight.verdict}
-                    </span>
+                  {/* Key Stats */}
+                  <div className={styles.keyStatsGrid}>
+                    {selfInsight.key_stats.map((stat, idx) => (
+                      <div key={idx} className={styles.keyStatItem}>
+                        <span className={styles.keyStatLabel}>{stat.label}</span>
+                        <span className={styles.keyStatValue} style={{ 
+                          color: stat.advantage === 'user' ? 'var(--color-success)' : 
+                                 stat.advantage === 'friend' ? 'var(--color-error)' : 'var(--color-foreground)' 
+                        }}>
+                          {stat.diff}
+                        </span>
+                      </div>
+                    ))}
                   </div>
-                </Card>
+
+                  {/* Szekciók */}
+                  <div className={styles.sectionList}>
+                    {selfInsight.sections.map((section, idx) => (
+                      <div key={idx} className={styles.sectionItem}>
+                        <div className={styles.sectionHeader}>
+                          <span className={styles.sectionTitle}>
+                            {section.type === 'productivity' ? '💼' : section.type === 'health' ? '❤️' : '🧠'} {section.title}
+                          </span>
+                        </div>
+                        <div className={styles.tugBar}>
+                          <div className={styles.tugLeft} style={{ width: `${section.scoreUser}%` }} />
+                          <div className={styles.tugRight} style={{ width: `${section.scoreFriend}%` }} />
+                        </div>
+                        <p className={styles.sectionText}>{section.text}</p>
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Daily Mission */}
+                  <div className={styles.missionBox}>
+                    <span className={styles.missionLabel}>MAI KÜLDETÉS</span>
+                    <span className={styles.missionText}>{selfInsight.daily_mission}</span>
+                  </div>
+                </div>
               )}
+
+              <Card className={styles.radarCard}>
+                <h3 className={styles.radarTitle}>Képességek</h3>
+                <RadarChart stats={radarStats} primaryLabel="Te" />
+              </Card>
 
               <Card className={styles.explanationCard}>
                 <h3 className={styles.explanationTitle}>Magyarázatok</h3>
