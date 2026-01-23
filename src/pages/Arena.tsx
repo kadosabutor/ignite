@@ -10,25 +10,6 @@ import styles from './Arena.module.css';
 
 type LeaderboardPeriod = 'today' | 'week' | 'month';
 
-// ... (Importok változatlanok) ...
-
-// Keresd meg a handleVSMode függvényt és cseréld le erre:
-const handleVSMode = () => {
-  if (activeStoryIndex === null) return;
-  const friend = storyQueue[activeStoryIndex];
-  
-  if (friend.id === user?.id) {
-      // Saját magadnál az elemzés fülre vigyen
-      navigate('/profile'); // A Profile oldalon is implementálhatod a tab logikát később
-  } else {
-      // Barátnál közvetlenül a VS tabra
-      navigate(`/friend/${friend.id}?tab=vs`); 
-  }
-  handleCloseStory();
-};
-
-// ... (A többi rész változatlan maradhat) ...
-
 export function Arena() {
   const navigate = useNavigate();
   const { user, friends, getLeaderboard, todayEntry } = useHabits();
@@ -41,12 +22,11 @@ export function Arena() {
   const [activeStoryIndex, setActiveStoryIndex] = useState<number | null>(null);
   const [viewedStories, setViewedStories] = useState<Record<string, string>>({}); // ID -> Timestamp
   
-  // ÚJ: Snapshot a sztorik sorrendjéről a megnyitás pillanatában
+  // Snapshot a sztorik sorrendjéről
   const [storyQueue, setStoryQueue] = useState<any[]>([]);
   
   const [isLoading, setIsLoading] = useState(false);
 
-  // 1. LocalStorage betöltése induláskor
   useEffect(() => {
     const stored = localStorage.getItem('ignite_viewed_stories');
     if (stored) {
@@ -54,7 +34,6 @@ export function Arena() {
     }
   }, []);
 
-  // 2. Leaderboard betöltése
   useEffect(() => {
     const loadLeaderboard = async () => {
       setIsLoading(true);
@@ -70,11 +49,9 @@ export function Arena() {
     loadLeaderboard();
   }, [period, getLeaderboard]);
 
-  // 3. Sztorik (Barátok) listájának összeállítása és rendezése
   const stories = useMemo(() => {
     if (!user) return [];
 
-    // Saját magam
     const me = {
       id: user.id,
       username: user.username,
@@ -103,7 +80,6 @@ export function Arena() {
 
     const activeFriends = friends.filter(f => f.todayCompleted);
     
-    // Rendezés: Frissek előre
     activeFriends.sort((a, b) => {
       const aViewedAt = viewedStories[a.id];
       const bViewedAt = viewedStories[b.id];
@@ -127,25 +103,20 @@ export function Arena() {
     }
   };
 
-  // Sztori megnyitása VAGY Profilra navigálás
   const handleStoryClick = (index: number) => {
     const story = stories[index];
     
-    // Ha van mai bejegyzés, nyissuk meg a sztorit
     if (story.todayCompleted) {
-        // 1. Lefotózzuk a jelenlegi listát
         const currentQueue = [...stories];
         setStoryQueue(currentQueue);
         
         vibrate(5);
         setActiveStoryIndex(index);
 
-        // 3. Mentés
         const newViewed = { ...viewedStories, [story.id]: new Date().toISOString() };
         setViewedStories(newViewed);
         localStorage.setItem('ignite_viewed_stories', JSON.stringify(newViewed));
     } else {
-        // Ha nincs, irány a profil
         if (story.id === user?.id) {
             navigate('/profile');
         } else {
@@ -154,13 +125,11 @@ export function Arena() {
     }
   };
 
-  // Belső navigáció - A SNAPSHOT LISTÁN HALADUNK
   const handleInternalNavigation = (newIndex: number) => {
     const story = storyQueue[newIndex];
     if (story) {
       setActiveStoryIndex(newIndex);
       
-      // Itt is mentjük a megtekintést
       const newViewed = { ...viewedStories, [story.id]: new Date().toISOString() };
       setViewedStories(newViewed);
       localStorage.setItem('ignite_viewed_stories', JSON.stringify(newViewed));
@@ -172,9 +141,7 @@ export function Arena() {
   const handleNextStory = () => {
     if (activeStoryIndex === null) return;
     
-    // Keressük a következőt a FIX listában
     let nextIndex = activeStoryIndex + 1;
-    // Átugorjuk az üreseket
     while (nextIndex < storyQueue.length && !storyQueue[nextIndex].todayCompleted) {
       nextIndex++;
     }
@@ -203,16 +170,20 @@ export function Arena() {
 
   const handleCloseStory = () => {
     setActiveStoryIndex(null);
-    setStoryQueue([]); // Töröljük a snapshotot
+    setStoryQueue([]); 
   };
 
+  // --- JAVÍTOTT NAVIGÁCIÓS FÜGGVÉNY ---
   const handleVSMode = () => {
     if (activeStoryIndex === null) return;
     const friend = storyQueue[activeStoryIndex];
+    
     if (friend.id === user?.id) {
-        navigate('/profile'); 
+        // Ha saját magad, akkor a profil "Elemzés" fülére visz
+        navigate('/profile?tab=analysis'); 
     } else {
-        navigate(`/friend/${friend.id}`); 
+        // Ha barát, akkor a "VS" fülre
+        navigate(`/friend/${friend.id}?tab=vs`); 
     }
     handleCloseStory();
   };
@@ -255,7 +226,6 @@ export function Arena() {
   const podiumOrder = [top3[1], top3[0], top3[2]].filter(Boolean);
   const restOfLeaderboard = leaderboard.slice(3);
 
-  // Függvény a navigációhoz a listából
   const handleNavigateToProfile = (userId: string) => {
     if (userId === user?.id) {
         navigate('/profile');
@@ -293,7 +263,6 @@ export function Arena() {
                     ringStyle = isNew ? styles.ringActive : styles.ringViewed;
                 }
             } else {
-                // Ha nincs adat, de "Én" vagyok, akkor is legyen egyedi keret (de inaktív)
                 ringStyle = isMe ? styles.ringMeInactive : styles.ringInactive;
             }
 
@@ -301,7 +270,7 @@ export function Arena() {
               <div 
                 key={story.id} 
                 className={styles.storyItem}
-                onClick={() => handleStoryClick(index)} // Itt hívjuk a módosított függvényt
+                onClick={() => handleStoryClick(index)}
               >
                 <div className={`${styles.storyRing} ${ringStyle}`}>
                   <img 
@@ -320,7 +289,6 @@ export function Arena() {
         </div>
       </div>
 
-      {/* Hero Card megjelenítése */}
       {activeStoryIndex !== null && storyQueue.length > 0 && (
         <HeroCard
           friend={storyQueue[activeStoryIndex] as Friend}
@@ -400,7 +368,7 @@ export function Arena() {
               <Card 
                 key={entry.user.id} 
                 className={styles.listItem}
-                onClick={() => handleNavigateToProfile(entry.user.id)} // Kattintható listaelemek
+                onClick={() => handleNavigateToProfile(entry.user.id)}
                 variant="interactive"
               >
                 <span className={styles.listPosition}>#{entry.position}</span>
