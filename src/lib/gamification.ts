@@ -1,9 +1,9 @@
-import { HabitEntry, RANKS } from '../types';
+import type { HabitEntry } from '../types';
 
 // --- XP RENDSZER ---
 export const XP_TABLE = Array.from({ length: 100 }, (_, i) => {
   const level = i + 1;
-  // Exponenciális görbe: Level 1 = 100 XP, Level 10 = ~2500 XP, Level 50 = ~150k XP
+  // Exponenciális görbe
   return Math.floor(100 * Math.pow(level, 1.8));
 });
 
@@ -28,7 +28,7 @@ export const calculateXP = (entries: HabitEntry[]): { totalXP: number; level: nu
   let level = 1;
   for (let i = 0; i < XP_TABLE.length; i++) {
     if (xp >= XP_TABLE[i]) {
-      level = i + 2; // Mert a tömb 0-tól indexel, de az a Level 1 vége
+      level = i + 2; 
     } else {
       break;
     }
@@ -54,7 +54,7 @@ export interface Attributes {
 export const calculateAttributes = (entries: HabitEntry[]): Attributes => {
   // FOCUS: Munkaórák (1 szint = 10 óra munka)
   const totalBusinessMinutes = entries.reduce((sum, e) => sum + e.businessMinutes, 0);
-  const focusLevel = Math.floor(totalBusinessMinutes / 600) + 1; // 10 óra = 600 perc
+  const focusLevel = Math.floor(totalBusinessMinutes / 600) + 1; 
 
   // VITALITY: Edzés + Kaja (1 szint = 5 "egészség pont")
   const healthPoints = entries.reduce((sum, e) => sum + (e.exercise ? 1 : 0) + (e.cleanEating ? 1 : 0), 0);
