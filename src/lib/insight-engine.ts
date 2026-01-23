@@ -12,24 +12,41 @@ interface InsightInput {
 // Kimeneti típus
 export interface InsightResult {
   title: string;
-  analysis: string; // "factualText" helyett "analysis" az AI válaszához
-  verdict: string;  // "tldrText" helyett "verdict"
+  analysis: string;
+  verdict: string;
   winner: 'user' | 'friend' | 'draw';
 }
 
-// Segédfüggvény: Adatok összegzése (hogy ne küldjünk túl sok adatot az AI-nak)
+// Segédfüggvény: Adatok összegzése
 const aggregateStats = (entries: HabitEntry[]) => {
   const count = entries.length || 1;
+  
+  // Biztonsági ellenőrzés: ha nincs adat, nullákat adunk vissza
+  if (count === 0) {
+    return {
+      daysCount: 0,
+      scoreAvg: 0,
+      businessTotal: 0,
+      sleepAvg: 0,
+      exerciseRate: 0,
+      cleanEatingRate: 0,
+      paradigmRate: 0,
+      satisfactionRate: 0,
+      dopamineRate: 0,
+      gamingRate: 0,
+    };
+  }
+
   return {
     daysCount: count,
-    scoreAvg: Math.round(entries.reduce((sum, e) => sum + e.score, 0) / count),
-    businessTotal: entries.reduce((sum, e) => sum + e.businessMinutes, 0),
-    sleepAvg: Math.round(entries.reduce((sum, e) => sum + e.sleepMinutes, 0) / count),
-    // Százalékos arányok (hányszor csinálta meg az összes naphoz képest)
+    scoreAvg: Math.round(entries.reduce((sum, e) => sum + (e.score || 0), 0) / count),
+    businessTotal: entries.reduce((sum, e) => sum + (e.businessMinutes || 0), 0),
+    sleepAvg: Math.round(entries.reduce((sum, e) => sum + (e.sleepMinutes || 0), 0) / count),
+    // Százalékos arányok
     exerciseRate: Math.round((entries.filter(e => e.exercise).length / count) * 100),
     cleanEatingRate: Math.round((entries.filter(e => e.cleanEating).length / count) * 100),
     paradigmRate: Math.round((entries.filter(e => e.paradigm).length / count) * 100),
-    // Negatív szokások (True = Rossz)
+    // Negatív szokások
     satisfactionRate: Math.round((entries.filter(e => e.satisfaction).length / count) * 100),
     dopamineRate: Math.round((entries.filter(e => e.dopamineContent).length / count) * 100),
     gamingRate: Math.round((entries.filter(e => e.gaming).length / count) * 100),
@@ -37,11 +54,11 @@ const aggregateStats = (entries: HabitEntry[]) => {
 };
 
 /**
- * Ez a függvény hívja meg a Supabase Edge Function-t (OpenAI)
+ * Ez a függvény hívja meg a Supabase Edge Function-t
  */
 export async function generateInsight({ userEntries, friendEntries, userName, friendName }: InsightInput): Promise<InsightResult> {
-  // 1. Ha nincs elég adat, ne hívjuk az AI-t feleslegesen
-  if (userEntries.length === 0 || friendEntries.length === 0) {
+  // 1. Ha nincs elég adat
+  if (!userEntries?.length || !friendEntries?.length) {
     return {
       title: 'Nincs elég adat',
       analysis: 'Még nincs elég közös adatotok egy komoly elemzéshez. Rögzítsetek több napot!',
@@ -55,6 +72,8 @@ export async function generateInsight({ userEntries, friendEntries, userName, fr
   const friendStats = aggregateStats(friendEntries);
 
   try {
+    console.log("Generating insight for:", userName, "vs", friendName);
+    
     // 3. Edge Function hívása
     const { data, error } = await supabase.functions.invoke('generate-insight', {
       body: {
@@ -65,7 +84,14 @@ export async function generateInsight({ userEntries, friendEntries, userName, fr
       }
     });
 
-    if (error) throw error;
+    if (error) {
+      console.error('Supabase Function Error:', error);
+      throw error;
+    }
+
+    if (!data) {
+      throw new Error('No data received from function');
+    }
 
     // 4. Visszatérés az AI eredményével
     return {
@@ -75,12 +101,12 @@ export async function generateInsight({ userEntries, friendEntries, userName, fr
       winner: data.winner || 'draw'
     };
 
-  } catch (err) {
-    console.error('Insight generation failed:', err);
+  } catch (err: any) {
+    console.error('Insight generation failed details:', err);
     // Fallback hiba esetén
     return {
       title: 'Hiba az elemzésben',
-      analysis: 'Az AI agya jelenleg túlterhelt vagy hálózati hiba történt.',
+      analysis: 'Az AI agya jelenleg túlterhelt vagy hálózati hiba történt. (' + (err.message || 'Ismeretlen hiba') + ')',
       verdict: 'Próbáld újra később.',
       winner: 'draw'
     };
