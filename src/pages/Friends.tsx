@@ -37,7 +37,6 @@ export function Friends() {
     
     try {
       const results = await supabase.searchUsers(searchQuery.trim());
-      // Filter out current user and existing friends
       const filtered = results.filter(u => 
         u.id !== user?.id && 
         !friends.some(f => f.id === u.id)
@@ -84,10 +83,8 @@ export function Friends() {
   };
 
   const handleAcceptRequest = async (requesterId: string) => {
-    setError('');
     try {
       await acceptFriendRequest(requesterId);
-      
       if (user) {
         try {
           await supabase.sendPushNotification(
@@ -101,43 +98,54 @@ export function Friends() {
           console.error('Error sending notification:', notifError);
         }
       }
-      
       await refreshFriends();
       await refreshPendingRequests();
     } catch (err: any) {
-      setError(err.message || 'Hiba a barátkérelem elfogadása során');
+      setError(err.message || 'Hiba');
     }
   };
 
   const handleRejectRequest = async (requesterId: string) => {
-    setError('');
     try {
       await rejectFriendRequest(requesterId);
       await refreshPendingRequests();
     } catch (err: any) {
-      setError(err.message || 'Hiba a barátkérelem elutasítása során');
+      setError(err.message);
     }
   };
 
   const handleCancelRequest = async (friendId: string) => {
-    setError('');
     try {
       await cancelFriendRequest(friendId);
       await refreshPendingRequests();
     } catch (err: any) {
-      setError(err.message || 'Hiba a barátkérelem törlése során');
+      setError(err.message);
     }
   };
 
-  const handleRemoveFriend = async (friendId: string) => {
+  const handleRemoveFriend = async (e: React.MouseEvent, friendId: string) => {
+    e.stopPropagation(); // Megakadályozzuk, hogy a kártya kattintás is lefusson
     if (confirm('Biztosan eltávolítod ezt a barátot?')) {
       try {
         await removeFriend(friendId);
         await refreshFriends();
       } catch (err: any) {
-        setError(err.message || 'Hiba a barát eltávolítása során');
+        setError(err.message);
       }
     }
+  };
+
+  // Navigáció a profilra (alapértelmezett kártya kattintás)
+  const handleCardClick = (friendId: string) => {
+    navigate(`/friend/${friendId}`);
+  };
+
+  // Avatar kattintás (ha van adat, odavisz)
+  const handleAvatarClick = (e: React.MouseEvent, friendId: string, hasData: boolean) => {
+    e.stopPropagation();
+    // Jelenleg mindkettő a profilra visz, de később ide lehet tenni a HeroCard-ot
+    // Ha van adat, a profil oldalon úgyis látszik a részletes nézet
+    navigate(`/friend/${friendId}`);
   };
 
   return (
@@ -163,7 +171,6 @@ export function Friends() {
         </Button>
       </div>
 
-      {/* Error message */}
       {error && <div className={styles.error}>{error}</div>}
 
       {/* Search Results */}
@@ -194,7 +201,6 @@ export function Friends() {
         </div>
       )}
 
-      {/* Your profile share */}
       {user && (
         <Card className={styles.shareCard}>
           <span className={styles.shareLabel}>A te felhasználóneved:</span>
@@ -203,7 +209,6 @@ export function Friends() {
         </Card>
       )}
 
-      {/* Tabs */}
       <div className={styles.tabs}>
         <button
           className={`${styles.tab} ${activeTab === 'friends' ? styles.tabActive : ''}`}
@@ -219,7 +224,7 @@ export function Friends() {
         </button>
       </div>
 
-      {/* Friends List - JAVÍTOTT, LETISZTULT NÉZET */}
+      {/* Friends List - KLIKKELHETŐ KÁRTYÁK */}
       {activeTab === 'friends' && (
         <div className={styles.friendsList}>
           {friends.length === 0 ? (
@@ -230,9 +235,16 @@ export function Friends() {
             </div>
           ) : (
             friends.map(friend => (
-              <div key={friend.id} className={styles.friendCard}>
-                {/* Avatar */}
-                <div className={styles.friendAvatarWrapper}>
+              <div 
+                key={friend.id} 
+                className={styles.friendCard}
+                onClick={() => handleCardClick(friend.id)} // Kártya kattintás
+              >
+                {/* Avatar - Külön kattintható */}
+                <div 
+                  className={`${styles.friendAvatarWrapper} ${friend.todayCompleted ? styles.hasData : ''}`}
+                  onClick={(e) => handleAvatarClick(e, friend.id, friend.todayCompleted)}
+                >
                   <img 
                     src={getAvatarSrc(friend.avatar)} 
                     alt={friend.displayName} 
@@ -263,7 +275,7 @@ export function Friends() {
                 {/* Remove Action */}
                 <button 
                   className={styles.removeButton} 
-                  onClick={() => handleRemoveFriend(friend.id)}
+                  onClick={(e) => handleRemoveFriend(e, friend.id)}
                   aria-label="Törlés"
                 >
                   ✕
@@ -290,12 +302,12 @@ export function Friends() {
                   <ProfileCard
                     key={request.id}
                     id={request.id}
-                    username={request.username || 'Unknown'}
-                    displayName={request.displayName || 'Unknown User'}
-                    avatar={request.avatar || 'lion'}
-                    rank={request.rank || 'sleepwalker'}
-                    streak={request.streak || { currentStreak: 0, longestStreak: 0, level: 'frozen', cryoFreezeCount: 0, lastEntryDate: null, phoenixActive: false, phoenixDaysRemaining: 0, phoenixStartStreak: 0 }}
-                    monthlyAverage={request.monthlyAverage || 0}
+                    username={request.username}
+                    displayName={request.displayName}
+                    avatar={request.avatar}
+                    rank={request.rank}
+                    streak={request.streak}
+                    monthlyAverage={request.monthlyAverage}
                     viewType="public"
                     requestStatus="pending_incoming"
                     onAcceptRequest={() => handleAcceptRequest(request.id)}
