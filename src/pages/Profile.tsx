@@ -1,12 +1,12 @@
 import { useState, useEffect, useMemo, useRef } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom'; // useLocation hozzáadva
+import { useNavigate } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
 import { Button, Card, Input, Switch } from '../components/ui';
 import { StreakIcon } from '../components/StreakIcon';
 import { RadarChart } from '../components/RadarChart';
 import { RANKS, AVATARS, getAvatarSrc, type AvatarType } from '../types';
 import { calculateRadarStats } from '../lib/scoring';
-import { generateInsight } from '../lib/insight-engine';
+import { generateInsight, type InsightResult } from '../lib/insight-engine';
 import * as supabase from '../lib/supabase';
 import { useToast } from '../context/ToastContext';
 import { ImageCropper } from '../components/ImageCropper';
@@ -22,7 +22,6 @@ const CATEGORY_EXPLANATIONS = {
 
 export function Profile() {
   const navigate = useNavigate();
-  const location = useLocation(); // Location hook
   const { user, streak, saveUser, monthlyAverage, signOut, authUser, pendingRequests, entries } = useHabits();
   const { showToast } = useToast();
   
@@ -47,35 +46,51 @@ export function Profile() {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Navigációs state kezelése
-  useEffect(() => {
-    if (location.state && (location.state as any).mode === 'analysis') {
-      setViewMode('analysis');
-    }
-  }, [location.state]);
-
+  // Radar adatok számítása
   const radarStats = useMemo(() => {
     const last30Days = entries.slice(0, 30);
     return calculateRadarStats(last30Days);
   }, [entries]);
 
-  // Insight generálás (Jelen vs Múlt)
-  const selfInsight = useMemo(() => {
-    if (entries.length < 14) return null; // Kell legalább 2 hét adat
-    
-    // Az elmúlt 14 nap
-    const currentEntries = entries.slice(0, 14);
-    // Az azt megelőző 14 nap
-    const pastEntries = entries.slice(14, 28);
-    
-    if (pastEntries.length < 7) return null; // Ha nincs elég múltbeli adat
+  // Insight (Jelen vs Múlt) állapotok
+  const [selfInsight, setSelfInsight] = useState<InsightResult | null>(null);
+  const [isInsightLoading, setIsInsightLoading] = useState(false);
 
-    return generateInsight({
-      userEntries: currentEntries,
-      friendEntries: pastEntries,
-      friendName: 'A Múltbéli Éned'
-    });
-  }, [entries]);
+  // Insight generálás Effect
+  useEffect(() => {
+    const loadSelfInsight = async () => {
+      // Csak akkor futtatjuk, ha az "analysis" nézeten vagyunk, hogy spóroljunk az API hívással,
+      // vagy ha még nincs betöltve.
+      if (entries.length < 14) return; // Kell legalább 2 hét adat
+      
+      // Az elmúlt 14 nap
+      const currentEntries = entries.slice(0, 14);
+      // Az azt megelőző 14 nap
+      const pastEntries = entries.slice(14, 28);
+      
+      if (pastEntries.length < 7) return; // Ha nincs elég múltbeli adat
+
+      setIsInsightLoading(true);
+      try {
+        const result = await generateInsight({
+          userEntries: currentEntries,
+          friendEntries: pastEntries,
+          userName: 'Jelenlegi Éned', // KÖTELEZŐ PARAMÉTER (ez hiányzott)
+          friendName: 'A Múltbéli Éned'
+        });
+        setSelfInsight(result);
+      } catch (error) {
+        console.error("Nem sikerült betölteni az elemzést:", error);
+      } finally {
+        setIsInsightLoading(false);
+      }
+    };
+
+    // Ha van elég adat és még nincs insight, töltsük be
+    if (viewMode === 'analysis' && !selfInsight && entries.length > 0) {
+      loadSelfInsight();
+    }
+  }, [entries, viewMode, selfInsight]); // Újrafut, ha váltasz analysis nézetre
 
   useEffect(() => {
     if (authUser) {
@@ -323,37 +338,78 @@ export function Profile() {
             </>
           ) : (
             <>
-              {/* ÚJ: SELF INSIGHT (FELKERÜLT ÉS MÓDOSÍTOTT DESIGN) */}
-              {selfInsight && (
-                <Card 
-                  className={styles.explanationCard} 
-                  style={{ 
-                    border: selfInsight.mood === 'roast' ? '1px solid var(--color-error)' : '1px solid var(--color-success)',
-                    background: selfInsight.mood === 'roast' ? 'rgba(248, 113, 113, 0.05)' : 'rgba(74, 222, 128, 0.05)'
-                  }}
-                >
-                  <h3 style={{ 
-                    color: selfInsight.mood === 'roast' ? 'var(--color-error)' : 'var(--color-success)', 
-                    fontSize: '16px', 
-                    marginBottom: '12px' 
-                  }}>
-                    ELEMZÉS
-                  </h3>
-                  <p style={{ 
-                    marginBottom: '0', 
-                    fontSize: '16px', 
-                    lineHeight: '1.6', 
-                    fontWeight: '500' 
-                  }}>
-                    {selfInsight.factualText}
-                  </p>
-                </Card>
-              )}
-
               <Card className={styles.radarCard}>
                 <h3 className={styles.radarTitle}>Képességek</h3>
                 <RadarChart stats={radarStats} primaryLabel="Te" />
               </Card>
+
+              {/* ÚJ: SELF INSIGHT (Jelen vs Múlt) - AI GENERÁLT */}
+              {isInsightLoading && (
+                <div style={{ textAlign: 'center', padding: '20px', color: 'var(--color-muted)' }}>
+                  Elemzés generálása az elmúlt 28 nap alapján... 🤖
+                </div>
+              )}
+
+              {selfInsight && !isInsightLoading && (
+                <Card 
+                  className={styles.explanationCard} 
+                  style={{ 
+                    // Ha a JELENLEGI ÉNED (user) nyer = ZÖLD
+                    // Ha a MÚLTBÉLI ÉNED (friend) nyer = PIROS (mert romlottál)
+                    border: selfInsight.winner === 'user' 
+                      ? '1px solid var(--color-success)' 
+                      : selfInsight.winner === 'friend' 
+                        ? '1px solid var(--color-error)'
+                        : '1px solid var(--color-border)',
+                    
+                    background: selfInsight.winner === 'user'
+                      ? 'rgba(74, 222, 128, 0.05)'
+                      : selfInsight.winner === 'friend'
+                        ? 'rgba(248, 113, 113, 0.05)'
+                        : 'var(--color-surface)'
+                  }}
+                >
+                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '8px' }}>
+                    <h3 style={{ 
+                      color: selfInsight.winner === 'user' 
+                        ? 'var(--color-success)' 
+                        : selfInsight.winner === 'friend' 
+                          ? 'var(--color-error)' 
+                          : 'var(--color-foreground)', 
+                      fontSize: '16px', 
+                      margin: 0
+                    }}>
+                      {selfInsight.title}
+                    </h3>
+                    {selfInsight.winner === 'user' && <span style={{ fontSize: '18px' }}>📈</span>}
+                    {selfInsight.winner === 'friend' && <span style={{ fontSize: '18px' }}>📉</span>}
+                  </div>
+
+                  <p style={{ marginBottom: '12px', fontSize: '14px', lineHeight: '1.5', color: 'var(--color-foreground)' }}>
+                    {selfInsight.analysis}
+                  </p>
+                  
+                  <div style={{ 
+                    backgroundColor: 'rgba(0,0,0,0.2)', 
+                    padding: '10px', 
+                    borderRadius: '8px',
+                    borderLeft: `3px solid ${
+                      selfInsight.winner === 'user' 
+                        ? 'var(--color-success)' 
+                        : selfInsight.winner === 'friend' 
+                          ? 'var(--color-error)' 
+                          : 'var(--color-muted)'
+                    }`
+                  }}>
+                    <strong style={{ display: 'block', fontSize: '11px', color: 'var(--color-muted)', marginBottom: '4px', textTransform: 'uppercase' }}>
+                      JÖVŐKÉP
+                    </strong>
+                    <span style={{ fontStyle: 'italic', fontWeight: '600', fontSize: '13px' }}>
+                      {selfInsight.verdict}
+                    </span>
+                  </div>
+                </Card>
+              )}
 
               <Card className={styles.explanationCard}>
                 <h3 className={styles.explanationTitle}>Magyarázatok</h3>
