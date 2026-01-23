@@ -327,6 +327,57 @@
   background-color: var(--color-primary);
   color: #121212;
 }
+/* ... (A fájl eleje maradjon változatlan) ... */
+
+/* --- ÚJ: GLASSMORPH FRIEND CARD --- */
+.friendCard {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  
+  /* Glassmorphism */
+  background-color: rgba(30, 30, 30, 0.6);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+  transition: transform 0.2s, background-color 0.2s;
+  
+  /* ÚJ: Cursor pointer */
+  cursor: pointer;
+}
+
+.friendCard:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+}
+
+.friendCard:active {
+  transform: scale(0.98);
+}
+
+.friendAvatarWrapper {
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  border: 2px solid var(--color-border);
+  overflow: hidden;
+  flex-shrink: 0;
+  transition: transform 0.2s;
+}
+
+/* Ha van adat, a képre hoverolva is legyen effekt */
+.hasData {
+  border-color: var(--color-primary);
+  cursor: pointer;
+}
+
+.hasData:active {
+  transform: scale(0.9);
+}
+
+/* ... (Többi marad változatlan) ... */
 
 .badge {
   display: inline-flex;
