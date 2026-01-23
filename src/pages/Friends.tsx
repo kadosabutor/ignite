@@ -3,9 +3,12 @@ import { useNavigate } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
 import { Button, Card, Input } from '../components/ui';
 import { ProfileCard } from '../components/ProfileCard';
+import { HeroCard } from '../components/HeroCard'; // ÚJ: HeroCard importálása
 import { StreakIcon } from '../components/StreakIcon';
 import * as supabase from '../lib/supabase';
-import { RANKS, getAvatarSrc } from '../types';
+import { RANKS, getAvatarSrc, type Friend } from '../types';
+import { getRandomPingMessage, getRandomFireMessage } from '../lib/push'; // ÚJ: Reakciókhoz
+import { useToast } from '../context/ToastContext'; // ÚJ: Toast
 import styles from './Friends.module.css';
 
 export function Friends() {
@@ -22,11 +25,17 @@ export function Friends() {
     refreshFriends,
     refreshPendingRequests 
   } = useHabits();
+  
+  const { showToast } = useToast();
+
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<any[]>([]);
   const [isSearching, setIsSearching] = useState(false);
   const [error, setError] = useState('');
   const [activeTab, setActiveTab] = useState<'friends' | 'requests'>('friends');
+  
+  // ÚJ: Állapot a megnyitott sztorihoz
+  const [activeStoryFriend, setActiveStoryFriend] = useState<Friend | null>(null);
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
@@ -124,7 +133,7 @@ export function Friends() {
   };
 
   const handleRemoveFriend = async (e: React.MouseEvent, friendId: string) => {
-    e.stopPropagation(); // Megakadályozzuk, hogy a kártya kattintás is lefusson
+    e.stopPropagation(); 
     if (confirm('Biztosan eltávolítod ezt a barátot?')) {
       try {
         await removeFriend(friendId);
@@ -135,17 +144,63 @@ export function Friends() {
     }
   };
 
-  // Navigáció a profilra (alapértelmezett kártya kattintás)
+  // Navigáció a profilra (kártya testére kattintva)
   const handleCardClick = (friendId: string) => {
     navigate(`/friend/${friendId}`);
   };
 
-  // Avatar kattintás (ha van adat, odavisz)
-  const handleAvatarClick = (e: React.MouseEvent, friendId: string, hasData: boolean) => {
+  // Avatar kattintás: Ha van adat -> HeroCard, ha nincs -> Profil
+  // TS Hiba javítva: friend objektumot kapunk, és használjuk a tulajdonságait
+  const handleAvatarClick = (e: React.MouseEvent, friend: Friend) => {
     e.stopPropagation();
-    // Jelenleg mindkettő a profilra visz, de később ide lehet tenni a HeroCard-ot
-    // Ha van adat, a profil oldalon úgyis látszik a részletes nézet
-    navigate(`/friend/${friendId}`);
+    if (friend.todayCompleted) {
+      setActiveStoryFriend(friend);
+    } else {
+      navigate(`/friend/${friend.id}`);
+    }
+  };
+
+  // Hero Card bezárása
+  const handleCloseStory = () => {
+    setActiveStoryFriend(null);
+  };
+
+  // VS mód a Hero Card-ról
+  const handleVSMode = () => {
+    if (activeStoryFriend) {
+      navigate(`/friend/${activeStoryFriend.id}`);
+      setActiveStoryFriend(null);
+    }
+  };
+
+  // Reakció küldése a Hero Card-ról
+  const handleReaction = async (emoji: string) => {
+    if (!activeStoryFriend || !user) return;
+    
+    showToast(`${emoji} elküldve!`, 'success');
+
+    try {
+      let title = 'Reakció érkezett!';
+      let body = `${user.displayName} reagált a napodra: ${emoji}`;
+      
+      if (emoji === '🔥') {
+        title = 'Tűz elismerés! 🔥';
+        body = getRandomFireMessage();
+      } else if (emoji === '👋') {
+        title = 'Ping! 👋';
+        body = getRandomPingMessage();
+      }
+
+      await supabase.sendPushNotification(
+        activeStoryFriend.id,
+        title,
+        body,
+        'fire',
+        { senderId: user.id }
+      );
+    } catch (error) {
+      console.error('Error sending reaction:', error);
+    }
   };
 
   return (
@@ -238,12 +293,12 @@ export function Friends() {
               <div 
                 key={friend.id} 
                 className={styles.friendCard}
-                onClick={() => handleCardClick(friend.id)} // Kártya kattintás
+                onClick={() => handleCardClick(friend.id)}
               >
                 {/* Avatar - Külön kattintható */}
                 <div 
                   className={`${styles.friendAvatarWrapper} ${friend.todayCompleted ? styles.hasData : ''}`}
-                  onClick={(e) => handleAvatarClick(e, friend.id, friend.todayCompleted)}
+                  onClick={(e) => handleAvatarClick(e, friend)}
                 >
                   <img 
                     src={getAvatarSrc(friend.avatar)} 
@@ -302,12 +357,12 @@ export function Friends() {
                   <ProfileCard
                     key={request.id}
                     id={request.id}
-                    username={request.username}
-                    displayName={request.displayName}
-                    avatar={request.avatar}
-                    rank={request.rank}
-                    streak={request.streak}
-                    monthlyAverage={request.monthlyAverage}
+                    username={request.username || 'Unknown'}
+                    displayName={request.displayName || 'Unknown User'}
+                    avatar={request.avatar || 'lion'}
+                    rank={request.rank || 'sleepwalker'}
+                    streak={request.streak || { currentStreak: 0, longestStreak: 0, level: 'frozen', cryoFreezeCount: 0, lastEntryDate: null, phoenixActive: false, phoenixDaysRemaining: 0, phoenixStartStreak: 0 }}
+                    monthlyAverage={request.monthlyAverage || 0}
                     viewType="public"
                     requestStatus="pending_incoming"
                     onAcceptRequest={() => handleAcceptRequest(request.id)}
@@ -317,6 +372,18 @@ export function Friends() {
             </>
           )}
         </div>
+      )}
+
+      {/* Hero Card megjelenítése, ha van aktív */}
+      {activeStoryFriend && (
+        <HeroCard
+          friend={activeStoryFriend}
+          onClose={handleCloseStory}
+          onNext={handleCloseStory} // Listanézetben nincs "következő", csak bezárás
+          onPrev={handleCloseStory}
+          onVS={handleVSMode}
+          onReaction={handleReaction}
+        />
       )}
     </div>
   );
