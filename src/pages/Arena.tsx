@@ -10,6 +10,25 @@ import styles from './Arena.module.css';
 
 type LeaderboardPeriod = 'today' | 'week' | 'month';
 
+// ... (Importok változatlanok) ...
+
+// Keresd meg a handleVSMode függvényt és cseréld le erre:
+const handleVSMode = () => {
+  if (activeStoryIndex === null) return;
+  const friend = storyQueue[activeStoryIndex];
+  
+  if (friend.id === user?.id) {
+      // Saját magadnál az elemzés fülre vigyen
+      navigate('/profile'); // A Profile oldalon is implementálhatod a tab logikát később
+  } else {
+      // Barátnál közvetlenül a VS tabra
+      navigate(`/friend/${friend.id}?tab=vs`); 
+  }
+  handleCloseStory();
+};
+
+// ... (A többi rész változatlan maradhat) ...
+
 export function Arena() {
   const navigate = useNavigate();
   const { user, friends, getLeaderboard, todayEntry } = useHabits();
