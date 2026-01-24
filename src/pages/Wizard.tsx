@@ -3,7 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
 import { Button, TimeInput, Toggle } from '../components/ui';
 import { calculateSleepMinutes, calculateTotalScore, getTodayString } from '../lib/scoring';
-import { createNewEntry } from '../lib/supabase';
+import { createNewEntry, addXpToUser } from '../lib/supabase'; // addXpToUser importálása
+import { getDailyRank, calculateDailyXP } from '../lib/gamification'; // ÚJ importok
 import type { HabitEntry } from '../types';
 import styles from './Wizard.module.css';
 
@@ -18,7 +19,7 @@ const STEPS = [
 export function Wizard() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
-  const { getEntryByDate, saveEntry } = useHabits();
+  const { getEntryByDate, saveEntry, authUser } = useHabits();
   
   const dateParam = searchParams.get('date') || getTodayString();
   const existingEntry = getEntryByDate(dateParam);
@@ -30,11 +31,13 @@ export function Wizard() {
   const [showMinuteInput, setShowMinuteInput] = useState(false);
   const [customMinutes, setCustomMinutes] = useState('');
   const [isSaving, setIsSaving] = useState(false);
+  
+  // CLIMAX STATE
+  const [showClimax, setShowClimax] = useState(false);
+  const [dailyRank, setDailyRank] = useState<{ title: string; color: string; msg: string } | null>(null);
 
-  // Refs for auto-focus
   const wakeMinutesRef = useRef<HTMLInputElement>(null);
 
-  // Update sleep minutes when times change
   useEffect(() => {
     if (entry.bedTime && entry.wakeUpTime) {
       const sleepMins = calculateSleepMinutes(entry.bedTime, entry.wakeUpTime);
@@ -47,6 +50,9 @@ export function Wizard() {
   };
 
   const handleNext = () => {
+    // Haptikus visszajelzés
+    if (navigator.vibrate) navigator.vibrate(10);
+    
     if (currentStep < STEPS.length - 1) {
       setCurrentStep(prev => prev + 1);
     }
@@ -62,35 +68,59 @@ export function Wizard() {
     handleNext();
   };
 
-  const handleSave = async () => {
+  // IGNITE DAY LOGIC
+  const handleIgnite = async () => {
     if (isSaving) return;
-    
     setIsSaving(true);
+
+    const score = calculateTotalScore(entry);
+    const finalEntry = { ...entry, score };
+    const rank = getDailyRank(score);
+    
+    // 1. Climax Screen megjelenítése
+    setDailyRank(rank);
+    setShowClimax(true);
+    
+    // Haptikus robbanás
+    if (navigator.vibrate) navigator.vibrate([50, 50, 50, 50, 200]);
+
+    // 2. Mentés a háttérben
     try {
-      const finalEntry = { ...entry, score: calculateTotalScore(entry) };
       await saveEntry(finalEntry);
-      navigate(`/summary?date=${dateParam}`);
+      
+      // XP Hozzáadása
+      if (authUser) {
+        const xpEarned = calculateDailyXP(finalEntry);
+        await addXpToUser(authUser.id, xpEarned);
+      }
+      
+      // 3. Várakozás és átirányítás (hogy lássa az animációt)
+      setTimeout(() => {
+        navigate(`/summary?date=${dateParam}`);
+      }, 3000); // 3 másodpercig tart a show
+      
     } catch (error) {
       console.error('Mentési hiba:', error);
-      alert('Nem sikerült elmenteni az adatokat. Kérlek próbáld újra!');
-    } finally {
       setIsSaving(false);
+      setShowClimax(false);
+      alert('Nem sikerült elmenteni az adatokat.');
     }
   };
 
-  // Munkaidő kezelő függvények
+  // Munkaidő kezelés
   const handleWorkHourSelect = (hours: number) => {
+    if (navigator.vibrate) navigator.vibrate(5);
     updateEntry({ businessMinutes: hours * 60 });
   };
 
-  // Beállítja a percet az adott negyedórára (megtartva az órát)
   const handleWorkMinuteSnap = (minutes: number) => {
+    if (navigator.vibrate) navigator.vibrate(5);
     const currentHours = Math.floor(entry.businessMinutes / 60);
     updateEntry({ businessMinutes: currentHours * 60 + minutes });
   };
 
-  // Hozzáad vagy elvesz perceket
   const adjustMinutes = (amount: number) => {
+    if (navigator.vibrate) navigator.vibrate(5);
     const newVal = Math.max(0, entry.businessMinutes + amount);
     updateEntry({ businessMinutes: newVal });
   };
@@ -128,6 +158,7 @@ export function Wizard() {
                 <TimeInput
                   value={entry.wakeUpTime || ''}
                   onChange={(val) => updateEntry({ wakeUpTime: val })}
+                  firstInputRef={wakeMinutesRef}
                 />
               </div>
             </div>
@@ -136,7 +167,7 @@ export function Wizard() {
               <div className={styles.sleepResult}>
                 <span className={styles.sleepIcon}>😴</span>
                 <span className={styles.sleepDuration}>
-                  {Math.floor(entry.sleepMinutes / 60)}ó {entry.sleepMinutes % 60}p alvás
+                  {Math.floor(entry.sleepMinutes / 60)}ó {entry.sleepMinutes % 60}p
                 </span>
               </div>
             )}
@@ -159,7 +190,6 @@ export function Wizard() {
               <span className={styles.unit}>perc</span>
             </div>
             
-            {/* Hour buttons */}
             <div className={styles.hourGrid}>
               {[0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12].map((hour) => (
                 <button
@@ -172,7 +202,6 @@ export function Wizard() {
               ))}
             </div>
             
-            {/* Minute buttons (Snap to quarter) */}
             <div className={styles.minuteGrid}>
               {[0, 15, 30, 45].map((min) => (
                 <button
@@ -185,7 +214,6 @@ export function Wizard() {
               ))}
             </div>
 
-            {/* Fine tuning buttons */}
             <div className={styles.fineTuneSection}>
               <span className={styles.fineTuneLabel}>Finomhangolás</span>
               <div className={styles.fineTuneGrid}>
@@ -196,16 +224,15 @@ export function Wizard() {
               </div>
             </div>
             
-            {/* Custom minute input */}
             <div className={styles.customMinuteSection}>
               {showMinuteInput ? (
-                <div className={styles.customInputRow}>
+                <div style={{ display: 'flex', gap: '8px' }}>
                   <input
                     type="number"
                     value={customMinutes}
                     onChange={(e) => setCustomMinutes(e.target.value)}
                     placeholder="Percek"
-                    className={styles.customInput}
+                    style={{ padding: '8px', borderRadius: '8px', border: '1px solid #333', background: '#222', color: '#fff' }}
                     autoFocus
                   />
                   <Button size="sm" onClick={handleCustomMinutesSubmit}>OK</Button>
@@ -216,7 +243,7 @@ export function Wizard() {
                   className={styles.customButton}
                   onClick={() => setShowMinuteInput(true)}
                 >
-                  Pontos perc megadása (billentyűzet)
+                  Pontos perc megadása
                 </button>
               )}
             </div>
@@ -239,9 +266,7 @@ export function Wizard() {
                   positiveColor="success"
                   negativeColor="error"
                 />
-                <span className={styles.toggleHint}>
-                  {entry.exercise ? '+7 pont' : '0 pont'}
-                </span>
+                <span className={styles.toggleHint}>{entry.exercise ? '+7 pont' : '0 pont'}</span>
               </div>
               
               <div className={styles.toggleItem}>
@@ -254,9 +279,7 @@ export function Wizard() {
                   positiveColor="success"
                   negativeColor="error"
                 />
-                <span className={styles.toggleHint}>
-                  {entry.cleanEating ? '+6 pont' : '0 pont'}
-                </span>
+                <span className={styles.toggleHint}>{entry.cleanEating ? '+6 pont' : '0 pont'}</span>
               </div>
               
               <div className={styles.toggleItem}>
@@ -269,9 +292,7 @@ export function Wizard() {
                   positiveColor="success"
                   negativeColor="error"
                 />
-                <span className={styles.toggleHint}>
-                  {entry.paradigm ? '+5 pont' : '0 pont'}
-                </span>
+                <span className={styles.toggleHint}>{entry.paradigm ? '+5 pont' : '0 pont'}</span>
               </div>
             </div>
           </div>
@@ -293,9 +314,7 @@ export function Wizard() {
                   positiveColor="error"
                   negativeColor="success"
                 />
-                <span className={styles.toggleHint}>
-                  {!entry.satisfaction ? '+4 pont' : '0 pont'}
-                </span>
+                <span className={styles.toggleHint}>{!entry.satisfaction ? '+4 pont' : '0 pont'}</span>
               </div>
               
               <div className={styles.toggleItem}>
@@ -308,9 +327,7 @@ export function Wizard() {
                   positiveColor="error"
                   negativeColor="success"
                 />
-                <span className={styles.toggleHint}>
-                  {!entry.dopamineContent ? '+3 pont' : '0 pont'}
-                </span>
+                <span className={styles.toggleHint}>{!entry.dopamineContent ? '+3 pont' : '0 pont'}</span>
               </div>
               
               <div className={styles.toggleItem}>
@@ -323,9 +340,7 @@ export function Wizard() {
                   positiveColor="error"
                   negativeColor="success"
                 />
-                <span className={styles.toggleHint}>
-                  {!entry.gaming ? '+5 pont' : '0 pont'}
-                </span>
+                <span className={styles.toggleHint}>{!entry.gaming ? '+5 pont' : '0 pont'}</span>
               </div>
             </div>
           </div>
@@ -337,8 +352,8 @@ export function Wizard() {
             <h2 className={styles.stepTitle}>Összegzés</h2>
             
             <div className={styles.summaryScore}>
+              <span className={styles.summaryScoreLabel}>Várható Pont</span>
               <span className={styles.summaryScoreValue}>{Math.round(score)}</span>
-              <span className={styles.summaryScoreLabel}>pont</span>
             </div>
             
             <div className={styles.summaryGrid}>
@@ -346,10 +361,7 @@ export function Wizard() {
                 <span className={styles.summaryIcon}>🌙</span>
                 <span className={styles.summaryLabel}>Alvás</span>
                 <span className={styles.summaryValue}>
-                  {entry.sleepMinutes > 0 
-                    ? `${Math.floor(entry.sleepMinutes / 60)}ó ${entry.sleepMinutes % 60}p`
-                    : '—'
-                  }
+                  {Math.floor(entry.sleepMinutes / 60)}ó {entry.sleepMinutes % 60}p
                 </span>
               </div>
               <div className={styles.summaryItem}>
@@ -365,16 +377,6 @@ export function Wizard() {
                 <span className={styles.summaryValue}>{entry.exercise ? '✓' : '✗'}</span>
               </div>
               <div className={styles.summaryItem}>
-                <span className={styles.summaryIcon}>🍎</span>
-                <span className={styles.summaryLabel}>Étkezés</span>
-                <span className={styles.summaryValue}>{entry.cleanEating ? '✓' : '✗'}</span>
-              </div>
-              <div className={styles.summaryItem}>
-                <span className={styles.summaryIcon}>🧠</span>
-                <span className={styles.summaryLabel}>Paradigma</span>
-                <span className={styles.summaryValue}>{entry.paradigm ? '✓' : '✗'}</span>
-              </div>
-              <div className={styles.summaryItem}>
                 <span className={styles.summaryIcon}>✨</span>
                 <span className={styles.summaryLabel}>Tisztaság</span>
                 <span className={styles.summaryValue}>
@@ -383,48 +385,38 @@ export function Wizard() {
               </div>
             </div>
             
-            {/* JAVÍTOTT REFLEXIÓS KÉRDÉSEK (9. PONT) */}
             <div className={styles.reflectionSection}>
               <h3 className={styles.reflectionTitle}>Önreflexió</h3>
               
-              {/* 1. Napi napló */}
               <div className={styles.reflectionItem}>
-                <label className={styles.reflectionLabel}>
-                  Hogy telt a napod? (Napló)
-                </label>
+                <label className={styles.reflectionLabel}>Hogy telt a napod? (Napló)</label>
                 <textarea
                   className={styles.reflectionInput}
-                  value={entry.approachedGoal || ''} // DB: reflection_goal
+                  value={entry.approachedGoal || ''}
                   onChange={(e) => updateEntry({ approachedGoal: e.target.value })}
                   placeholder="Írd le röviden a mai nap eseményeit..."
                   rows={3}
                 />
               </div>
               
-              {/* 2. Akadályok */}
               <div className={styles.reflectionItem}>
-                <label className={styles.reflectionLabel}>
-                  Akadályozott ma valami/valaki a célod elérésében?
-                </label>
+                <label className={styles.reflectionLabel}>Akadályozott ma valami?</label>
                 <textarea
                   className={styles.reflectionInput}
-                  value={entry.businessObstacle || ''} // DB: reflection_obstacle
+                  value={entry.businessObstacle || ''}
                   onChange={(e) => updateEntry({ businessObstacle: e.target.value })}
-                  placeholder="Nehézségek, kizökkentő tényezők..."
+                  placeholder="Nehézségek..."
                   rows={2}
                 />
               </div>
               
-              {/* 3. Fejlődés */}
               <div className={styles.reflectionItem}>
-                <label className={styles.reflectionLabel}>
-                  Mit rontottál el, és hogyan lehetnél jobb?
-                </label>
+                <label className={styles.reflectionLabel}>Mit rontottál el, hogyan lehetnél jobb?</label>
                 <textarea
                   className={styles.reflectionInput}
-                  value={entry.personalObstacle || ''} // DB: reflection_personal
+                  value={entry.personalObstacle || ''}
                   onChange={(e) => updateEntry({ personalObstacle: e.target.value })}
-                  placeholder="Tanulságok a holnapi napra..."
+                  placeholder="Tanulságok..."
                   rows={2}
                 />
               </div>
@@ -439,6 +431,21 @@ export function Wizard() {
 
   return (
     <div className={styles.container}>
+      {/* CLIMAX OVERLAY */}
+      {showClimax && dailyRank && (
+        <div className={styles.climaxOverlay}>
+          <div className={styles.climaxBg} />
+          <div className={styles.climaxContent}>
+            <span className={styles.climaxLabel}>NAPI EREDMÉNY</span>
+            <h1 className={styles.climaxScore}>{Math.round(calculateTotalScore(entry))}</h1>
+            <div className={styles.climaxRank} style={{ color: dailyRank.color }}>
+              {dailyRank.title}
+            </div>
+            <p className={styles.climaxMessage}>{dailyRank.msg}</p>
+          </div>
+        </div>
+      )}
+
       {/* Progress bar */}
       <div className={styles.progressBar}>
         {STEPS.map((step, index) => (
@@ -486,9 +493,14 @@ export function Wizard() {
             </Button>
           </>
         ) : (
-          <Button onClick={handleSave} size="lg" disabled={isSaving}>
-            {isSaving ? 'Mentés...' : 'Mentés'}
-          </Button>
+          <button 
+            className={styles.igniteButton} 
+            onClick={handleIgnite}
+            disabled={isSaving}
+            style={{ width: '100%', padding: '16px', borderRadius: '12px', fontSize: '16px' }}
+          >
+            {isSaving ? 'RÖGZÍTÉS...' : 'IGNITE DAY 🔥'}
+          </button>
         )}
       </footer>
     </div>

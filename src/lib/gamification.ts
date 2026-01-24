@@ -1,46 +1,47 @@
-import type { HabitEntry } from '../types';
+import type { HabitEntry, Badge, StreakData } from '../types';
 
 // --- XP RENDSZER ---
+// Exponenciális görbe: Level 1 = 0 XP, Level 2 = 1000 XP, Level 50 = ~150k XP
 export const XP_TABLE = Array.from({ length: 100 }, (_, i) => {
   const level = i + 1;
-  // Exponenciális görbe
-  return Math.floor(100 * Math.pow(level, 1.8));
+  return Math.floor(1000 * Math.pow(level - 1, 1.5));
 });
 
-export const calculateXP = (entries: HabitEntry[]): { totalXP: number; level: number; progress: number; nextLevelXP: number } => {
-  let xp = 0;
-  
-  entries.forEach(entry => {
-    // Alap logolás
-    xp += 50; 
-    
-    // Sikeres szokások
-    if (entry.exercise) xp += 20;
-    if (entry.cleanEating) xp += 20;
-    if (entry.paradigm) xp += 20;
-    if (!entry.satisfaction && !entry.dopamineContent && !entry.gaming) xp += 50; // Tiszta bónusz
-    
-    // Magas pontszám bónusz
-    if (entry.score >= 90) xp += 100;
-  });
-
-  // Szint számítás
+export const getLevelFromXP = (xp: number) => {
   let level = 1;
   for (let i = 0; i < XP_TABLE.length; i++) {
     if (xp >= XP_TABLE[i]) {
-      level = i + 2; 
+      level = i + 1;
     } else {
       break;
     }
   }
+  
+  const currentLevelBase = XP_TABLE[level - 1];
+  const nextLevelXP = XP_TABLE[level] || XP_TABLE[level - 1] * 1.5;
+  const progress = Math.min(100, ((xp - currentLevelBase) / (nextLevelXP - currentLevelBase)) * 100);
+  
+  return { level, progress, nextLevelXP, currentLevelBase };
+};
 
-  const currentLevelBase = level === 1 ? 0 : XP_TABLE[level - 2];
-  const nextLevelXP = XP_TABLE[level - 1];
-  const levelXP = xp - currentLevelBase;
-  const levelRequirement = nextLevelXP - currentLevelBase;
-  const progress = Math.min(100, (levelXP / levelRequirement) * 100);
-
-  return { totalXP: xp, level, progress, nextLevelXP };
+export const calculateDailyXP = (entry: HabitEntry): number => {
+  let xp = 0;
+  
+  // Alap logolás
+  xp += 50; 
+  
+  // Sikeres szokások (+20 XP / db)
+  if (entry.exercise) xp += 20;
+  if (entry.cleanEating) xp += 20;
+  if (entry.paradigm) xp += 20;
+  
+  // Tiszta nap bónusz (ha minden negatív szokás elkerülve)
+  if (!entry.satisfaction && !entry.dopamineContent && !entry.gaming) xp += 50; 
+  
+  // Magas pontszám bónusz
+  if (entry.score >= 90) xp += 100;
+  
+  return xp;
 };
 
 // --- ATTRIBÚTUM RENDSZER ---
@@ -97,6 +98,135 @@ export const ATTRIBUTE_DESCRIPTIONS = {
     desc: "Szellemi fejlődés és tudatosság. Minden 3 paradigma váltás növeli a szintet.",
     sources: ["Paradigma"]
   }
+};
+
+// --- BADGE RENDSZER ---
+export const BADGES: Omit<Badge, 'unlockedAt'>[] = [
+  {
+    id: 'early_bird',
+    name: 'The Early Bird',
+    description: 'Rögzíts adatot reggel 8 előtt 5x egymás után.',
+    icon: '🌅',
+    category: 'focus',
+    requirement: '5 napos korai logolás sorozat'
+  },
+  {
+    id: 'iron_lung',
+    name: 'Iron Lung',
+    description: 'Eddz 30 napot összesen.',
+    icon: '🫁',
+    category: 'vitality',
+    requirement: '30 edzés nap'
+  },
+  {
+    id: 'deep_work_god',
+    name: 'Deep Work God',
+    description: 'Dolgozz 10+ órát egy nap alatt.',
+    icon: '⚡',
+    category: 'focus',
+    requirement: '600+ perc business egy napon'
+  },
+  {
+    id: 'monk_mode',
+    name: 'Monk Mode',
+    description: '14 napos tiszta étkezés + teljes tisztaság streak.',
+    icon: '🧘‍♂️',
+    category: 'will',
+    requirement: '14 napos tiszta sorozat'
+  },
+  {
+    id: 'phoenix',
+    name: 'Phoenix',
+    description: 'Térj vissza (logolj újra) 7 nap kihagyás után.',
+    icon: '🔥',
+    category: 'special',
+    requirement: 'Visszatérés 7+ nap után'
+  },
+  {
+    id: 'streak_30',
+    name: 'The Survivor',
+    description: 'Érd el a 30 napos sorozatot.',
+    icon: '🛡️',
+    category: 'streak',
+    requirement: '30 napos streak'
+  }
+];
+
+export const checkNewBadges = (
+  currentEntry: HabitEntry, 
+  allEntries: HabitEntry[], 
+  streakData: StreakData,
+  existingBadgeIds: string[]
+): string[] => {
+  const newBadges: string[] = [];
+  const addBadge = (id: string) => {
+    if (!existingBadgeIds.includes(id)) newBadges.push(id);
+  };
+
+  // 1. Deep Work God (Napi ellenőrzés)
+  if (currentEntry.businessMinutes >= 600) {
+    addBadge('deep_work_god');
+  }
+
+  // 2. Streak 30 (Streak adatokból)
+  if (streakData.currentStreak >= 30) {
+    addBadge('streak_30');
+  }
+
+  // 3. Iron Lung (Összesítés)
+  const totalExercise = allEntries.filter(e => e.exercise).length;
+  if (totalExercise >= 30) {
+    addBadge('iron_lung');
+  }
+
+  // 4. Early Bird (Sorozat ellenőrzés)
+  // Megnézzük az utolsó 5 napot (beleértve a mait), hogy 8 előtt történt-e a létrehozás/frissítés
+  // Megjegyzés: Ez a "created_at" alapján a legpontosabb, de most a logolás idejét vesszük alapul
+  const last5Entries = [currentEntry, ...allEntries.slice(0, 4)];
+  if (last5Entries.length >= 5) {
+    const allEarly = last5Entries.every(e => {
+      const date = new Date(e.createdAt);
+      return date.getHours() < 8; 
+    });
+    if (allEarly) addBadge('early_bird');
+  }
+
+  // 5. Monk Mode (14 nap tisztaság)
+  // Keressük a leghosszabb tiszta sorozatot az elmúlt időszakban
+  let cleanStreak = 0;
+  let maxCleanStreak = 0;
+  
+  // Összefűzzük a mait a többivel időrendben (maitól visszafelé)
+  const entriesToCheck = [currentEntry, ...allEntries];
+  
+  for (const entry of entriesToCheck) {
+    const isClean = !entry.satisfaction && !entry.dopamineContent && !entry.gaming && entry.cleanEating;
+    if (isClean) {
+      cleanStreak++;
+    } else {
+      maxCleanStreak = Math.max(maxCleanStreak, cleanStreak);
+      cleanStreak = 0;
+    }
+  }
+  maxCleanStreak = Math.max(maxCleanStreak, cleanStreak);
+  
+  if (maxCleanStreak >= 14) {
+    addBadge('monk_mode');
+  }
+
+  // 6. Phoenix (Visszatérés)
+  if (allEntries.length > 0) {
+    const lastEntryDate = new Date(allEntries[0].date);
+    const todayDate = new Date(currentEntry.date);
+    const diffTime = Math.abs(todayDate.getTime() - lastEntryDate.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24)); 
+    
+    if (diffDays >= 7) {
+      addBadge('phoenix');
+    }
+  }
+
+  return newBadges;
 };
 
 // --- NAPI RANG (Wizard végére) ---

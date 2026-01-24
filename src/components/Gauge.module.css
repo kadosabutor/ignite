@@ -1,0 +1,60 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  position: relative;
+  width: 100%;
+  max-width: 140px;
+}
+
+.gaugeSvg {
+  width: 100%;
+  height: auto;
+  overflow: visible;
+}
+
+/* Background arc */
+.track {
+  fill: none;
+  stroke: rgba(255, 255, 255, 0.1);
+  stroke-width: 10;
+  stroke-linecap: round;
+}
+
+/* Value arc */
+.fill {
+  fill: none;
+  stroke: var(--color-primary);
+  stroke-width: 10;
+  stroke-linecap: round;
+  transition: stroke-dashoffset 1s cubic-bezier(0.4, 0, 0.2, 1);
+  filter: drop-shadow(0 0 4px var(--color-primary));
+}
+
+.fill.success { stroke: var(--color-success); filter: drop-shadow(0 0 4px var(--color-success)); }
+.fill.warning { stroke: var(--color-warning); filter: drop-shadow(0 0 4px var(--color-warning)); }
+.fill.error { stroke: var(--color-error); filter: drop-shadow(0 0 4px var(--color-error)); }
+
+/* Value text */
+.value {
+  font-size: 24px;
+  font-weight: 800;
+  fill: #fff;
+  text-anchor: middle;
+  dominant-baseline: central;
+}
+
+.label {
+  font-size: 10px;
+  font-weight: 700;
+  fill: var(--color-muted);
+  text-anchor: middle;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.minMax {
+  font-size: 8px;
+  fill: rgba(255, 255, 255, 0.3);
+  text-anchor: middle;
+}

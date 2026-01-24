@@ -38,7 +38,6 @@ export interface StreakData {
 }
 
 // User types
-// MÓDOSÍTÁS: Az AvatarType most már string, hogy URL-t is fogadjon
 export type AvatarType = string;
 export type RankType = 'sleepwalker' | 'grinder' | 'operator' | 'highperformer' | 'monkmode' | 'titan';
 
@@ -52,6 +51,19 @@ export interface UserProfile {
   monthlyAverage: number;
   streak: StreakData;
   createdAt: string;
+  // ÚJ: XP Rendszer
+  totalXp: number;
+}
+
+// ÚJ: Badge típusok
+export interface Badge {
+  id: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: 'streak' | 'focus' | 'vitality' | 'will' | 'mind' | 'special';
+  requirement: string;
+  unlockedAt?: string; // Ha undefined, akkor zárolt
 }
 
 // Friend types
@@ -70,6 +82,8 @@ export interface Friend {
   monthlyAverage: number;
   lastPingedAt: string | null;
   bio?: string;
+  // ÚJ: XP a barátoknál is megjelenhet (opcionális)
+  totalXp?: number;
   todayEntry?: {
     score: number;
     businessMinutes: number;
@@ -79,7 +93,6 @@ export interface Friend {
     satisfaction: boolean;
     dopamineContent: boolean;
     gaming: boolean;
-    // ÚJ MEZŐK:
     paradigm: boolean;
     updatedAt: string;
   };
@@ -157,10 +170,9 @@ export const AVATARS: Record<string, { name: string; icon: string }> = {
   bull: { name: 'Bika', icon: '/assets/avatars/bullavatar.svg' },
 };
 
-// ÚJ SEGÉDFÜGGVÉNY: Eldönti, hogy URL-t vagy beépített ikont használjon
 export const getAvatarSrc = (avatar: string) => {
   if (avatar && avatar in AVATARS) {
     return AVATARS[avatar].icon;
   }
-  return avatar || AVATARS.lion.icon; // Ha URL, akkor visszaadja azt, ha üres, akkor Lion
+  return avatar || AVATARS.lion.icon;
 };

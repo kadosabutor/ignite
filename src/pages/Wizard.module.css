@@ -2,12 +2,15 @@
   display: flex;
   flex-direction: column;
   min-height: 100vh;
-  background-color: var(--color-background);
+  background-color: #050505; /* Még sötétebb háttér a kontrasztért */
+  background-image: radial-gradient(circle at 50% 0%, #1a1a1a 0%, #050505 70%);
+  color: #fff;
 }
 
+/* Progress bar - Neon stílus */
 .progressBar {
   display: flex;
-  gap: 4px;
+  gap: 6px;
   padding: 12px 20px;
   padding-top: calc(12px + env(safe-area-inset-top, 0));
 }
@@ -15,15 +18,18 @@
 .progressStep {
   flex: 1;
   height: 4px;
-  background-color: var(--color-surface);
+  background-color: rgba(255, 255, 255, 0.1);
   border-radius: 2px;
-  transition: background-color 0.3s;
+  transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  box-shadow: 0 0 0 transparent;
 }
 
 .progressActive {
   background-color: var(--color-primary);
+  box-shadow: 0 0 10px var(--color-primary);
 }
 
+/* Header */
 .header {
   display: flex;
   justify-content: space-between;
@@ -38,73 +44,89 @@
   font-size: 14px;
   cursor: pointer;
   padding: 8px 0;
+  transition: color 0.2s;
+}
+
+.backButton:hover {
+  color: #fff;
 }
 
 .stepIndicator {
   display: flex;
   align-items: center;
   gap: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  padding: 6px 12px;
+  border-radius: 20px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .stepIcon {
-  font-size: 20px;
+  font-size: 18px;
 }
 
 .stepName {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-foreground);
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #fff;
 }
 
 .stepCount {
-  font-size: 14px;
+  font-size: 12px;
   color: var(--color-muted);
+  font-weight: 600;
 }
 
+/* Main Content */
 .main {
   flex: 1;
   padding: 20px;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
 .stepContent {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 32px;
+  animation: fadeIn 0.4s ease-out;
+  flex: 1;
 }
 
 .stepTitle {
-  font-size: 24px;
-  font-weight: 700;
-  color: var(--color-foreground);
+  font-size: 28px;
+  font-weight: 900;
+  color: #fff;
   text-align: center;
   margin: 0;
+  letter-spacing: -0.5px;
+  text-shadow: 0 0 20px rgba(255, 255, 255, 0.1);
 }
 
-.stepDescription {
-  font-size: 14px;
-  color: var(--color-muted);
-  text-align: center;
-  margin: 0;
-}
-
-/* Sleep step */
+/* Time Input Styling (Sleep) */
 .timeSection {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 32px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 24px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .timeBlock {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
 }
 
 .timeLabel {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 700;
   color: var(--color-muted);
   text-transform: uppercase;
   letter-spacing: 0.1em;
@@ -115,9 +137,11 @@
   align-items: center;
   justify-content: center;
   gap: 12px;
-  padding: 16px;
-  background-color: var(--color-surface);
-  border-radius: 12px;
+  padding: 20px;
+  background: linear-gradient(135deg, rgba(59, 130, 246, 0.2) 0%, rgba(59, 130, 246, 0.05) 100%);
+  border: 1px solid rgba(59, 130, 246, 0.3);
+  border-radius: 16px;
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.1);
 }
 
 .sleepIcon {
@@ -125,69 +149,77 @@
 }
 
 .sleepDuration {
-  font-size: 18px;
-  font-weight: 600;
-  color: var(--color-foreground);
+  font-size: 20px;
+  font-weight: 700;
+  color: #60A5FA;
 }
 
-/* Work step */
+/* Work Step Styling */
 .currentValue {
   display: flex;
   align-items: baseline;
   justify-content: center;
   gap: 8px;
-  padding: 20px;
+  padding: 32px 0;
 }
 
 .bigNumber {
-  font-size: 48px;
-  font-weight: 800;
+  font-size: 64px;
+  font-weight: 900;
   color: var(--color-primary);
+  text-shadow: 0 0 30px rgba(255, 112, 51, 0.4);
+  line-height: 1;
 }
 
 .unit {
-  font-size: 16px;
+  font-size: 18px;
+  font-weight: 600;
   color: var(--color-muted);
+  text-transform: uppercase;
 }
 
 .hourGrid {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
-  gap: 8px;
+  gap: 10px;
 }
 
 .hourButton {
-  padding: 12px;
-  border-radius: 10px;
-  background-color: var(--color-surface);
-  border: 2px solid transparent;
-  color: var(--color-foreground);
-  font-size: 14px;
-  font-weight: 600;
+  padding: 14px 0;
+  border-radius: 12px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
 }
 
 .hourButton:hover {
-  background-color: var(--color-surface-light);
+  background-color: rgba(255, 255, 255, 0.1);
+  transform: translateY(-2px);
 }
 
 .hourActive {
   background-color: var(--color-primary);
   color: #121212;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 15px rgba(255, 112, 51, 0.4);
 }
 
 .minuteGrid {
   display: grid;
   grid-template-columns: repeat(4, 1fr);
-  gap: 8px;
+  gap: 10px;
+  margin-top: 10px;
 }
 
 .minuteButton {
   padding: 12px;
-  border-radius: 10px;
-  background-color: var(--color-surface);
-  border: 2px solid transparent;
+  border-radius: 12px;
+  background-color: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.1);
   color: var(--color-muted);
   font-size: 14px;
   font-weight: 600;
@@ -196,31 +228,33 @@
 }
 
 .minuteButton:hover {
-  background-color: var(--color-surface-light);
+  background-color: rgba(255, 255, 255, 0.05);
 }
 
 .minuteActive {
   border-color: var(--color-primary);
   color: var(--color-primary);
+  background-color: rgba(255, 112, 51, 0.1);
+  box-shadow: 0 0 10px rgba(255, 112, 51, 0.1);
 }
 
-/* ÚJ: Finomhangoló gombok */
+/* Fine tune buttons */
 .fineTuneSection {
   display: flex;
   flex-direction: column;
   align-items: center;
   gap: 12px;
-  margin-top: 8px;
-  padding-top: 16px;
-  border-top: 1px solid var(--color-border);
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .fineTuneLabel {
   font-size: 12px;
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.1em;
   color: var(--color-muted);
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .fineTuneGrid {
@@ -231,123 +265,135 @@
 }
 
 .fineTuneButton {
-  padding: 10px;
-  border-radius: 20px; /* Kerekítettebb */
-  background-color: var(--color-surface-light);
-  border: 1px solid var(--color-border);
-  color: var(--color-foreground);
-  font-size: 13px;
+  padding: 12px;
+  border-radius: 20px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 14px;
   font-weight: 700;
   cursor: pointer;
   transition: all 0.2s;
-}
-
-.fineTuneButton:hover {
-  background-color: var(--color-surface);
-  border-color: var(--color-muted);
 }
 
 .fineTuneButton:active {
   transform: scale(0.95);
   background-color: var(--color-primary);
   color: #121212;
-  border-color: var(--color-primary);
 }
 
+/* Custom Input */
 .customMinuteSection {
   display: flex;
   justify-content: center;
-  margin-top: 16px;
+  margin-top: 20px;
 }
 
 .customButton {
   background: none;
   border: none;
-  color: var(--color-primary);
+  color: var(--color-muted);
   font-size: 14px;
   font-weight: 600;
   cursor: pointer;
-  text-decoration: underline;
-  opacity: 0.8;
+  opacity: 0.7;
+  transition: opacity 0.2s;
 }
 
 .customButton:hover {
   opacity: 1;
+  color: var(--color-primary);
 }
 
-.customInputRow {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.customInput {
-  width: 100px;
-  padding: 8px 12px;
-  border-radius: 8px;
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
-  color: var(--color-foreground);
-  font-size: 16px;
-}
-
-/* Health & Purity steps */
+/* Toggle Steps (Health, Purity) */
 .toggleSection {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 20px;
 }
 
 .toggleItem {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
+  padding: 24px;
+  background: rgba(255, 255, 255, 0.03);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: all 0.3s;
+}
+
+.toggleItem:hover {
+  background: rgba(255, 255, 255, 0.05);
+  border-color: rgba(255, 255, 255, 0.1);
 }
 
 .toggleLabel {
-  font-size: 16px;
-  font-weight: 600;
-  color: var(--color-foreground);
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
   text-align: center;
 }
 
 .toggleHint {
   font-size: 12px;
-  color: var(--color-muted);
+  font-weight: 600;
+  color: var(--color-success);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: rgba(74, 222, 128, 0.1);
+  padding: 4px 8px;
+  border-radius: 6px;
 }
 
-/* Mind step */
-.hint {
-  font-size: 14px;
-  color: var(--color-muted);
-  text-align: center;
-  margin: 0;
-}
-
-/* Summary step */
+/* Summary Step */
 .summaryScore {
   display: flex;
   flex-direction: column;
   align-items: center;
-  padding: 24px;
-  background: linear-gradient(135deg, var(--color-primary) 0%, var(--color-primary-dark) 100%);
-  border-radius: 20px;
+  padding: 32px;
+  background: linear-gradient(135deg, var(--color-primary) 0%, #ff4500 100%);
+  border-radius: 32px;
+  box-shadow: 0 10px 40px rgba(255, 69, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  position: relative;
+  overflow: hidden;
+}
+
+/* Shine effect */
+.summaryScore::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(
+    to right,
+    transparent 0%,
+    rgba(255, 255, 255, 0.1) 50%,
+    transparent 100%
+  );
+  transform: rotate(45deg);
+  animation: shine 3s infinite;
 }
 
 .summaryScoreValue {
-  font-size: 64px;
-  font-weight: 800;
+  font-size: 80px;
+  font-weight: 900;
   color: #121212;
-  line-height: 1;
+  line-height: 0.9;
+  letter-spacing: -2px;
 }
 
 .summaryScoreLabel {
   font-size: 14px;
-  font-weight: 600;
+  font-weight: 800;
   color: rgba(18, 18, 18, 0.7);
   text-transform: uppercase;
-  letter-spacing: 0.1em;
+  letter-spacing: 0.2em;
+  margin-top: 8px;
 }
 
 .summaryGrid {
@@ -360,10 +406,11 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: 4px;
+  gap: 6px;
   padding: 16px;
-  background-color: var(--color-surface);
-  border-radius: 12px;
+  background-color: rgba(255, 255, 255, 0.05);
+  border-radius: 16px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .summaryIcon {
@@ -371,73 +418,203 @@
 }
 
 .summaryLabel {
-  font-size: 12px;
+  font-size: 11px;
   color: var(--color-muted);
   text-transform: uppercase;
+  font-weight: 700;
+  letter-spacing: 0.05em;
 }
 
 .summaryValue {
   font-size: 16px;
   font-weight: 700;
-  color: var(--color-foreground);
+  color: #fff;
 }
 
-/* Reflection section */
+/* Reflection */
 .reflectionSection {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 20px;
   margin-top: 16px;
+  background: rgba(255, 255, 255, 0.03);
+  padding: 24px;
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
 .reflectionTitle {
-  font-size: 16px;
-  font-weight: 700;
+  font-size: 14px;
+  font-weight: 800;
   color: var(--color-primary);
   text-transform: uppercase;
   letter-spacing: 0.1em;
   margin: 0;
+  text-align: center;
 }
 
 .reflectionItem {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
 }
 
 .reflectionLabel {
   font-size: 14px;
   font-weight: 600;
-  color: var(--color-foreground);
+  color: #fff;
 }
 
 .reflectionInput {
-  padding: 12px;
-  border-radius: 12px;
-  background-color: var(--color-surface);
-  border: 1px solid var(--color-border);
-  color: var(--color-foreground);
-  font-size: 14px;
+  padding: 16px;
+  border-radius: 16px;
+  background-color: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  color: #fff;
+  font-size: 15px;
   font-family: inherit;
   resize: none;
+  transition: all 0.2s;
 }
 
 .reflectionInput:focus {
   border-color: var(--color-primary);
   outline: none;
+  background-color: rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 0 2px rgba(255, 112, 51, 0.1);
 }
 
 /* Footer */
 .footer {
   display: flex;
   justify-content: space-between;
-  gap: 12px;
+  gap: 16px;
   padding: 20px;
   padding-bottom: calc(20px + env(safe-area-inset-bottom, 0));
-  background-color: var(--color-background);
-  border-top: 1px solid var(--color-border);
+  background: rgba(30, 30, 30, 0.8);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  position: sticky;
+  bottom: 0;
+  z-index: 10;
 }
 
-.footer button:only-child {
-  margin-left: auto;
+.igniteButton {
+  background: linear-gradient(135deg, var(--color-primary) 0%, #ff4500 100%);
+  color: #121212;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  box-shadow: 0 4px 20px rgba(255, 69, 0, 0.4);
+  border: none;
+  animation: pulseButton 2s infinite;
+}
+
+@keyframes pulseButton {
+  0% { box-shadow: 0 0 0 0 rgba(255, 69, 0, 0.7); }
+  70% { box-shadow: 0 0 0 10px rgba(255, 69, 0, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(255, 69, 0, 0); }
+}
+
+@keyframes shine {
+  to { transform: rotate(45deg) translate(20%, 20%); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- CLIMAX SCREEN (Overlay) --- */
+.climaxOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: #000;
+  z-index: 9999;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+/* Robbanás háttér animáció */
+.climaxBg {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 100vmax;
+  height: 100vmax;
+  background: radial-gradient(circle, var(--color-primary) 0%, transparent 70%);
+  opacity: 0;
+  animation: explodeBg 2s ease-out forwards;
+}
+
+.climaxContent {
+  position: relative;
+  z-index: 10;
+  text-align: center;
+  opacity: 0;
+  animation: contentAppear 0.5s 0.3s ease-out forwards;
+}
+
+.climaxScore {
+  font-size: 120px;
+  font-weight: 900;
+  color: #fff;
+  line-height: 1;
+  text-shadow: 0 0 40px var(--color-primary);
+  margin: 0;
+  letter-spacing: -5px;
+}
+
+.climaxLabel {
+  font-size: 16px;
+  font-weight: 800;
+  color: rgba(255,255,255,0.7);
+  text-transform: uppercase;
+  letter-spacing: 0.5em;
+  margin-bottom: 20px;
+  display: block;
+}
+
+.climaxRank {
+  font-size: 32px;
+  font-weight: 900;
+  color: var(--color-primary); /* Majd JS-ből felülírjuk */
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  text-shadow: 0 0 20px currentColor;
+  border: 2px solid currentColor;
+  padding: 10px 30px;
+  border-radius: 50px;
+  background: rgba(0,0,0,0.5);
+  backdrop-filter: blur(10px);
+  display: inline-block;
+  box-shadow: 0 0 30px currentColor;
+}
+
+.climaxMessage {
+  font-size: 14px;
+  color: #fff;
+  margin-top: 24px;
+  font-weight: 600;
+  opacity: 0.8;
+}
+
+@keyframes explodeBg {
+  0% { opacity: 0; transform: translate(-50%, -50%) scale(0.1); }
+  10% { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+  100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+}
+
+@keyframes contentAppear {
+  0% { opacity: 0; transform: scale(0.5); }
+  60% { transform: scale(1.1); }
+  100% { opacity: 1; transform: scale(1); }
 }

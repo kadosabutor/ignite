@@ -1,0 +1,72 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+  overflow-x: auto;
+  padding-bottom: 8px;
+  /* Elrejtjük a scrollbar-t de engedjük a görgetést */
+  scrollbar-width: none; 
+}
+
+.container::-webkit-scrollbar {
+  display: none;
+}
+
+.scrollWrapper {
+  display: flex;
+  min-width: max-content;
+}
+
+.grid {
+  display: flex;
+  gap: 3px;
+}
+
+.column {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.cell {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+  background-color: rgba(255, 255, 255, 0.05);
+  transition: all 0.2s;
+}
+
+.cell:hover {
+  transform: scale(1.5);
+  z-index: 2;
+  border: 1px solid rgba(255,255,255,0.5);
+}
+
+/* Színskála */
+.level0 { background-color: rgba(255, 255, 255, 0.05); } /* Üres */
+.level1 { background-color: #371b0e; } /* 1-25 */
+.level2 { background-color: #8c2f0d; } /* 26-50 */
+.level3 { background-color: #d84a1b; } /* 51-75 */
+.level4 { background-color: #ff7033; box-shadow: 0 0 4px #ff7033; } /* 76-90 */
+.level5 { background-color: #FFD700; box-shadow: 0 0 8px #FFD700; } /* 91+ (Legendary) */
+
+.legend {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 4px;
+  margin-top: 4px;
+}
+
+.legendLabel {
+  font-size: 10px;
+  color: var(--color-muted);
+  margin-right: 4px;
+}
+
+.legendBox {
+  width: 10px;
+  height: 10px;
+  border-radius: 2px;
+}
