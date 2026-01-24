@@ -10,7 +10,8 @@ import styles from './Statistics.module.css';
 export function Statistics() {
   const { entries, weeklyAverage, monthlyAverage, fetchAllEntries, hasFullHistory, streak } = useHabits();
   
-  const [currentMonth, setCurrentMonth] = useState(() => {
+  // JAVÍTÁS: Csak a currentMonth értéket kérjük el, a beállító függvény (setCurrentMonth) nem kell
+  const [currentMonth] = useState(() => {
     const now = new Date();
     return { year: now.getFullYear(), month: now.getMonth() };
   });
@@ -21,7 +22,7 @@ export function Statistics() {
     }
   }, [hasFullHistory, fetchAllEntries]);
 
-  // Havi statisztikák számítása (a régi kód alapján, hogy a kártyák működjenek)
+  // Havi statisztikák számítása
   const monthStats = useMemo(() => {
     const monthStr = `${currentMonth.year}-${String(currentMonth.month + 1).padStart(2, '0')}`;
     const monthEntries = entries.filter(e => e.date.startsWith(monthStr));
@@ -43,8 +44,6 @@ export function Statistics() {
       best,
     };
   }, [entries, currentMonth]);
-
-  // --- ÚJ SZÁMÍTÁSOK ---
 
   // Szezonból hátralévő napok
   const daysLeftInSeason = useMemo(() => {
