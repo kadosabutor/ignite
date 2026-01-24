@@ -3,8 +3,8 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
 import { Button, TimeInput, Toggle } from '../components/ui';
 import { calculateSleepMinutes, calculateTotalScore, getTodayString } from '../lib/scoring';
-import { createNewEntry, addXpToUser } from '../lib/supabase'; // addXpToUser importálása
-import { getDailyRank, calculateDailyXP } from '../lib/gamification'; // ÚJ importok
+import { createNewEntry, addXpToUser } from '../lib/supabase';
+import { getDailyRank, calculateDailyXP } from '../lib/gamification';
 import type { HabitEntry } from '../types';
 import styles from './Wizard.module.css';
 
@@ -35,6 +35,7 @@ export function Wizard() {
   // CLIMAX STATE
   const [showClimax, setShowClimax] = useState(false);
   const [dailyRank, setDailyRank] = useState<{ title: string; color: string; msg: string } | null>(null);
+  const [isDone, setIsDone] = useState(false); // Ez vezérli a "Tovább" gombot
 
   const wakeMinutesRef = useRef<HTMLInputElement>(null);
 
@@ -50,9 +51,7 @@ export function Wizard() {
   };
 
   const handleNext = () => {
-    // Haptikus visszajelzés
     if (navigator.vibrate) navigator.vibrate(10);
-    
     if (currentStep < STEPS.length - 1) {
       setCurrentStep(prev => prev + 1);
     }
@@ -68,46 +67,6 @@ export function Wizard() {
     handleNext();
   };
 
-  // IGNITE DAY LOGIC
-  const handleIgnite = async () => {
-    if (isSaving) return;
-    setIsSaving(true);
-
-    const score = calculateTotalScore(entry);
-    const finalEntry = { ...entry, score };
-    const rank = getDailyRank(score);
-    
-    // 1. Climax Screen megjelenítése
-    setDailyRank(rank);
-    setShowClimax(true);
-    
-    // Haptikus robbanás
-    if (navigator.vibrate) navigator.vibrate([50, 50, 50, 50, 200]);
-
-    // 2. Mentés a háttérben
-    try {
-      await saveEntry(finalEntry);
-      
-      // XP Hozzáadása
-      if (authUser) {
-        const xpEarned = calculateDailyXP(finalEntry);
-        await addXpToUser(authUser.id, xpEarned);
-      }
-      
-      // 3. Várakozás és átirányítás (hogy lássa az animációt)
-      setTimeout(() => {
-        navigate(`/summary?date=${dateParam}`);
-      }, 3000); // 3 másodpercig tart a show
-      
-    } catch (error) {
-      console.error('Mentési hiba:', error);
-      setIsSaving(false);
-      setShowClimax(false);
-      alert('Nem sikerült elmenteni az adatokat.');
-    }
-  };
-
-  // Munkaidő kezelés
   const handleWorkHourSelect = (hours: number) => {
     if (navigator.vibrate) navigator.vibrate(5);
     updateEntry({ businessMinutes: hours * 60 });
@@ -134,6 +93,50 @@ export function Wizard() {
     setCustomMinutes('');
   };
 
+  // --- MÓDOSÍTOTT IGNITE LOGIKA ---
+  const handleIgnite = async () => {
+    if (isSaving) return;
+    setIsSaving(true);
+
+    const score = calculateTotalScore(entry);
+    const finalEntry = { ...entry, score };
+    const rank = getDailyRank(score);
+    
+    // 1. Climax Screen megjelenítése
+    setDailyRank(rank);
+    setShowClimax(true);
+    
+    // Haptikus robbanás
+    if (navigator.vibrate) navigator.vibrate([50, 50, 50, 50, 200]);
+
+    // 2. Mentés a háttérben
+    try {
+      await saveEntry(finalEntry);
+      
+      // XP Hozzáadása
+      if (authUser) {
+        const xpEarned = calculateDailyXP(finalEntry);
+        await addXpToUser(authUser.id, xpEarned);
+      }
+      
+      // 3. Várakozás, majd a GOMB megjelenítése (nem navigálunk automatikusan)
+      setTimeout(() => {
+        setIsDone(true);
+      }, 2000); 
+      
+    } catch (error) {
+      console.error('Mentési hiba:', error);
+      setIsSaving(false);
+      setShowClimax(false);
+      alert('Nem sikerült elmenteni az adatokat.');
+    }
+  };
+
+  // Ez a függvény visz tovább, amikor a user megnyomja a gombot
+  const handleFinish = () => {
+    navigate(`/summary?date=${dateParam}`);
+  };
+
   const score = calculateTotalScore(entry);
 
   const renderStepContent = () => {
@@ -148,7 +151,7 @@ export function Wizard() {
                 <span className={styles.timeLabel}>Lefekvés</span>
                 <TimeInput
                   value={entry.bedTime || ''}
-                  onChange={(val) => updateEntry({ bedTime: val })}
+                  onChange={(val: string) => updateEntry({ bedTime: val })}
                   onComplete={() => wakeMinutesRef.current?.focus()}
                 />
               </div>
@@ -157,7 +160,7 @@ export function Wizard() {
                 <span className={styles.timeLabel}>Ébredés</span>
                 <TimeInput
                   value={entry.wakeUpTime || ''}
-                  onChange={(val) => updateEntry({ wakeUpTime: val })}
+                  onChange={(val: string) => updateEntry({ wakeUpTime: val })}
                   firstInputRef={wakeMinutesRef}
                 />
               </div>
@@ -260,7 +263,7 @@ export function Wizard() {
                 <span className={styles.toggleLabel}>Edzettél ma?</span>
                 <Toggle
                   value={entry.exercise}
-                  onChange={(val) => updateEntry({ exercise: val })}
+                  onChange={(val: boolean) => updateEntry({ exercise: val })}
                   positiveLabel="Igen"
                   negativeLabel="Nem"
                   positiveColor="success"
@@ -273,7 +276,7 @@ export function Wizard() {
                 <span className={styles.toggleLabel}>Tisztán étkeztél?</span>
                 <Toggle
                   value={entry.cleanEating}
-                  onChange={(val) => updateEntry({ cleanEating: val })}
+                  onChange={(val: boolean) => updateEntry({ cleanEating: val })}
                   positiveLabel="Igen"
                   negativeLabel="Nem"
                   positiveColor="success"
@@ -286,7 +289,7 @@ export function Wizard() {
                 <span className={styles.toggleLabel}>Paradigma váltás?</span>
                 <Toggle
                   value={entry.paradigm}
-                  onChange={(val) => updateEntry({ paradigm: val })}
+                  onChange={(val: boolean) => updateEntry({ paradigm: val })}
                   positiveLabel="Igen"
                   negativeLabel="Nem"
                   positiveColor="success"
@@ -308,7 +311,7 @@ export function Wizard() {
                 <span className={styles.toggleLabel}>Volt kielégülés?</span>
                 <Toggle
                   value={entry.satisfaction}
-                  onChange={(val) => updateEntry({ satisfaction: val })}
+                  onChange={(val: boolean) => updateEntry({ satisfaction: val })}
                   positiveLabel="Igen"
                   negativeLabel="Nem"
                   positiveColor="error"
@@ -321,7 +324,7 @@ export function Wizard() {
                 <span className={styles.toggleLabel}>Dopamindús tartalom?</span>
                 <Toggle
                   value={entry.dopamineContent}
-                  onChange={(val) => updateEntry({ dopamineContent: val })}
+                  onChange={(val: boolean) => updateEntry({ dopamineContent: val })}
                   positiveLabel="Igen"
                   negativeLabel="Nem"
                   positiveColor="error"
@@ -334,7 +337,7 @@ export function Wizard() {
                 <span className={styles.toggleLabel}>Gaming?</span>
                 <Toggle
                   value={entry.gaming}
-                  onChange={(val) => updateEntry({ gaming: val })}
+                  onChange={(val: boolean) => updateEntry({ gaming: val })}
                   positiveLabel="Igen"
                   negativeLabel="Nem"
                   positiveColor="error"
@@ -375,6 +378,16 @@ export function Wizard() {
                 <span className={styles.summaryIcon}>💪</span>
                 <span className={styles.summaryLabel}>Edzés</span>
                 <span className={styles.summaryValue}>{entry.exercise ? '✓' : '✗'}</span>
+              </div>
+              <div className={styles.summaryItem}>
+                <span className={styles.summaryIcon}>🍎</span>
+                <span className={styles.summaryLabel}>Étkezés</span>
+                <span className={styles.summaryValue}>{entry.cleanEating ? '✓' : '✗'}</span>
+              </div>
+              <div className={styles.summaryItem}>
+                <span className={styles.summaryIcon}>🧠</span>
+                <span className={styles.summaryLabel}>Paradigma</span>
+                <span className={styles.summaryValue}>{entry.paradigm ? '✓' : '✗'}</span>
               </div>
               <div className={styles.summaryItem}>
                 <span className={styles.summaryIcon}>✨</span>
@@ -442,6 +455,28 @@ export function Wizard() {
               {dailyRank.title}
             </div>
             <p className={styles.climaxMessage}>{dailyRank.msg}</p>
+            
+            {/* ÚJ GOMB */}
+            {isDone && (
+              <button 
+                onClick={handleFinish}
+                style={{
+                  marginTop: '40px',
+                  padding: '16px 40px',
+                  borderRadius: '30px',
+                  background: 'white',
+                  color: 'black',
+                  fontWeight: '900',
+                  border: 'none',
+                  fontSize: '18px',
+                  boxShadow: '0 0 30px rgba(255,255,255,0.5)',
+                  cursor: 'pointer',
+                  animation: 'fadeIn 0.5s ease-out'
+                }}
+              >
+                TOVÁBB
+              </button>
+            )}
           </div>
         </div>
       )}

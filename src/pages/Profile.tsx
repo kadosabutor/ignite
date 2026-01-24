@@ -2,11 +2,11 @@ import { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
 import { Button, Switch } from '../components/ui';
-import { RANKS, getAvatarSrc, type AvatarType, type Badge } from '../types';
-import { calculateAttributes, getLevelFromXP, ATTRIBUTE_DESCRIPTIONS } from '../lib/gamification';
+import { RANKS, getAvatarSrc, type Badge } from '../types';
+import { calculateAttributes, getLevelFromXP, ATTRIBUTE_DESCRIPTIONS, BADGES } from '../lib/gamification';
 import * as supabase from '../lib/supabase';
 import { useToast } from '../context/ToastContext';
-import { ImageCropper } from '../components/ImageCropper'; // A korábbi profilból
+import { ImageCropper } from '../components/ImageCropper';
 import styles from './Profile.module.css';
 
 export function Profile() {
@@ -16,6 +16,7 @@ export function Profile() {
   
   const [badges, setBadges] = useState<Badge[]>([]);
   const [showInfoModal, setShowInfoModal] = useState(false);
+  const [infoTab, setInfoTab] = useState<'attributes' | 'badges'>('attributes');
   const [showSettings, setShowSettings] = useState(false);
   
   // Szerkesztéshez szükséges state-ek
@@ -36,30 +37,13 @@ export function Profile() {
     socialEnabled: true,
   });
 
-  // Badge-ek betöltése
+  // Adatok betöltése
   useEffect(() => {
     if (authUser) {
-      const loadBadges = async () => {
-        try {
-          const userBadges = await supabase.getUserBadges(authUser.id);
-          setBadges(userBadges);
-        } catch (error) {
-          console.error('Failed to load badges', error);
-        }
-      };
-      loadBadges();
-      
-      // Beállítások betöltése
-      supabase.getNotificationSettings(authUser.id).then(settings => {
-        setNotifications({
-          enabled: settings.enabled,
-          morningEnabled: settings.morningEnabled,
-          afternoonEnabled: settings.afternoonEnabled,
-          eveningEnabled: settings.eveningEnabled,
-          streakEnabled: settings.streakEnabled,
-          socialEnabled: settings.socialEnabled,
-        });
-      });
+      supabase.getUserBadges(authUser.id).then(setBadges);
+      supabase.getNotificationSettings(authUser.id).then(settings => 
+        setNotifications(prev => ({...prev, ...settings}))
+      );
     }
   }, [authUser]);
 
@@ -75,8 +59,7 @@ export function Profile() {
   const attributes = useMemo(() => calculateAttributes(entries), [entries]);
   const rankData = user ? RANKS[user.rank] : RANKS.sleepwalker;
 
-  // --- KEZELŐ FÜGGVÉNYEK ---
-
+  // Kezelő függvények
   const handleSignOut = async () => {
     if (confirm('Biztosan ki szeretnél jelentkezni?')) {
       await signOut();
@@ -128,7 +111,7 @@ export function Profile() {
 
   if (!user) return <div className={styles.loading}>Betöltés...</div>;
 
-  // --- SZERKESZTÉS NÉZET (Egyszerűsítve a kódot a lényegre) ---
+  // Szerkesztő nézet
   if (isEditing) {
     return (
       <div className={styles.container}>
@@ -158,7 +141,7 @@ export function Profile() {
           <input type="file" ref={fileInputRef} onChange={handleFileChange} accept="image/*" style={{ display: 'none' }} />
           
           <input 
-            className="input" // Globális stílus
+            className="input" 
             value={displayName} 
             onChange={(e) => setDisplayName(e.target.value)} 
             placeholder="Név" 
@@ -179,14 +162,17 @@ export function Profile() {
     );
   }
 
-  // --- FŐ NÉZET: RPG KARAKTERLAP ---
+  // Fő nézet
   return (
     <div className={styles.container}>
       <header className={styles.header}>
         <h1 className={styles.title}>Profil</h1>
-        <button className={styles.settingsButton} onClick={() => setShowSettings(!showSettings)}>
-          {showSettings ? '✕' : '⚙️'}
-        </button>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <button className={styles.settingsButton} onClick={() => setIsEditing(true)}>✏️</button>
+          <button className={styles.settingsButton} onClick={() => setShowSettings(!showSettings)}>
+            {showSettings ? '✕' : '⚙️'}
+          </button>
+        </div>
       </header>
 
       {showSettings ? (
@@ -194,20 +180,19 @@ export function Profile() {
           <div className={styles.settingsCard}>
             <h3 className={styles.sectionTitle}>Értesítések</h3>
             <div className={styles.settingsList}>
-              <Switch label="Összes értesítés" checked={notifications.enabled} onChange={(val) => handleNotificationChange('enabled', val)} />
+              <Switch label="Összes értesítés" checked={notifications.enabled} onChange={(val: boolean) => handleNotificationChange('enabled', val)} />
               {notifications.enabled && (
                 <>
                   <div className={styles.settingsDivider} />
-                  <Switch label="Reggeli motiváció (07:00)" checked={notifications.morningEnabled} onChange={(val) => handleNotificationChange('morningEnabled', val)} />
-                  <Switch label="Délutáni emlékeztető (15:00)" checked={notifications.afternoonEnabled} onChange={(val) => handleNotificationChange('afternoonEnabled', val)} />
-                  <Switch label="Esti felszólítás (21:00)" checked={notifications.eveningEnabled} onChange={(val) => handleNotificationChange('eveningEnabled', val)} />
-                  <Switch label="Streak figyelmeztetés" checked={notifications.streakEnabled} onChange={(val) => handleNotificationChange('streakEnabled', val)} />
-                  <Switch label="Közösségi (Ping/Tűz)" checked={notifications.socialEnabled} onChange={(val) => handleNotificationChange('socialEnabled', val)} />
+                  <Switch label="Reggeli motiváció (07:00)" checked={notifications.morningEnabled} onChange={(val: boolean) => handleNotificationChange('morningEnabled', val)} />
+                  <Switch label="Délutáni emlékeztető (15:00)" checked={notifications.afternoonEnabled} onChange={(val: boolean) => handleNotificationChange('afternoonEnabled', val)} />
+                  <Switch label="Esti felszólítás (21:00)" checked={notifications.eveningEnabled} onChange={(val: boolean) => handleNotificationChange('eveningEnabled', val)} />
+                  <Switch label="Streak figyelmeztetés" checked={notifications.streakEnabled} onChange={(val: boolean) => handleNotificationChange('streakEnabled', val)} />
+                  <Switch label="Közösségi (Ping/Tűz)" checked={notifications.socialEnabled} onChange={(val: boolean) => handleNotificationChange('socialEnabled', val)} />
                 </>
               )}
             </div>
           </div>
-          <Button variant="ghost" fullWidth onClick={() => setIsEditing(true)}>Profil szerkesztése</Button>
           <Button variant="ghost" fullWidth onClick={() => setShowSettings(false)}>Vissza</Button>
         </div>
       ) : (
@@ -246,10 +231,12 @@ export function Profile() {
           <div className={styles.attributesSection}>
             <div className={styles.sectionHeader}>
               <h3 className={styles.sectionTitle}>Tulajdonságok</h3>
-              <button className={styles.infoButton} onClick={() => setShowInfoModal(true)}>i</button>
+              {/* Kiemelt Info gomb */}
+              <button className={styles.infoButton} onClick={() => { setInfoTab('attributes'); setShowInfoModal(true); }}>i</button>
             </div>
             
             <div className={styles.attributeGrid}>
+              {/* Focus */}
               <div className={`${styles.attributeCard} ${styles.focus}`}>
                 <div className={styles.attrHeader}>
                   <span className={styles.attrLabel}>Focus</span>
@@ -260,6 +247,7 @@ export function Profile() {
                 </div>
               </div>
 
+              {/* Vitality */}
               <div className={`${styles.attributeCard} ${styles.vitality}`}>
                 <div className={styles.attrHeader}>
                   <span className={styles.attrLabel}>Vitality</span>
@@ -270,6 +258,7 @@ export function Profile() {
                 </div>
               </div>
 
+              {/* Will */}
               <div className={`${styles.attributeCard} ${styles.will}`}>
                 <div className={styles.attrHeader}>
                   <span className={styles.attrLabel}>Will</span>
@@ -280,6 +269,7 @@ export function Profile() {
                 </div>
               </div>
 
+              {/* Mind */}
               <div className={`${styles.attributeCard} ${styles.mind}`}>
                 <div className={styles.attrHeader}>
                   <span className={styles.attrLabel}>Mind</span>
@@ -296,6 +286,7 @@ export function Profile() {
           <div className={styles.attributesSection}>
             <div className={styles.sectionHeader}>
               <h3 className={styles.sectionTitle}>Jelvények</h3>
+              <button className={styles.infoButton} onClick={() => { setInfoTab('badges'); setShowInfoModal(true); }}>i</button>
             </div>
             <div className={styles.badgesGrid}>
               {badges.map((badge) => (
@@ -328,19 +319,38 @@ export function Profile() {
         </>
       )}
 
-      {/* INFO MODAL (Attributes) */}
+      {/* INFO MODAL */}
       {showInfoModal && (
         <div className={styles.modalOverlay} onClick={() => setShowInfoModal(false)}>
           <div className={styles.modalContent} onClick={e => e.stopPropagation()}>
-            <h3 className={styles.modalTitle}>Tulajdonságok Magyarázata</h3>
-            {Object.entries(ATTRIBUTE_DESCRIPTIONS).map(([key, data]) => (
-              <div key={key} className={styles.infoItem}>
-                <h4 className={styles.infoTitle}>{data.title}</h4>
-                <p className={styles.infoDesc}>{data.desc}</p>
-                <span className={styles.infoSource}>Forrás: {data.sources.join(', ')}</span>
-              </div>
-            ))}
-            <Button fullWidth onClick={() => setShowInfoModal(false)}>Bezárás</Button>
+            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px' }}>
+              <Button size="sm" variant={infoTab === 'attributes' ? 'primary' : 'ghost'} onClick={() => setInfoTab('attributes')}>Tulajdonságok</Button>
+              <Button size="sm" variant={infoTab === 'badges' ? 'primary' : 'ghost'} onClick={() => setInfoTab('badges')}>Jelvények</Button>
+            </div>
+
+            <div style={{ maxHeight: '60vh', overflowY: 'auto' }}>
+              {infoTab === 'attributes' ? (
+                Object.entries(ATTRIBUTE_DESCRIPTIONS).map(([key, data]) => (
+                  <div key={key} className={styles.infoItem}>
+                    <h4 className={styles.infoTitle}>{data.title}</h4>
+                    <p className={styles.infoDesc}>{data.desc}</p>
+                    <span className={styles.infoSource}>Forrás: {data.sources.join(', ')}</span>
+                  </div>
+                ))
+              ) : (
+                BADGES.map(badge => (
+                  <div key={badge.id} className={styles.infoItem}>
+                    <h4 className={styles.infoTitle}>{badge.icon} {badge.name}</h4>
+                    <p className={styles.infoDesc}>{badge.description}</p>
+                    <span className={styles.infoSource}>{badge.requirement}</span>
+                  </div>
+                ))
+              )}
+            </div>
+            
+            <div style={{ marginTop: '20px' }}>
+              <Button fullWidth onClick={() => setShowInfoModal(false)}>Bezárás</Button>
+            </div>
           </div>
         </div>
       )}

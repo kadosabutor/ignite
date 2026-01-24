@@ -14,12 +14,6 @@ export function Heatmap({ entries }: HeatmapProps) {
     const startDate = new Date(today);
     startDate.setDate(today.getDate() - 364);
     
-    // Igazítás vasárnaphoz
-    const dayOfWeek = startDate.getDay(); // 0 = Vasárnap
-    // Ha Hétfővel kezdünk (1), akkor a previous Monday-hez igazítunk
-    const diff = startDate.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); 
-    // Egyszerűsítés: Csak menjünk vissza 52*7 napot
-    
     const data = [];
     const entryMap = new Map(entries.map(e => [e.date, e.score]));
 

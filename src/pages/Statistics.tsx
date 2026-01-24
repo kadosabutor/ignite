@@ -21,33 +21,48 @@ export function Statistics() {
     }
   }, [hasFullHistory, fetchAllEntries]);
 
-  // --- SZÁMÍTÁSOK ---
+  // Havi statisztikák számítása (a régi kód alapján, hogy a kártyák működjenek)
+  const monthStats = useMemo(() => {
+    const monthStr = `${currentMonth.year}-${String(currentMonth.month + 1).padStart(2, '0')}`;
+    const monthEntries = entries.filter(e => e.date.startsWith(monthStr));
+    
+    if (monthEntries.length === 0) {
+      return { entries: [], average: 0, total: 0, totalBusinessMinutes: 0, count: 0, best: 0 };
+    }
+    
+    const totalScore = monthEntries.reduce((sum, e) => sum + e.score, 0);
+    const totalBusinessMinutes = monthEntries.reduce((sum, e) => sum + (e.businessMinutes || 0), 0);
+    const best = Math.max(...monthEntries.map(e => e.score));
+    
+    return {
+      entries: monthEntries,
+      average: totalScore / monthEntries.length,
+      total: totalScore,
+      totalBusinessMinutes,
+      count: monthEntries.length,
+      best,
+    };
+  }, [entries, currentMonth]);
 
-  // 1. Szezonból hátralévő napok
+  // --- ÚJ SZÁMÍTÁSOK ---
+
+  // Szezonból hátralévő napok
   const daysLeftInSeason = useMemo(() => {
     const now = new Date();
     const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     return lastDayOfMonth.getDate() - now.getDate();
   }, []);
 
-  // 2. Rekordok (Best Of)
+  // Rekordok (Best Of)
   const records = useMemo(() => {
     if (entries.length === 0) return null;
-
     const bestScore = entries.reduce((max, e) => (e.score > max.score ? e : max), entries[0]);
     const maxWork = entries.reduce((max, e) => (e.businessMinutes > max.businessMinutes ? e : max), entries[0]);
-    
-    return {
-      bestDay: bestScore,
-      maxWork: maxWork,
-    };
+    return { bestDay: bestScore, maxWork: maxWork };
   }, [entries]);
 
-  // 3. Radar adatok (utolsó 30 nap)
-  const radarStats = useMemo(() => {
-    return calculateRadarStats(entries.slice(0, 30));
-  }, [entries]);
-
+  // Radar adatok
+  const radarStats = useMemo(() => calculateRadarStats(entries.slice(0, 30)), [entries]);
   const hasAnyData = entries.length > 0;
 
   return (
@@ -80,14 +95,7 @@ export function Statistics() {
       {/* 2. HEATMAP (Konzisztencia) */}
       <div className={styles.heatmapCard}>
         <h3 className={styles.cardTitle}><span>🔥</span> Konzisztencia Térkép</h3>
-        {hasAnyData ? (
-          <Heatmap entries={entries} />
-        ) : (
-          <div className={styles.emptyState}>
-            <span className={styles.emptyIcon}>📅</span>
-            <p>Még nincs elég adat a hőtérképhez.</p>
-          </div>
-        )}
+        {hasAnyData ? <Heatmap entries={entries} /> : <div className={styles.emptyState}>Nincs adat</div>}
       </div>
 
       {/* 3. BEST OF (Rekordok) */}
@@ -99,21 +107,18 @@ export function Statistics() {
             <span className={styles.recordLabel}>Legjobb nap</span>
             <span className={styles.recordDate}>{new Date(records.bestDay.date).toLocaleDateString('hu-HU', { month: 'short', day: 'numeric' })}</span>
           </div>
-          
           <div className={styles.recordCard}>
             <span className={styles.recordIcon}>⚡</span>
             <span className={styles.recordValue}>{streak.longestStreak}</span>
             <span className={styles.recordLabel}>Max Streak</span>
             <span className={styles.recordDate}>nap</span>
           </div>
-
           <div className={styles.recordCard}>
             <span className={styles.recordIcon}>💼</span>
             <span className={styles.recordValue}>{Math.round(records.maxWork.businessMinutes / 60)}</span>
             <span className={styles.recordLabel}>Max Munka</span>
             <span className={styles.recordDate}>óra</span>
           </div>
-
           <div className={styles.recordCard}>
             <span className={styles.recordIcon}>💪</span>
             <span className={styles.recordValue}>{entries.length}</span>
@@ -123,20 +128,36 @@ export function Statistics() {
         </div>
       )}
 
-      {/* 4. RADAR CHART (Képességek) */}
+      {/* 4. RADAR CHART */}
       <div className={styles.chartContainer}>
         <h3 className={styles.cardTitle}><span>🕸️</span> Képesség Profil</h3>
-        {hasAnyData ? (
-          <RadarChart stats={radarStats} primaryLabel="Te" />
-        ) : (
-          <div className={styles.emptyState}>
-            <span className={styles.emptyIcon}>🕸️</span>
-            <p>Tölts ki pár napot a profilodhoz!</p>
-          </div>
-        )}
+        {hasAnyData ? <RadarChart stats={radarStats} primaryLabel="Te" /> : <div className={styles.emptyState}>Nincs adat</div>}
       </div>
 
-      {/* 5. METRICS CHART (Trendek - régi chart) */}
+      {/* 5. HAVI ÖSSZESÍTÉS (Régi Summary Card) */}
+      <div className={styles.summaryCard}>
+        <h3 className={styles.cardTitle}><span>📅</span> Havi Összesítés</h3>
+        <div className={styles.summaryGrid}>
+          <div className={styles.summaryItem}>
+            <span className={styles.summaryValue}>{monthStats.count}</span>
+            <span className={styles.summaryLabel}>Rögzített nap</span>
+          </div>
+          <div className={styles.summaryItem}>
+            <span className={styles.summaryValue}>{Math.round(monthStats.average)}</span>
+            <span className={styles.summaryLabel}>Átlag</span>
+          </div>
+          <div className={styles.summaryItem}>
+            <span className={styles.summaryValue}>{Math.round(monthStats.best)}</span>
+            <span className={styles.summaryLabel}>Legjobb</span>
+          </div>
+          <div className={styles.summaryItem}>
+            <span className={styles.summaryValue}>{Math.round(monthStats.totalBusinessMinutes / 60)}</span>
+            <span className={styles.summaryLabel}>Összes Munkaóra</span>
+          </div>
+        </div>
+      </div>
+
+      {/* 6. METRICS CHART (Trendek) */}
       <div className={styles.chartContainer}>
         <h3 className={styles.cardTitle}><span>📈</span> Trendek</h3>
         <MetricsChart entries={entries} currentMonth={currentMonth} />

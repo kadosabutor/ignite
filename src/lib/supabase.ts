@@ -1,7 +1,7 @@
 import { createClient } from '@supabase/supabase-js';
 import type { HabitEntry, UserProfile, Friend, StreakData, NotificationSettings, AvatarType, RankType, Badge } from '../types';
 import { calculateTotalScore, getRankFromScore, getStreakLevel, getTodayString } from './scoring';
-import { calculateDailyXP, checkNewBadges, BADGES } from './gamification';
+import { checkNewBadges, BADGES } from './gamification';
 import { v4 as uuidv4 } from 'uuid';
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -50,7 +50,7 @@ export async function signUp(email: string, password: string, username: string, 
     avatar,
     rank: 'sleepwalker',
     monthly_average: 0,
-    total_xp: 0, // ÚJ: Kezdő XP
+    total_xp: 0, 
   });
 
   if (profileError) throw profileError;
@@ -119,7 +119,7 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
     bio: userData.bio || '',
     rank: userData.rank as RankType,
     monthlyAverage: userData.monthly_average || 0,
-    totalXp: userData.total_xp || 0, // ÚJ: XP betöltése
+    totalXp: userData.total_xp || 0, 
     streak: streakData ? {
       currentStreak: streakData.current_streak,
       longestStreak: streakData.longest_streak,
@@ -226,7 +226,6 @@ export async function searchUsers(query: string): Promise<UserProfile[]> {
 
 // ============ BADGES ============
 
-// ÚJ: Jelvények lekérése
 export async function getUserBadges(userId: string): Promise<Badge[]> {
   const { data, error } = await supabase
     .from('user_badges')
@@ -235,7 +234,6 @@ export async function getUserBadges(userId: string): Promise<Badge[]> {
 
   if (error) throw error;
 
-  // Összefésüljük a statikus definíciókkal
   return BADGES.map(badgeDef => {
     const unlocked = data?.find(b => b.badge_id === badgeDef.id);
     return {
@@ -348,11 +346,9 @@ export async function getEntryByDate(userId: string, date: string): Promise<Habi
   };
 }
 
-// MÓDOSÍTOTT MENTÉS: XP és Badge logika beépítve
 export async function saveEntry(userId: string, entry: HabitEntry): Promise<void> {
   const score = calculateTotalScore(entry);
 
-  // 1. Bejegyzés mentése
   const { error } = await supabase
     .from('entries')
     .upsert({
@@ -378,32 +374,9 @@ export async function saveEntry(userId: string, entry: HabitEntry): Promise<void
 
   if (error) throw error;
 
-  // 2. Streak frissítése (és adatok visszakapása)
   const streakData = await updateStreak(userId);
 
-  // 3. XP számítás és mentés
-  // Csak akkor adunk XP-t, ha ez egy "friss" mentés vagy jelentős változás
-  // Egyszerűsítés: Minden mentéskor hozzáadjuk a napi XP-t?
-  // Jobb megoldás: Kiszámoljuk az összesített XP-t? Nem, az túl lassú.
-  // Kompromisszum: A calculateDailyXP visszaad egy értéket.
-  // Mivel az update felülírhatja a régit, ez trükkös.
-  // Most egyszerűen hozzáadjuk a User XP-hez a napi értéket, DE ez többszörös hozzáadást okozhat szerkesztésnél.
-  // Helyesebb lenne "tranzakcionálisan", de most kliens oldalon:
-  // Csak akkor adunk XP-t, ha ez a nap MAI (vagy nagyon friss), és feltételezzük a user becsületét.
-  // Vagy: Nem mentünk XP-t minden saveEntry-nél, hanem csak a "Véglegesítés" gombnál a Wizard-ban?
-  // A specifikáció szerint a Wizard végén van a "Nagy gomb". Ott fogjuk explicit hívni az XP növelést.
-  // Itt a saveEntry egy általános mentés.
-  
-  // AZONBAN: A felhasználó kényelme érdekében automatikus mentés is lehet.
-  // Javaslat: XP-t külön API hívással adjuk hozzá a Wizard végén (addXpToUser), 
-  // itt csak az adatot mentjük. 
-  
-  // 4. Badgek ellenőrzése
-  // Ehhez le kell kérni az összes bejegyzést és a meglévő badge-eket
-  // Ez erőforrás igényes, ezért lehet, hogy ezt is csak a Wizard végén futtatjuk, vagy aszinkron.
-  // Most beépítem ide, hogy "automata" legyen.
-  
-  const allEntries = await getAllEntries(userId); // Ez lehet sok adat, optimalizálható lenne
+  const allEntries = await getAllEntries(userId); 
   const existingBadges = await getUserBadges(userId);
   const unlockedBadgeIds = existingBadges.filter(b => b.unlockedAt).map(b => b.id);
   
@@ -417,8 +390,6 @@ export async function saveEntry(userId: string, entry: HabitEntry): Promise<void
     }));
     
     await supabase.from('user_badges').insert(badgesToInsert);
-    // Itt lehetne Toast-ot dobni, de a saveEntry nem UI komponens.
-    // A hívó fél (Context) majd érzékeli a változást.
   }
 }
 
@@ -434,9 +405,7 @@ export async function deleteEntry(userId: string, date: string): Promise<void> {
   await updateStreak(userId);
 }
 
-// ÚJ: XP hozzáadása (Wizard végén hívjuk)
 export async function addXpToUser(userId: string, amount: number): Promise<void> {
-  // RPC hívás lenne a legjobb (atomikus), de most lekérés-frissítés
   const { data: user } = await supabase.from('users').select('total_xp').eq('id', userId).single();
   const currentXp = user?.total_xp || 0;
   
@@ -570,9 +539,7 @@ export async function updateStreak(userId: string): Promise<StreakData> {
     updated_at: new Date().toISOString(),
   }, { onConflict: 'user_id' });
 
-  // Rank és Átlag számítása (Szezonális)
-  // JAVÍTÁS: A havi átlagot csak az aktuális hónap bejegyzéseiből számoljuk
-  const currentMonthPrefix = effectiveTodayStr.substring(0, 7); // "YYYY-MM"
+  const currentMonthPrefix = effectiveTodayStr.substring(0, 7); 
   const currentMonthEntries = entries.filter(e => e.date.startsWith(currentMonthPrefix));
   
   if (currentMonthEntries.length > 0) {
@@ -585,20 +552,15 @@ export async function updateStreak(userId: string): Promise<StreakData> {
       updated_at: new Date().toISOString(),
     }).eq('id', userId);
   } else {
-    // Ha új hónap kezdődik és még nincs adat, resetelhetjük
     await supabase.from('users').update({
       monthly_average: 0,
-      rank: 'sleepwalker', // Reset rang
+      rank: 'sleepwalker',
       updated_at: new Date().toISOString(),
     }).eq('id', userId);
   }
 
   return streakData;
 }
-
-// ... (A többi függvény változatlan marad: Friends, Leaderboard, Settings, stb.)
-// Csak a fájl végét másolom be a teljesség kedvéért, de a Friends rész nem változott érdemben,
-// kivéve a totalXp mezőt a searchUsers-ben, amit fentebb már módosítottam.
 
 export async function getAllFriends(userId: string): Promise<Friend[]> {
   const { data, error } = await supabase
@@ -647,7 +609,7 @@ export async function getAllFriends(userId: string): Promise<Friend[]> {
       avatar: friend.avatar as AvatarType,
       rank: friend.rank as RankType,
       status: 'connected' as const,
-      totalXp: friend.total_xp || 0, // XP átadása
+      totalXp: friend.total_xp || 0,
       streak: streakData ? {
         currentStreak: streakData.current_streak,
         longestStreak: streakData.longest_streak,
@@ -689,8 +651,6 @@ export async function getAllFriends(userId: string): Promise<Friend[]> {
   return friends;
 }
 
-// ... (További barát funkciók maradnak: addFriend, removeFriend, stb.)
-
 export async function addFriend(userId: string, friendUsername: string): Promise<void> {
   const { data: friendData, error: findError } = await supabase
     .from('users')
@@ -728,9 +688,6 @@ export async function addFriend(userId: string, friendUsername: string): Promise
 
   if (error) throw error;
 }
-
-// ... (getPendingFriendRequests, accept, reject, remove, stb. maradnak)
-// Fontos: a getPendingFriendRequests-ben is érdemes lenne lekérni a total_xp-t, de nem kritikus.
 
 export async function getPendingFriendRequests(userId: string): Promise<{
   incoming: Friend[];
@@ -870,7 +827,6 @@ export async function getPendingFriendRequests(userId: string): Promise<{
   return { incoming, outgoing };
 }
 
-// ... accept, reject, cancel, remove maradnak ...
 export async function acceptFriendRequest(userId: string, requesterId: string): Promise<void> {
   const { data: request, error: findError } = await supabase
     .from('friendships')
@@ -933,7 +889,6 @@ export async function removeFriend(userId: string, friendId: string): Promise<vo
   if (error) throw error;
 }
 
-// ... Leaderboard, Settings, Stats, Push stb. maradnak ...
 export async function getLeaderboard(userId: string, period: 'today' | 'week' | 'month'): Promise<{
   position: number;
   user: { id: string; username: string; displayName: string; avatar: AvatarType; rank: RankType };
@@ -954,7 +909,6 @@ export async function getLeaderboard(userId: string, period: 'today' | 'week' | 
     d.setDate(d.getDate() - 7);
     startDate = d.toISOString().split('T')[0];
   } else {
-    // A hónap elsejétől számoljuk a rangot!
     const now = new Date();
     const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
     startDate = firstDay.toISOString().split('T')[0];
@@ -1003,7 +957,6 @@ export async function getLeaderboard(userId: string, period: 'today' | 'week' | 
   }));
 }
 
-// ... Settings, Stats (getMonthlyStats, getWeeklyScores), Subscriptions ...
 export async function getNotificationSettings(userId: string): Promise<NotificationSettings> {
   const { data } = await supabase
     .from('settings')
