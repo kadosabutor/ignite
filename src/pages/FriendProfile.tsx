@@ -275,14 +275,6 @@ export function FriendProfile() {
     };
   }, [myEntries, friendEntries, friend]);
 
-  // Plugin to draw average labels on the chart
-  const averageLabelsPlugin = {
-    id: 'averageLabels',
-    afterDatasetsDraw(_chart: any) {
-      // Plugin disabled - averages shown in separate section below
-    }
-  };
-  
   if (!friend) {
     return (
       <div className={styles.container}>
