@@ -964,7 +964,7 @@ export async function getNotificationSettings(userId: string): Promise<Notificat
     .eq('user_id', userId)
     .single();
 
-  return data?.notifications || {
+  const defaults: NotificationSettings = {
     enabled: true,
     morningEnabled: true,
     afternoonEnabled: true,
@@ -974,7 +974,10 @@ export async function getNotificationSettings(userId: string): Promise<Notificat
     morningTime: '07:00',
     afternoonTime: '15:00',
     eveningTime: '21:00',
+    inputMode: 'wizard' // Default to Wizard view
   };
+
+  return { ...defaults, ...data?.notifications };
 }
 
 export async function saveNotificationSettings(userId: string, settings: NotificationSettings): Promise<void> {
