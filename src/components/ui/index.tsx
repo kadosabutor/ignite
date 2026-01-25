@@ -125,7 +125,14 @@ export function TimeInput({ value, onChange, label, onComplete, firstInputRef }:
   };
 
   const handleHoursChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.replace(/\D/g, '').slice(0, 2);
+    let val = e.target.value.replace(/\D/g, '').slice(0, 2);
+    // Limit hours to 0-23
+    const hourNum = parseInt(val, 10);
+    if (hourNum > 23) {
+      val = '23';
+    } else if (val && hourNum < 0) {
+      val = '00';
+    }
     const newValue = `${val}:${minutes || '00'}`;
     onChange(newValue);
     
@@ -139,7 +146,14 @@ export function TimeInput({ value, onChange, label, onComplete, firstInputRef }:
   };
 
   const handleMinutesChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value.replace(/\D/g, '').slice(0, 2);
+    let val = e.target.value.replace(/\D/g, '').slice(0, 2);
+    // Limit minutes to 0-59
+    const minNum = parseInt(val, 10);
+    if (minNum > 59) {
+      val = '59';
+    } else if (val && minNum < 0) {
+      val = '00';
+    }
     const newValue = `${hours || '00'}:${val}`;
     onChange(newValue);
     

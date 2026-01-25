@@ -255,8 +255,15 @@ export function HabitProvider({ children }: { children: ReactNode }) {
       entry.id = uuidv4();
     }
     
+    console.log('Context saveEntry called with:', { userId: authUser.id, entry });
+    
     await supabase.saveEntry(authUser.id, entry);
+    
+    console.log('Context saveEntry supabase.saveEntry completed');
+    
     await refreshEntries();
+    
+    console.log('Context saveEntry refreshEntries completed');
   }, [authUser, refreshEntries]);
 
   const deleteEntry = useCallback(async (date: string) => {

@@ -157,6 +157,157 @@
   color: var(--color-foreground);
 }
 
+/* QUICK TIME INPUTS */
+.quickTimeInputs {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+  background-color: var(--color-surface);
+  border-radius: 12px;
+  margin-bottom: 12px;
+}
+
+.timeInputWrapper {
+  width: 100%;
+  margin-bottom: 12px;
+}
+
+.timeInputWrapper:first-child {
+  padding-top: 12px;
+  border-top: 1px solid var(--color-border);
+}
+
+.timeInputWrapper .inputLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+  display: block;
+}
+
+.timeInput {
+  width: 100%;
+  padding: 8px 10px;
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-foreground);
+  font-size: 16px;
+  font-weight: 600;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.timeInput:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(255, 112, 51, 0.1);
+}
+
+.timeInputWrapper :global(.inputWrapper) {
+  margin: 0;
+}
+
+.timeInputWrapper :global(.label) {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 4px;
+  display: block;
+}
+
+.timeInputWrapper :global(.timeInputContainer) {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+
+.timeInputWrapper :global(.timeInput) {
+  flex: 1;
+  padding: 6px 8px;
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 6px;
+  color: var(--color-foreground);
+  font-size: 14px;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+  text-align: center;
+  transition: border-color 0.2s;
+}
+
+.timeInputWrapper :global(.timeInput:focus) {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(255, 112, 51, 0.1);
+}
+
+.timeInputWrapper :global(.timeSeparator) {
+  color: var(--color-muted);
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.workInputRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.inputLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 0px;
+}
+
+.numberInput {
+  width: 100%;
+  padding: 12px 10px;
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-foreground);
+  font-size: 18px;
+  font-weight: 600;
+  font-family: inherit;
+  text-align: center;
+  transition: border-color 0.2s;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.numberInput:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(255, 112, 51, 0.1);
+}
+
+.numberInput::placeholder {
+  color: var(--color-muted);
+}
+
+/* Hide number input spinners (up/down arrows) */
+.numberInput::-webkit-outer-spin-button,
+.numberInput::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.numberInput[type=number] {
+  -moz-appearance: textfield;
+}
+
 /* QUICK ACTIONS */
 .quickActions {
   display: grid;

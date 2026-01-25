@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
-import { Button, Card, ProgressRing } from '../components/ui';
+import { Button, Card, ProgressRing, TimeInput } from '../components/ui';
 import { StreakIcon } from '../components/StreakIcon';
 import { DateSelector } from '../components/DateSelector';
-import { getScoreColor, getTodayString, formatMinutes, calculateTotalScore } from '../lib/scoring';
+import { getScoreColor, getTodayString, formatMinutes, calculateTotalScore, calculateSleepMinutes } from '../lib/scoring';
 import { createNewEntry } from '../lib/supabase';
 import { RANKS, type HabitEntry } from '../types';
 import styles from './Dashboard.module.css';
@@ -18,6 +18,7 @@ export function Dashboard() {
   const scoreColor = getScoreColor(todayScore);
   
   const [showDateSelector, setShowDateSelector] = useState(false);
+  const [localEntry, setLocalEntry] = useState<HabitEntry | null>(todayEntry);
 
   const colorMap = {
     success: 'var(--color-success)',
@@ -80,6 +81,65 @@ export function Dashboard() {
     
     // Mentés
     await saveEntry(entryToSave);
+  };
+
+  // Sync localEntry with todayEntry when it changes
+  useEffect(() => {
+    console.log('todayEntry updated from context:', todayEntry);
+    setLocalEntry(todayEntry);
+  }, [todayEntry]);
+
+  // Recalculate sleep minutes when bed/wake times change
+  useEffect(() => {
+    if (localEntry && localEntry.bedTime && localEntry.wakeUpTime) {
+      const sleepMins = calculateSleepMinutes(localEntry.bedTime, localEntry.wakeUpTime);
+      console.log('Recalculating sleepMinutes:', { bedTime: localEntry.bedTime, wakeUpTime: localEntry.wakeUpTime, sleepMins });
+      setLocalEntry(prev => prev ? { ...prev, sleepMinutes: sleepMins } : prev);
+    }
+  }, [localEntry?.bedTime, localEntry?.wakeUpTime]);
+
+  // Gyors időadatok auto-mentése
+  const handleQuickSaveTimeData = async (updatedField: 'bedTime' | 'wakeUpTime' | 'businessMinutes', value: string) => {
+    try {
+      console.log('handleQuickSaveTimeData called:', { updatedField, value, currentLocalEntry: localEntry, currentTodayEntry: todayEntry });
+      
+      const baseEntry = localEntry || todayEntry || createNewEntry(getTodayString());
+      console.log('baseEntry before update:', baseEntry);
+      
+      // Update local state first for immediate UI feedback
+      let updated = {
+        ...baseEntry,
+        bedTime: updatedField === 'bedTime' ? value : baseEntry.bedTime,
+        wakeUpTime: updatedField === 'wakeUpTime' ? value : baseEntry.wakeUpTime,
+        businessMinutes: updatedField === 'businessMinutes' ? (parseInt(value, 10) || 0) : baseEntry.businessMinutes
+      };
+      
+      // If we're updating a time field, recalculate sleep minutes
+      if ((updatedField === 'bedTime' || updatedField === 'wakeUpTime') && updated.bedTime && updated.wakeUpTime) {
+        updated.sleepMinutes = calculateSleepMinutes(updated.bedTime, updated.wakeUpTime);
+        console.log('Recalculated sleepMinutes:', updated.sleepMinutes);
+      }
+      
+      console.log('updated entry before save:', updated);
+      setLocalEntry(updated);
+
+      // Calculate score
+      updated.score = calculateTotalScore(updated);
+      
+      console.log('Final entry to save:', updated);
+      
+      // Haptikus visszajelzés
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(5);
+      }
+      
+      // Save to backend
+      console.log('About to call saveEntry...');
+      await saveEntry(updated);
+      console.log('saveEntry completed successfully');
+    } catch (error) {
+      console.error('Error saving entry:', error);
+    }
   };
 
   return (
@@ -163,6 +223,46 @@ export function Dashboard() {
           )}
         </div>
 
+        {/* GYORS IDŐADATOK SZEKCIÓ */}
+        <div className={styles.quickTimeInputs}>
+          <div className={styles.timeInputWrapper}>
+            <TimeInput
+              value={localEntry?.bedTime || ''}
+              onChange={(val: string) => {
+                console.log('bedTime input changed to:', val);
+                handleQuickSaveTimeData('bedTime', val);
+              }}
+              label="🌙 Alvás"
+            />
+          </div>
+          
+          <div className={styles.timeInputWrapper}>
+            <TimeInput
+              value={localEntry?.wakeUpTime || ''}
+              onChange={(val: string) => {
+                console.log('wakeUpTime input changed to:', val);
+                handleQuickSaveTimeData('wakeUpTime', val);
+              }}
+              label="☀️ Ébresztés"
+            />
+          </div>
+          
+          <div className={styles.workInputRow}>
+            <label className={styles.inputLabel}>💼 Munka (perc)</label>
+            <input
+              type="number"
+              value={localEntry?.businessMinutes || 0}
+              onChange={(e) => {
+                handleQuickSaveTimeData('businessMinutes', e.target.value);
+              }}
+              className={styles.numberInput}
+              placeholder="600"
+              min="0"
+              max="1440"
+            />
+          </div>
+        </div>
+
         {/* GYORS MŰVELETEK SZEKCIÓ - Bővítve */}
         <div className={styles.quickActions}>
           {/* Felső sor: Pozitív szokások */}
@@ -217,15 +317,6 @@ export function Dashboard() {
             <span className={styles.quickLabel}>Gaming</span>
           </button>
         </div>
-
-        <Button
-          variant={hasLoggedToday ? 'secondary' : 'primary'}
-          fullWidth
-          size="lg"
-          onClick={handleStartWizard}
-        >
-          {hasLoggedToday ? (hasMissedDays ? 'Nap rögzítése' : 'Részletes szerkesztés') : 'Nap rögzítése'}
-        </Button>
       </Card>
 
       {/* Weekly Overview */}
