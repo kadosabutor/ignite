@@ -407,6 +407,7 @@
   opacity: 0.5;
 }
 
+/* --- CHART CARD & COMPARISON --- */
 .chartCard {
   background-color: var(--color-surface) !important;
   padding: 20px !important;
@@ -414,34 +415,134 @@
   flex-direction: column;
   align-items: center;
   border: 1px solid var(--color-border);
+  border-radius: 20px !important;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
 }
 
 .cardTitle {
-  font-size: 18px;
-  font-weight: 900;
-  margin: 0 0 20px 0;
+  font-size: 14px;
+  font-weight: 800;
+  margin: 0 0 24px 0;
   text-align: center;
   text-transform: uppercase;
-  letter-spacing: -0.5px;
-  line-height: 1.2;
+  letter-spacing: 0.1em;
+  color: var(--color-foreground);
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
+
+.comparisonGrid {
+  width: 100%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 12px;
+  position: relative;
+}
+
+.comparisonColumn {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+  position: relative;
+}
+
+/* Függőleges elválasztó vonalak */
+.comparisonColumn:not(:last-child)::after {
+  content: '';
+  position: absolute;
+  right: -6px;
+  top: 10%;
+  height: 80%;
+  width: 1px;
+  background-color: var(--color-border);
+  opacity: 0.5;
+}
+
+.periodLabel {
+  font-size: 10px;
+  font-weight: 700;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-align: center;
+  margin-bottom: 4px;
+}
+
+.scorePair {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 100%;
+}
+
+.scoreBlock {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 10px 4px;
+  border-radius: 12px;
+  background-color: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  transition: transform 0.2s;
+}
+
+.scoreBlock:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+}
+
+/* Ha a user nyer (magasabb pontszám) - opcionális */
+.scoreBlock.winner {
+  border-color: rgba(255, 255, 255, 0.1);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.05) 0%, rgba(255, 255, 255, 0.02) 100%);
+}
+
+.scoreValue {
+  font-size: 20px;
+  font-weight: 900;
+  line-height: 1;
+  text-shadow: 0 0 10px rgba(0,0,0,0.5);
+}
+
+.scoreOwner {
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-top: 4px;
+  opacity: 0.8;
+}
+
+/* Szín variációk */
+.colorUser { color: var(--color-primary); }
+.bgUser { background-color: var(--color-primary); }
+
+.colorFriend { color: #33CCFF; }
+.bgFriend { background-color: #33CCFF; }
 
 .legendContainer {
   display: flex;
   justify-content: center;
   gap: 24px;
+  margin-top: 16px;
 }
 
 .legendItem {
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 600;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .legendDot {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
   border-radius: 50%;
+  box-shadow: 0 0 8px currentColor;
 }
