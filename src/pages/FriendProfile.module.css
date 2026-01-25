@@ -417,10 +417,13 @@
 }
 
 .cardTitle {
-  font-size: 16px;
-  font-weight: 700;
-  margin: 0 0 16px 0;
+  font-size: 18px;
+  font-weight: 900;
+  margin: 0 0 20px 0;
   text-align: center;
+  text-transform: uppercase;
+  letter-spacing: -0.5px;
+  line-height: 1.2;
 }
 
 .legendContainer {

@@ -4,10 +4,33 @@ import { useHabits } from '../context/HabitContext';
 import { Button, Card } from '../components/ui';
 import { ProfileCard } from '../components/ProfileCard';
 import { RadarChart } from '../components/RadarChart';
+import { Line } from 'react-chartjs-2';
+import {
+  Chart as ChartJS,
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  Title,
+  Tooltip,
+  Legend,
+} from 'chart.js';
 import { calculateRadarStats } from '../lib/scoring';
 import { generateInsight, type InsightResult } from '../lib/insight-engine';
 import * as supabase from '../lib/supabase';
 import styles from './FriendProfile.module.css';
+
+ChartJS.register(
+  CategoryScale,
+  LinearScale,
+  BarElement,
+  LineElement,
+  PointElement,
+  Title,
+  Tooltip,
+  Legend
+);
 
 export function FriendProfile() {
   const { friendId } = useParams<{ friendId: string }>();
@@ -137,6 +160,135 @@ export function FriendProfile() {
   const myRadarStats = useMemo(() => calculateRadarStats(myEntries.slice(0, 30)), [myEntries]);
   const friendRadarStats = useMemo(() => calculateRadarStats(friendEntries.slice(0, 30)), [friendEntries]);
   
+  // Calculate averages for different periods
+  const averageComparison = useMemo(() => {
+    const calculateAverageForDays = (entries: any[], days: number) => {
+      const filtered = entries.slice(0, days);
+      if (filtered.length === 0) return 0;
+      return filtered.reduce((sum, entry) => sum + (entry.score || 0), 0) / filtered.length;
+    };
+
+    return {
+      myLast7: calculateAverageForDays(myEntries, 7),
+      myLast30: calculateAverageForDays(myEntries, 30),
+      myLastYear: calculateAverageForDays(myEntries, 365),
+      friendLast7: calculateAverageForDays(friendEntries, 7),
+      friendLast30: calculateAverageForDays(friendEntries, 30),
+      friendLastYear: calculateAverageForDays(friendEntries, 365),
+    };
+  }, [myEntries, friendEntries]);
+
+  // Chart data for last 7 days comparison
+  const last7DaysData = useMemo(() => {
+    const today = new Date();
+    const last7Days = Array.from({ length: 7 }, (_, i) => {
+      const date = new Date(today);
+      date.setDate(date.getDate() - (6 - i));
+      return date.toISOString().split('T')[0];
+    });
+
+    const myScores = last7Days.map(date => {
+      const entry = myEntries.find(e => e.date === date);
+      return entry?.score ?? 0;
+    });
+
+    const friendScores = last7Days.map(date => {
+      const entry = friendEntries.find(e => e.date === date);
+      return entry?.score ?? 0;
+    });
+
+    // Calculate averages
+    const myAverage = myScores.reduce((a, b) => a + b, 0) / myScores.length;
+    const friendAverage = friendScores.reduce((a, b) => a + b, 0) / friendScores.length;
+
+    const labels = last7Days.map(date => {
+      const d = new Date(date);
+      return d.toLocaleDateString('hu-HU', { weekday: 'short', month: 'numeric', day: 'numeric' });
+    });
+
+    return {
+      labels,
+      datasets: [
+        {
+          label: 'Te',
+          data: myScores,
+          borderColor: 'rgba(255, 112, 51, 1)',
+          backgroundColor: 'transparent',
+          borderWidth: 3,
+          fill: false,
+          tension: 0.4,
+          pointRadius: 5,
+          pointBackgroundColor: 'rgba(255, 112, 51, 1)',
+          pointBorderColor: 'rgba(255, 112, 51, 1)',
+          pointBorderWidth: 2,
+          pointHoverRadius: 7,
+          pointHoverBackgroundColor: 'rgba(255, 112, 51, 0.8)',
+          shadowColor: 'rgba(255, 112, 51, 1)',
+          shadowBlur: 20,
+          shadowOffsetX: 0,
+          shadowOffsetY: 0,
+          type: 'line',
+        },
+        {
+          label: friend?.displayName || 'Barát',
+          data: friendScores,
+          borderColor: 'rgba(0, 255, 255, 1)',
+          backgroundColor: 'transparent',
+          borderWidth: 3,
+          fill: false,
+          tension: 0.4,
+          pointRadius: 5,
+          pointBackgroundColor: 'rgba(0, 255, 255, 1)',
+          pointBorderColor: 'rgba(0, 255, 255, 1)',
+          pointBorderWidth: 2,
+          pointHoverRadius: 7,
+          pointHoverBackgroundColor: 'rgba(0, 255, 255, 0.8)',
+          shadowColor: 'rgba(51, 204, 255, 1)',
+          shadowBlur: 20,
+          shadowOffsetX: 0,
+          shadowOffsetY: 0,
+          type: 'line',
+        },
+        {
+          label: 'Te (Átlag)',
+          data: Array(7).fill(myAverage),
+          borderColor: 'rgba(255, 112, 51, 0.6)',
+          borderWidth: 2.5,
+          borderDash: [5, 5],
+          fill: false,
+          pointRadius: 0,
+          pointHoverRadius: 5,
+          pointBackgroundColor: 'rgba(255, 112, 51, 0.8)',
+          type: 'line',
+          tension: 0,
+          display: false,
+        },
+        {
+          label: friend?.displayName + ' (Átlag)' || 'Barát (Átlag)',
+          data: Array(7).fill(friendAverage),
+          borderColor: 'rgba(0, 255, 255, 0.6)',
+          borderWidth: 2.5,
+          borderDash: [5, 5],
+          fill: false,
+          pointRadius: 0,
+          pointHoverRadius: 5,
+          pointBackgroundColor: 'rgba(51, 204, 255, 0.8)',
+          type: 'line',
+          tension: 0,
+          display: false,
+        }
+      ]
+    };
+  }, [myEntries, friendEntries, friend]);
+
+  // Plugin to draw average labels on the chart
+  const averageLabelsPlugin = {
+    id: 'averageLabels',
+    afterDatasetsDraw(chart: any) {
+      // Plugin disabled - averages shown in separate section below
+    }
+  };
+  
   if (!friend) {
     return (
       <div className={styles.container}>
@@ -159,7 +311,7 @@ export function FriendProfile() {
       >
         <div className={styles.energyFill} style={{ width: `${holdProgress}%` }} />
         <div className={styles.energyText}>
-          {isGenerating ? 'ELEMZÉS...' : 'HOLD TO ANALYZE'}
+          {isGenerating ? 'ELEMZÉS...' : 'ELEMZÉS GENERÁLÁSA'}
         </div>
       </div>
     </div>
@@ -227,17 +379,6 @@ export function FriendProfile() {
           <span className={styles.missionLabel}>MAI KÜLDETÉS</span>
           <span className={styles.missionText}>{insight.daily_mission}</span>
         </div>
-
-        <Button 
-          variant="ghost" 
-          fullWidth 
-          onClick={() => {
-            setInsight(null);
-            setHoldProgress(0);
-          }}
-        >
-          ÚJRA
-        </Button>
       </div>
     );
   };
@@ -344,6 +485,135 @@ export function FriendProfile() {
                     compareStats={friendRadarStats}
                     compareLabel={friend.displayName}
                   />
+                </Card>
+                
+                <div className={styles.legendContainer}>
+                  <div className={styles.legendItem}>
+                    <span className={styles.legendDot} style={{ background: 'var(--color-primary)' }} />
+                    <span>Te</span>
+                  </div>
+                  <div className={styles.legendItem}>
+                    <span className={styles.legendDot} style={{ background: '#33CCFF' }} />
+                    <span>{friend.displayName}</span>
+                  </div>
+                </div>
+
+                {/* 3. LAST 7 DAYS COMPARISON */}
+                <Card className={styles.chartCard}>
+                  <h3 className={styles.cardTitle}>Pontok az Utolsó 7 Napban</h3>
+                  <div style={{ position: 'relative', height: '300px' }}>
+                    <Line
+                      data={last7DaysData}
+                      options={{
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        interaction: {
+                          mode: 'index',
+                          intersect: false,
+                        },
+                        plugins: {
+                          legend: {
+                            display: false,
+                          },
+                          tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.95)',
+                            titleColor: '#FFFFFF',
+                            bodyColor: '#FFFFFF',
+                            borderColor: 'var(--color-primary)',
+                            borderWidth: 2,
+                            padding: 12,
+                            cornerRadius: 8,
+                            titleFont: { weight: '700', size: 13 },
+                            bodyFont: { weight: '600', size: 12 },
+                            callbacks: {
+                              label: function(context: any) {
+                                // Skip average lines (indices 2 and 3)
+                                if (context.datasetIndex > 1) {
+                                  return null;
+                                }
+                                const label = context.dataset.label || '';
+                                const value = Math.round(context.parsed.y);
+                                return `${label}: ${value}`;
+                              },
+                            },
+                          },
+                          averageLabels: {} as any,
+                        },
+                        scales: {
+                          y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                              color: '#FFFFFF',
+                              font: { weight: '700', size: 13 },
+                              padding: 10,
+                            },
+                            grid: {
+                              color: 'rgba(255, 255, 255, 0.08)',
+                              drawBorder: false,
+                              lineWidth: 1,
+                            },
+                          },
+                          x: {
+                            ticks: {
+                              color: '#FFFFFF',
+                              font: { weight: '700', size: 13 },
+                              padding: 10,
+                            },
+                            grid: {
+                              display: false,
+                            },
+                          },
+                        },
+                      }}
+                      plugins={[averageLabelsPlugin]}
+                    />
+                  </div>
+                </Card>
+                
+                {/* AVERAGE COMPARISON */}
+                <Card className={styles.chartCard}>
+                  <h3 className={styles.cardTitle}>Átlag Összehasonlítása</h3>
+                  <div style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '24px', textAlign: 'center' }}>
+                    {/* 7 Days */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingRight: '24px', borderRight: '1px solid var(--color-border)' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--color-muted)', textTransform: 'uppercase', fontWeight: '600', letterSpacing: '0.05em' }}>Utolsó 7 Nap</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ fontSize: '24px', fontWeight: '800', color: 'rgba(255, 112, 51, 1)' }}>{Math.round(averageComparison.myLast7)}</div>
+                        <div style={{ fontSize: '12px', color: 'rgba(255, 112, 51, 0.8)', fontWeight: '600' }}>Te</div>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
+                        <div style={{ fontSize: '24px', fontWeight: '800', color: 'rgba(0, 255, 255, 1)' }}>{Math.round(averageComparison.friendLast7)}</div>
+                        <div style={{ fontSize: '12px', color: 'rgba(0, 255, 255, 0.8)', fontWeight: '600' }}>{friend.displayName}</div>
+                      </div>
+                    </div>
+
+                    {/* 30 Days */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingRight: '24px', borderRight: '1px solid var(--color-border)' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--color-muted)', textTransform: 'uppercase', fontWeight: '600', letterSpacing: '0.05em' }}>Utolsó 30 Nap</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ fontSize: '24px', fontWeight: '800', color: 'rgba(255, 112, 51, 1)' }}>{Math.round(averageComparison.myLast30)}</div>
+                        <div style={{ fontSize: '12px', color: 'rgba(255, 112, 51, 0.8)', fontWeight: '600' }}>Te</div>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
+                        <div style={{ fontSize: '24px', fontWeight: '800', color: 'rgba(0, 255, 255, 1)' }}>{Math.round(averageComparison.friendLast30)}</div>
+                        <div style={{ fontSize: '12px', color: 'rgba(0, 255, 255, 0.8)', fontWeight: '600' }}>{friend.displayName}</div>
+                      </div>
+                    </div>
+
+                    {/* Year */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div style={{ fontSize: '12px', color: 'var(--color-muted)', textTransform: 'uppercase', fontWeight: '600', letterSpacing: '0.05em' }}>Év (365 nap)</div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                        <div style={{ fontSize: '24px', fontWeight: '800', color: 'rgba(255, 112, 51, 1)' }}>{Math.round(averageComparison.myLastYear)}</div>
+                        <div style={{ fontSize: '12px', color: 'rgba(255, 112, 51, 0.8)', fontWeight: '600' }}>Te</div>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
+                        <div style={{ fontSize: '24px', fontWeight: '800', color: 'rgba(0, 255, 255, 1)' }}>{Math.round(averageComparison.friendLastYear)}</div>
+                        <div style={{ fontSize: '12px', color: 'rgba(0, 255, 255, 0.8)', fontWeight: '600' }}>{friend.displayName}</div>
+                      </div>
+                    </div>
+                  </div>
                 </Card>
                 
                 <div className={styles.legendContainer}>
