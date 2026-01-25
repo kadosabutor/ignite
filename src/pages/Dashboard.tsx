@@ -1,5 +1,4 @@
 import { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
 import { Card, ProgressRing, TimeInput } from '../components/ui';
 import { StreakIcon } from '../components/StreakIcon';
@@ -10,7 +9,6 @@ import { RANKS, type HabitEntry } from '../types';
 import styles from './Dashboard.module.css';
 
 export function Dashboard() {
-  const navigate = useNavigate();
   const { todayEntry, streak, user, weeklyAverage, entries, saveEntry } = useHabits();
 
   const todayScore = todayEntry?.score ?? 0;
@@ -40,7 +38,7 @@ export function Dashboard() {
   });
 
   // Check if there are any missed days in the last 7 days
-  const hasMissedDays = last7Days.some(day => !day.hasEntry && day.date !== getTodayString());
+  // (Code kept for reference, but not used since Részletes szerkesztés button was removed)
 
   // GYORS MŰVELETEK (Quick Actions)
   const handleQuickToggle = async (field: keyof HabitEntry) => {
