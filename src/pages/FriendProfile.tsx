@@ -252,39 +252,33 @@ export function FriendProfile() {
         {
           label: 'Te (Átlag)',
           data: Array(7).fill(myAverage),
-          borderColor: 'rgba(255, 112, 51, 0.6)',
-          borderWidth: 2.5,
-          borderDash: [5, 5],
+          borderColor: 'rgba(255, 112, 51, 0.5)',
+          borderWidth: 2,
+          borderDash: [6, 4],
           fill: false,
           pointRadius: 0,
-          pointHoverRadius: 5,
-          pointBackgroundColor: 'rgba(255, 112, 51, 0.8)',
-          type: 'line',
+          pointHoverRadius: 0,
           tension: 0,
-          display: false,
         },
         {
           label: friend?.displayName + ' (Átlag)' || 'Barát (Átlag)',
           data: Array(7).fill(friendAverage),
-          borderColor: 'rgba(0, 255, 255, 0.6)',
-          borderWidth: 2.5,
-          borderDash: [5, 5],
+          borderColor: 'rgba(0, 255, 255, 0.5)',
+          borderWidth: 2,
+          borderDash: [6, 4],
           fill: false,
           pointRadius: 0,
-          pointHoverRadius: 5,
-          pointBackgroundColor: 'rgba(51, 204, 255, 0.8)',
-          type: 'line',
+          pointHoverRadius: 0,
           tension: 0,
-          display: false,
         }
-      ]
+      ] as any
     };
   }, [myEntries, friendEntries, friend]);
 
   // Plugin to draw average labels on the chart
   const averageLabelsPlugin = {
     id: 'averageLabels',
-    afterDatasetsDraw(chart: any) {
+    afterDatasetsDraw(_chart: any) {
       // Plugin disabled - averages shown in separate section below
     }
   };
@@ -523,13 +517,13 @@ export function FriendProfile() {
                             borderWidth: 2,
                             padding: 12,
                             cornerRadius: 8,
-                            titleFont: { weight: '700', size: 13 },
-                            bodyFont: { weight: '600', size: 12 },
+                            titleFont: { weight: 'bold', size: 13 },
+                            bodyFont: { weight: 'normal', size: 12 },
                             callbacks: {
                               label: function(context: any) {
                                 // Skip average lines (indices 2 and 3)
                                 if (context.datasetIndex > 1) {
-                                  return null;
+                                  return '';
                                 }
                                 const label = context.dataset.label || '';
                                 const value = Math.round(context.parsed.y);
@@ -545,19 +539,19 @@ export function FriendProfile() {
                             max: 100,
                             ticks: {
                               color: '#FFFFFF',
-                              font: { weight: '700', size: 13 },
+                              font: { weight: 'bold', size: 13 },
                               padding: 10,
                             },
                             grid: {
                               color: 'rgba(255, 255, 255, 0.08)',
-                              drawBorder: false,
+                              display: true,
                               lineWidth: 1,
                             },
                           },
                           x: {
                             ticks: {
                               color: '#FFFFFF',
-                              font: { weight: '700', size: 13 },
+                              font: { weight: 'bold', size: 13 },
                               padding: 10,
                             },
                             grid: {
