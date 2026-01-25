@@ -8,7 +8,8 @@ import styles from './History.module.css';
 
 export function History() {
   const navigate = useNavigate();
-  const { entries, deleteEntry, fetchAllEntries, hasFullHistory, saveEntry } = useHabits();
+  // ÚJ: settings behúzása
+  const { entries, deleteEntry, fetchAllEntries, hasFullHistory, saveEntry, settings } = useHabits();
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
   const [editingDate, setEditingDate] = useState<string | null>(null);
   const [editingEntry, setEditingEntry] = useState<HabitEntry | null>(null);
@@ -32,10 +33,17 @@ export function History() {
 
   const handleEdit = (e: React.MouseEvent, date: string) => {
     e.stopPropagation();
-    const entryToEdit = entries.find(e => e.date === date);
-    if (entryToEdit) {
-      setEditingEntry(entryToEdit);
-      setEditingDate(date);
+    
+    // ÚJ LOGIKA: Ha a felhasználó a Wizard módot szereti, vigyük oda
+    if (settings?.inputMode === 'wizard') {
+      navigate(`/wizard?date=${date}`);
+    } else {
+      // Ha a Dashboard/Grid módot, nyissuk meg a helyi modalt
+      const entryToEdit = entries.find(e => e.date === date);
+      if (entryToEdit) {
+        setEditingEntry(entryToEdit);
+        setEditingDate(date);
+      }
     }
   };
 
@@ -137,12 +145,15 @@ export function History() {
 
   return (
     <div className={styles.container}>
-      {/* Edit Modal */}
+      {/* Edit Modal (CSAK AKKOR JELENIK MEG, HA NEM WIZARD MÓD VAN) */}
       {editingEntry && editingDate && (
-        <div className={styles.modal}>
-          <div className={styles.modalContent}>
+        <div className={styles.modal} onClick={() => {
+            setEditingEntry(null);
+            setEditingDate(null);
+        }}>
+          <div className={styles.modalContent} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
-              <h2 className={styles.modalTitle}>Nap szerkesztése - {editingDate}</h2>
+              <h2 className={styles.modalTitle}>{editingDate}</h2>
               <button 
                 className={styles.closeButton}
                 onClick={() => {
@@ -263,6 +274,7 @@ export function History() {
             <div className={styles.modalFooter}>
               <Button
                 variant="ghost"
+                fullWidth
                 onClick={() => {
                   setEditingEntry(null);
                   setEditingDate(null);
@@ -322,7 +334,6 @@ export function History() {
                         variant="interactive"
                         onClick={() => handleCardClick(entry.date)}
                       >
-                        {/* Dinamikus színes keret a pontszám alapján */}
                         <div 
                           className={styles.cardBorder} 
                           style={{ backgroundColor: colorMap[scoreColor] }} 
@@ -356,13 +367,11 @@ export function History() {
                           </div>
                         ) : (
                           <div className={styles.cardContent}>
-                            {/* Dátum blokk */}
                             <div className={styles.dateBlock}>
                               <span className={styles.dayNum}>{dayNum}</span>
                               <span className={styles.dayName}>{dayName}</span>
                             </div>
                             
-                            {/* Metrikák */}
                             <div className={styles.entryStats}>
                               <div className={styles.statPill} title="Munka">
                                 <span>💼</span>
@@ -379,7 +388,6 @@ export function History() {
                               )}
                             </div>
                             
-                            {/* Pontszám */}
                             <div className={styles.scoreContainer}>
                               <span 
                                 className={styles.entryScore}
@@ -390,7 +398,6 @@ export function History() {
                               <span className={styles.scoreLabel}>pont</span>
                             </div>
                             
-                            {/* Akció gombok */}
                             <div className={styles.actions}>
                               <button 
                                 className={styles.iconButton}
