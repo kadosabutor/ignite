@@ -6,44 +6,37 @@
   gap: 24px;
 }
 
-/* MODAL FIX */
-.modal {
+/* --- MODAL (Javítva) --- */
+.modalOverlay {
   position: fixed;
   top: 0;
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(0, 0, 0, 0.8); /* Sötétebb háttér a fókusz miatt */
-  backdrop-filter: blur(4px);
+  background-color: rgba(0, 0, 0, 0.85); /* Sötétebb háttér */
+  backdrop-filter: blur(5px);
+  z-index: 9999; /* Legmagasabb prioritás */
   display: flex;
-  align-items: flex-end; /* Alulról jöjjön fel, modernebb mobilon */
+  align-items: flex-end; /* Alulra igazítás (Bottom Sheet) */
   justify-content: center;
-  z-index: 2000; /* Magasabb Z-index a biztonság kedvéért */
-  
-  /* JAVÍTÁS: Helyet hagyunk a tetején, hogy ne lógjon a notch-ba */
-  padding-top: calc(60px + env(safe-area-inset-top)); 
+  animation: fadeIn 0.2s ease-out;
 }
 
 .modalContent {
-  background-color: var(--color-background);
   width: 100%;
-  max-width: 500px; /* Ne legyen túl széles tableten */
-  border-radius: 24px 24px 0 0; /* Csak felül kerekítve */
-  max-height: 85vh; /* Maximum a képernyő 85%-a */
+  max-width: 500px; /* Tableten ne legyen túl széles */
+  background-color: var(--color-surface); /* Biztos háttérszín */
+  border-top-left-radius: 24px;
+  border-top-right-radius: 24px;
+  border: 1px solid var(--color-border);
+  box-shadow: 0 -10px 40px rgba(0, 0, 0, 0.6);
   display: flex;
   flex-direction: column;
-  animation: slideUpModal 0.3s cubic-bezier(0.16, 1, 0.3, 1);
-  border: 1px solid var(--color-border);
-  box-shadow: 0 -10px 40px rgba(0,0,0,0.5);
-}
-
-@keyframes slideUpModal {
-  from {
-    transform: translateY(100%);
-  }
-  to {
-    transform: translateY(0);
-  }
+  max-height: 85vh; /* Max magasság */
+  animation: slideUp 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+  
+  /* Fontos: Mobilon a billentyűzet miatt kellhet */
+  padding-bottom: env(safe-area-inset-bottom); 
 }
 
 .modalHeader {
@@ -67,22 +60,22 @@
 }
 
 .closeButton {
-  background: rgba(255, 255, 255, 0.1);
-  border: none;
-  border-radius: 50%;
-  font-size: 16px;
-  color: var(--color-foreground);
-  cursor: pointer;
   width: 32px;
   height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.1);
+  border: none;
+  color: var(--color-foreground);
   display: flex;
   align-items: center;
   justify-content: center;
-  transition: background-color 0.2s;
+  font-size: 16px;
+  cursor: pointer;
+  transition: background 0.2s;
 }
 
 .closeButton:hover {
-  background-color: rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 .modalBody {
@@ -92,15 +85,14 @@
   display: flex;
   flex-direction: column;
   gap: 24px;
-  /* Mobilon simább görgetés */
-  -webkit-overflow-scrolling: touch; 
+  -webkit-overflow-scrolling: touch; /* Simább görgetés iOS-en */
 }
 
-/* ... A többi stílus (scoreSection, editFields, stb.) maradhat változatlan ... */
+/* Score Section */
 .scoreSection {
   display: flex;
   justify-content: center;
-  padding-bottom: 20px;
+  padding-bottom: 16px;
   border-bottom: 1px solid var(--color-border);
 }
 
@@ -116,6 +108,7 @@
   font-weight: 600;
 }
 
+/* Edit Fields */
 .editFields {
   display: flex;
   flex-direction: column;
@@ -138,35 +131,24 @@
 
 .numberField {
   width: 100%;
-  padding: 12px 10px;
-  background-color: var(--color-surface);
+  padding: 14px;
+  background-color: var(--color-background);
   border: 1px solid var(--color-border);
-  border-radius: 8px;
+  border-radius: 12px;
   color: var(--color-foreground);
   font-size: 18px;
   font-weight: 600;
-  font-family: inherit;
   text-align: center;
   transition: border-color 0.2s;
-  min-height: 44px;
 }
 
 .numberField:focus {
   outline: none;
   border-color: var(--color-primary);
-  box-shadow: 0 0 0 2px rgba(255, 112, 51, 0.1);
+  box-shadow: 0 0 0 2px rgba(255, 112, 51, 0.15);
 }
 
-.numberField::-webkit-outer-spin-button,
-.numberField::-webkit-inner-spin-button {
-  -webkit-appearance: none;
-  margin: 0;
-}
-
-.numberField[type=number] {
-  -moz-appearance: textfield;
-}
-
+/* Quick Actions Grid */
 .quickActionsSection {
   margin-top: 8px;
 }
@@ -183,19 +165,13 @@
   align-items: center;
   justify-content: center;
   gap: 6px;
-  padding: 12px 8px;
-  background-color: var(--color-surface);
-  border: 2px solid var(--color-border);
+  padding: 12px 4px;
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
   border-radius: 12px;
-  color: var(--color-foreground);
+  color: var(--color-muted);
   cursor: pointer;
-  transition: all 0.2s ease;
-  font-weight: 600;
-  font-size: 12px;
-}
-
-.quickBtn:active {
-  transform: scale(0.95);
+  transition: all 0.2s;
 }
 
 .quickBtn.active {
@@ -214,14 +190,33 @@
   font-size: 20px;
 }
 
-.modalFooter {
-  padding: 20px;
-  border-top: 1px solid var(--color-border);
-  background-color: var(--color-surface);
-  padding-bottom: calc(20px + env(safe-area-inset-bottom)); /* Alsó sáv safe area */
+.quickLabel {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
-/* ... Header, Empty State, List styles (változatlanok) ... */
+/* Modal Footer */
+.modalFooter {
+  padding: 20px 24px;
+  border-top: 1px solid var(--color-border);
+  background-color: var(--color-surface);
+  /* Extra hely alul az iPhone home bar miatt */
+  padding-bottom: calc(20px + env(safe-area-inset-bottom)); 
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* --- TÖBBI ELEM (Header, List, Card) MARAD VÁLTOZATLAN --- */
 .header {
   display: flex;
   justify-content: space-between;
@@ -260,58 +255,15 @@
   opacity: 0.8;
 }
 
-.emptyIcon {
-  font-size: 64px;
-  margin-bottom: 8px;
-}
+.emptyIcon { font-size: 64px; }
+.emptyText { font-size: 18px; font-weight: 700; color: var(--color-foreground); }
+.emptySubtext { font-size: 14px; color: var(--color-muted); }
 
-.emptyText {
-  font-size: 18px;
-  font-weight: 700;
-  color: var(--color-foreground);
-  margin: 0;
-}
-
-.emptySubtext {
-  font-size: 14px;
-  color: var(--color-muted);
-  margin: 0 0 16px 0;
-}
-
-.monthGroup {
-  display: flex;
-  flex-direction: column;
-  gap: 16px;
-}
-
-.monthHeader {
-  display: flex;
-  justify-content: space-between;
-  align-items: baseline;
-  padding: 0 4px;
-}
-
-.monthTitle {
-  font-size: 16px;
-  font-weight: 800;
-  color: var(--color-primary);
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  margin: 0;
-}
-
-.monthStats {
-  font-size: 12px;
-  color: var(--color-muted);
-  display: flex;
-  gap: 12px;
-}
-
-.cardsContainer {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
+.monthGroup { display: flex; flex-direction: column; gap: 16px; }
+.monthHeader { display: flex; justify-content: space-between; align-items: baseline; padding: 0 4px; }
+.monthTitle { font-size: 16px; font-weight: 800; color: var(--color-primary); text-transform: uppercase; letter-spacing: 0.1em; }
+.monthStats { font-size: 12px; color: var(--color-muted); display: flex; gap: 12px; }
+.cardsContainer { display: flex; flex-direction: column; gap: 12px; }
 
 .entryCard {
   padding: 0 !important;
@@ -320,145 +272,29 @@
   border: 1px solid var(--color-border);
   transition: transform 0.2s, box-shadow 0.2s;
 }
+.entryCard:active { transform: scale(0.98); }
+.cardBorder { position: absolute; left: 0; top: 0; bottom: 0; width: 4px; box-shadow: 2px 0 12px rgba(0,0,0,0.5); }
+.cardContent { padding: 16px 16px 16px 20px; display: flex; align-items: center; gap: 16px; }
 
-.entryCard:active {
-  transform: scale(0.98);
-}
+.dateBlock { display: flex; flex-direction: column; align-items: center; min-width: 45px; border-right: 1px solid var(--color-border); padding-right: 16px; }
+.dayNum { font-size: 20px; font-weight: 800; color: var(--color-foreground); line-height: 1; }
+.dayName { font-size: 10px; text-transform: uppercase; color: var(--color-muted); font-weight: 600; margin-top: 4px; }
 
-.cardBorder {
-  position: absolute;
-  left: 0;
-  top: 0;
-  bottom: 0;
-  width: 4px;
-  box-shadow: 2px 0 12px rgba(0,0,0,0.5); 
-}
+.entryStats { flex: 1; display: flex; flex-wrap: wrap; gap: 8px; }
+.statPill { display: flex; align-items: center; gap: 4px; background-color: var(--color-background); padding: 4px 8px; border-radius: 6px; font-size: 11px; color: var(--color-muted); font-weight: 600; }
+.exercisePill { background-color: rgba(74, 222, 128, 0.1); color: var(--color-success); }
 
-.cardContent {
-  padding: 16px 16px 16px 20px;
-  display: flex;
-  align-items: center;
-  gap: 16px;
-}
+.scoreContainer { display: flex; flex-direction: column; align-items: center; }
+.entryScore { font-size: 24px; font-weight: 800; line-height: 1; }
+.scoreLabel { font-size: 8px; text-transform: uppercase; color: var(--color-muted); }
 
-.dateBlock {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  min-width: 45px;
-  border-right: 1px solid var(--color-border);
-  padding-right: 16px;
-}
+.actions { display: flex; flex-direction: column; gap: 4px; margin-left: 8px; opacity: 0.5; transition: opacity 0.2s; }
+.entryCard:hover .actions { opacity: 1; }
+.iconButton { background: none; border: none; cursor: pointer; font-size: 14px; padding: 4px; border-radius: 4px; transition: background-color 0.2s; }
+.iconButton:hover { background-color: var(--color-surface-light); }
+.deleteButton:hover { background-color: rgba(248, 113, 113, 0.15); }
 
-.dayNum {
-  font-size: 20px;
-  font-weight: 800;
-  color: var(--color-foreground);
-  line-height: 1;
-}
-
-.dayName {
-  font-size: 10px;
-  text-transform: uppercase;
-  color: var(--color-muted);
-  font-weight: 600;
-  margin-top: 4px;
-}
-
-.entryStats {
-  flex: 1;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.statPill {
-  display: flex;
-  align-items: center;
-  gap: 4px;
-  background-color: var(--color-background);
-  padding: 4px 8px;
-  border-radius: 6px;
-  font-size: 11px;
-  color: var(--color-muted);
-  font-weight: 600;
-}
-
-.exercisePill {
-  background-color: rgba(74, 222, 128, 0.1);
-  color: var(--color-success);
-}
-
-.scoreContainer {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-}
-
-.entryScore {
-  font-size: 24px;
-  font-weight: 800;
-  line-height: 1;
-}
-
-.scoreLabel {
-  font-size: 8px;
-  text-transform: uppercase;
-  color: var(--color-muted);
-}
-
-.actions {
-  display: flex;
-  flex-direction: column;
-  gap: 4px;
-  margin-left: 8px;
-  opacity: 0.5;
-  transition: opacity 0.2s;
-}
-
-.entryCard:hover .actions {
-  opacity: 1;
-}
-
-.iconButton {
-  background: none;
-  border: none;
-  cursor: pointer;
-  font-size: 14px;
-  padding: 4px;
-  border-radius: 4px;
-  transition: background-color 0.2s;
-}
-
-.iconButton:hover {
-  background-color: var(--color-surface-light);
-}
-
-.deleteButton:hover {
-  background-color: rgba(248, 113, 113, 0.15);
-}
-
-.deleteConfirm {
-  padding: 20px;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 16px;
-  background-color: var(--color-surface);
-  text-align: center;
-}
-
-.deleteConfirm p {
-  margin: 0;
-  font-weight: 600;
-}
-
-.deleteActions {
-  display: flex;
-  gap: 12px;
-  width: 100%;
-}
-
-.deleteActions button {
-  flex: 1;
-}
+.deleteConfirm { padding: 20px; display: flex; flex-direction: column; align-items: center; gap: 16px; background-color: var(--color-surface); text-align: center; }
+.deleteConfirm p { margin: 0; font-weight: 600; }
+.deleteActions { display: flex; gap: 12px; width: 100%; }
+.deleteActions button { flex: 1; }
