@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
-import type { HabitEntry, UserProfile, StreakData, Friend } from '../types';
+import type { HabitEntry, UserProfile, StreakData, Friend, NotificationSettings } from '../types';
 import * as supabase from '../lib/supabase';
 import { getTodayString } from '../lib/scoring';
 import { v4 as uuidv4 } from 'uuid';
@@ -21,14 +21,18 @@ interface HabitContextType {
   deleteEntry: (date: string) => Promise<void>;
   getEntryByDate: (date: string) => HabitEntry | undefined;
   refreshEntries: () => Promise<void>;
-  fetchAllEntries: () => Promise<void>; // ÚJ: Teljes előzmény letöltése
-  hasFullHistory: boolean; // ÚJ: Jelzi, hogy megvan-e minden adat
+  fetchAllEntries: () => Promise<void>;
+  hasFullHistory: boolean;
   
   // User
   user: UserProfile | null;
   streak: StreakData;
   saveUser: (user: Partial<UserProfile>) => Promise<void>;
   
+  // Settings (ÚJ)
+  settings: NotificationSettings;
+  updateSettings: (newSettings: Partial<NotificationSettings>) => Promise<void>;
+
   // Friends
   friends: Friend[];
   pendingRequests: { incoming: Friend[]; outgoing: Friend[] };
@@ -59,6 +63,20 @@ export function HabitProvider({ children }: { children: ReactNode }) {
   const [friends, setFriends] = useState<Friend[]>([]);
   const [pendingRequests, setPendingRequests] = useState<{ incoming: Friend[]; outgoing: Friend[] }>({ incoming: [], outgoing: [] });
   const [hasFullHistory, setHasFullHistory] = useState(false);
+  
+  // ÚJ: Settings state - Alapértelmezett Wizard
+  const [settings, setSettings] = useState<NotificationSettings>({
+    enabled: true,
+    morningEnabled: true,
+    afternoonEnabled: true,
+    eveningEnabled: true,
+    streakEnabled: true,
+    socialEnabled: true,
+    morningTime: '07:00',
+    afternoonTime: '15:00',
+    eveningTime: '21:00',
+    inputMode: 'wizard'
+  });
   
   const { showToast } = useToast();
   
@@ -111,13 +129,17 @@ export function HabitProvider({ children }: { children: ReactNode }) {
         friendshipSubscriptionRef.current = null;
       }
       
-      // JAVÍTÁS: Csak az utolsó 30 napot kérjük le induláskor
-      const [loadedProfile, loadedEntries, loadedFriends, loadedPendingRequests] = await Promise.all([
+      const [loadedProfile, loadedEntries, loadedFriends, loadedPendingRequests, loadedSettings] = await Promise.all([
         supabase.getUserProfile(userId),
         supabase.getRecentEntries(userId, 30),
         supabase.getAllFriends(userId),
         supabase.getPendingFriendRequests(userId),
+        supabase.getNotificationSettings(userId) // ÚJ: Beállítások betöltése
       ]);
+      
+      if (loadedSettings) {
+        setSettings(loadedSettings);
+      }
       
       if ('serviceWorker' in navigator && 'PushManager' in window) {
         try {
@@ -125,17 +147,9 @@ export function HabitProvider({ children }: { children: ReactNode }) {
           
           let permission = Notification.permission;
           if (permission === 'default') {
-            permission = await requestNotificationPermission();
-            console.log('Notification permission requested:', permission);
+            // requestNotificationPermission().then(...) 
           }
           
-          if (permission === 'granted') {
-            const subscription = await subscribeToPush();
-            if (subscription) {
-              await supabase.savePushSubscription(subscription);
-              console.log('Push subscription saved');
-            }
-          }
         } catch (error) {
           console.error('Error setting up push:', error);
         }
@@ -151,7 +165,7 @@ export function HabitProvider({ children }: { children: ReactNode }) {
       setEntries(loadedEntries);
       setFriends(loadedFriends);
       setPendingRequests(loadedPendingRequests);
-      setHasFullHistory(false); // Még csak a frissek vannak meg
+      setHasFullHistory(false);
 
       supabase.subscribeToEntries(userId, (payload) => {
         if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
@@ -162,8 +176,8 @@ export function HabitProvider({ children }: { children: ReactNode }) {
       });
       
       friendshipSubscriptionRef.current = supabase.subscribeToFriendships(userId, async (payload) => {
-        const settings = await supabase.getNotificationSettings(userId);
-        if (!settings.enabled || !settings.socialEnabled) {
+        const currentSettings = await supabase.getNotificationSettings(userId);
+        if (!currentSettings.enabled || !currentSettings.socialEnabled) {
           return;
         }
         
@@ -224,21 +238,16 @@ export function HabitProvider({ children }: { children: ReactNode }) {
 
   const refreshEntries = useCallback(async () => {
     if (!authUser) return;
-    
-    // Ha már lekértük a teljeset, akkor frissítsük az egészet, ha nem, akkor csak a frisseket
     const loadedEntries = hasFullHistory 
       ? await supabase.getAllEntries(authUser.id)
       : await supabase.getRecentEntries(authUser.id, 30);
-      
     setEntries(loadedEntries);
-    
     const loadedProfile = await supabase.getUserProfile(authUser.id);
     setUser(loadedProfile);
   }, [authUser, hasFullHistory]);
 
   const fetchAllEntries = useCallback(async () => {
     if (!authUser || hasFullHistory) return;
-    
     try {
       const allEntries = await supabase.getAllEntries(authUser.id);
       setEntries(allEntries);
@@ -250,25 +259,13 @@ export function HabitProvider({ children }: { children: ReactNode }) {
 
   const saveEntry = useCallback(async (entry: HabitEntry) => {
     if (!authUser) return;
-    
-    if (!entry.id) {
-      entry.id = uuidv4();
-    }
-    
-    console.log('Context saveEntry called with:', { userId: authUser.id, entry });
-    
+    if (!entry.id) entry.id = uuidv4();
     await supabase.saveEntry(authUser.id, entry);
-    
-    console.log('Context saveEntry supabase.saveEntry completed');
-    
     await refreshEntries();
-    
-    console.log('Context saveEntry refreshEntries completed');
   }, [authUser, refreshEntries]);
 
   const deleteEntry = useCallback(async (date: string) => {
     if (!authUser) return;
-    
     await supabase.deleteEntry(authUser.id, date);
     await refreshEntries();
   }, [authUser, refreshEntries]);
@@ -279,15 +276,21 @@ export function HabitProvider({ children }: { children: ReactNode }) {
 
   const saveUser = useCallback(async (updatedUser: Partial<UserProfile>) => {
     if (!authUser || !user) return;
-    
     await supabase.saveUserProfile({ ...updatedUser, id: authUser.id });
     const loadedProfile = await supabase.getUserProfile(authUser.id);
     setUser(loadedProfile);
   }, [authUser, user]);
 
+  // ÚJ: Beállítások mentése
+  const updateSettings = useCallback(async (newSettings: Partial<NotificationSettings>) => {
+    if (!authUser) return;
+    const merged = { ...settings, ...newSettings };
+    setSettings(merged);
+    await supabase.saveNotificationSettings(authUser.id, merged);
+  }, [authUser, settings]);
+
   const addFriend = useCallback(async (username: string) => {
     if (!authUser) return;
-    
     await supabase.addFriend(authUser.id, username);
     await refreshFriends();
     await refreshPendingRequests();
@@ -295,14 +298,12 @@ export function HabitProvider({ children }: { children: ReactNode }) {
 
   const removeFriend = useCallback(async (friendId: string) => {
     if (!authUser) return;
-    
     await supabase.removeFriend(authUser.id, friendId);
     await refreshFriends();
   }, [authUser]);
 
   const acceptFriendRequest = useCallback(async (requesterId: string) => {
     if (!authUser) return;
-    
     await supabase.acceptFriendRequest(authUser.id, requesterId);
     await refreshFriends();
     await refreshPendingRequests();
@@ -310,49 +311,41 @@ export function HabitProvider({ children }: { children: ReactNode }) {
 
   const rejectFriendRequest = useCallback(async (requesterId: string) => {
     if (!authUser) return;
-    
     await supabase.rejectFriendRequest(authUser.id, requesterId);
     await refreshPendingRequests();
   }, [authUser]);
 
   const cancelFriendRequest = useCallback(async (friendId: string) => {
     if (!authUser) return;
-    
     await supabase.cancelFriendRequest(authUser.id, friendId);
     await refreshPendingRequests();
   }, [authUser]);
 
   const refreshFriends = useCallback(async () => {
     if (!authUser) return;
-    
     const loadedFriends = await supabase.getAllFriends(authUser.id);
     setFriends(loadedFriends);
   }, [authUser]);
 
   const refreshPendingRequests = useCallback(async () => {
     if (!authUser) return;
-    
     const loadedPendingRequests = await supabase.getPendingFriendRequests(authUser.id);
-    
     if (showToast) {
       const settings = await supabase.getNotificationSettings(authUser.id);
       if (settings.enabled && settings.socialEnabled) {
         const previousIncoming = previousPendingRequestsRef.current.incoming.map(f => f.id);
         const newIncoming = loadedPendingRequests.incoming.filter(f => !previousIncoming.includes(f.id));
-        
         for (const newRequest of newIncoming) {
           showToast(`Új barátkérelem: ${newRequest.displayName} (@${newRequest.username})`, 'info', 6000);
         }
       }
     }
-    
     previousPendingRequestsRef.current = loadedPendingRequests;
     setPendingRequests(loadedPendingRequests);
   }, [authUser, showToast]);
 
   const getLeaderboard = useCallback(async (period: 'today' | 'week' | 'month') => {
     if (!authUser) return [];
-    
     return await supabase.getLeaderboard(authUser.id, period);
   }, [authUser]);
 
@@ -397,6 +390,8 @@ export function HabitProvider({ children }: { children: ReactNode }) {
         user,
         streak,
         saveUser,
+        settings, // Exponálva
+        updateSettings, // Exponálva
         friends,
         pendingRequests,
         addFriend,
