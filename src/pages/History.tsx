@@ -1,15 +1,19 @@
 import { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
-import { Card, Button } from '../components/ui';
-import { getScoreColor, formatMinutes } from '../lib/scoring';
+import { Card, Button, TimeInput, ProgressRing } from '../components/ui';
+import { getScoreColor, formatMinutes, calculateSleepMinutes, calculateTotalScore } from '../lib/scoring';
+import { createNewEntry } from '../lib/supabase';
 import type { HabitEntry } from '../types';
 import styles from './History.module.css';
+import historyStyles from './History.module.css';
 
 export function History() {
   const navigate = useNavigate();
-  const { entries, deleteEntry, fetchAllEntries, hasFullHistory } = useHabits();
+  const { entries, deleteEntry, fetchAllEntries, hasFullHistory, saveEntry } = useHabits();
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null);
+  const [editingDate, setEditingDate] = useState<string | null>(null);
+  const [editingEntry, setEditingEntry] = useState<HabitEntry | null>(null);
 
   // Töltsük be a teljes előzményt az History oldalon is
   useEffect(() => {
@@ -30,7 +34,72 @@ export function History() {
 
   const handleEdit = (e: React.MouseEvent, date: string) => {
     e.stopPropagation();
-    navigate(`/wizard?date=${date}`);
+    const entryToEdit = entries.find(e => e.date === date);
+    if (entryToEdit) {
+      setEditingEntry(entryToEdit);
+      setEditingDate(date);
+    }
+  };
+
+  const handleQuickSaveTimeData = async (updatedField: 'bedTime' | 'wakeUpTime' | 'businessMinutes', value: string) => {
+    if (!editingEntry) return;
+    
+    try {
+      let updated = {
+        ...editingEntry,
+        bedTime: updatedField === 'bedTime' ? value : editingEntry.bedTime,
+        wakeUpTime: updatedField === 'wakeUpTime' ? value : editingEntry.wakeUpTime,
+        businessMinutes: updatedField === 'businessMinutes' ? (parseInt(value, 10) || 0) : editingEntry.businessMinutes
+      };
+      
+      // If we're updating a time field, recalculate sleep minutes
+      if ((updatedField === 'bedTime' || updatedField === 'wakeUpTime') && updated.bedTime && updated.wakeUpTime) {
+        updated.sleepMinutes = calculateSleepMinutes(updated.bedTime, updated.wakeUpTime);
+      }
+      
+      setEditingEntry(updated);
+
+      // Calculate score
+      updated.score = calculateTotalScore(updated);
+      
+      // Haptikus visszajelzés
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(5);
+      }
+      
+      // Save to backend
+      await saveEntry(updated);
+    } catch (error) {
+      console.error('Error saving entry:', error);
+    }
+  };
+
+  const handleQuickToggle = async (field: keyof HabitEntry) => {
+    if (!editingEntry) return;
+
+    try {
+      // Haptikus visszajelzés
+      if (typeof navigator !== 'undefined' && navigator.vibrate) {
+        navigator.vibrate(10);
+      }
+
+      const currentVal = editingEntry[field] as boolean;
+      
+      const entryToSave = {
+        ...editingEntry,
+        [field]: !currentVal
+      };
+
+      // Pontszám újrakalkulálása
+      entryToSave.score = calculateTotalScore(entryToSave);
+      
+      setEditingEntry(entryToSave);
+      
+      // Mentés
+      await saveEntry(entryToSave);
+    } catch (error) {
+      console.error('Error saving entry:', error);
+    }
   };
 
   const handleDeleteClick = (e: React.MouseEvent, date: string) => {
@@ -70,6 +139,144 @@ export function History() {
 
   return (
     <div className={styles.container}>
+      {/* Edit Modal */}
+      {editingEntry && editingDate && (
+        <div className={styles.modal}>
+          <div className={styles.modalContent}>
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>Nap szerkesztése - {editingDate}</h2>
+              <button 
+                className={styles.closeButton}
+                onClick={() => {
+                  setEditingEntry(null);
+                  setEditingDate(null);
+                }}
+              >
+                ✕
+              </button>
+            </div>
+            
+            <div className={styles.modalBody}>
+              {/* Daily Score */}
+              <div className={styles.scoreSection}>
+                <ProgressRing
+                  value={editingEntry.score}
+                  max={100}
+                  size={120}
+                  strokeWidth={8}
+                  color={getScoreColor(editingEntry.score) === 'success' ? 'var(--color-success)' : getScoreColor(editingEntry.score) === 'warning' ? 'var(--color-warning)' : 'var(--color-error)'}
+                >
+                  <span className={styles.scoreValue}>{Math.round(editingEntry.score)}</span>
+                  <span className={styles.scoreUnit}>pont</span>
+                </ProgressRing>
+              </div>
+
+              <div className={styles.editFields}>
+                <div className={styles.fieldGroup}>
+                  <TimeInput
+                    value={editingEntry.bedTime || ''}
+                    onChange={(val: string) => {
+                      handleQuickSaveTimeData('bedTime', val);
+                    }}
+                    label="🌙 Alvás"
+                  />
+                </div>
+                
+                <div className={styles.fieldGroup}>
+                  <TimeInput
+                    value={editingEntry.wakeUpTime || ''}
+                    onChange={(val: string) => {
+                      handleQuickSaveTimeData('wakeUpTime', val);
+                    }}
+                    label="☀️ Ébresztés"
+                  />
+                </div>
+                
+                <div className={styles.fieldGroup}>
+                  <label className={styles.fieldLabel}>💼 Munka (perc)</label>
+                  <input
+                    type="number"
+                    value={editingEntry.businessMinutes || 0}
+                    onChange={(e) => {
+                      handleQuickSaveTimeData('businessMinutes', e.target.value);
+                    }}
+                    className={styles.numberField}
+                    placeholder="600"
+                    min="0"
+                    max="1440"
+                  />
+                </div>
+
+                {/* GYORS MŰVELETEK */}
+                <div className={styles.quickActionsSection}>
+                  <div className={styles.quickActions}>
+                    <button 
+                      className={`${styles.quickBtn} ${editingEntry.exercise ? styles.active : ''}`}
+                      onClick={() => handleQuickToggle('exercise')}
+                    >
+                      <span className={styles.quickIcon}>💪</span>
+                      <span className={styles.quickLabel}>Edzés</span>
+                    </button>
+                    
+                    <button 
+                      className={`${styles.quickBtn} ${editingEntry.cleanEating ? styles.active : ''}`}
+                      onClick={() => handleQuickToggle('cleanEating')}
+                    >
+                      <span className={styles.quickIcon}>🍎</span>
+                      <span className={styles.quickLabel}>Étkezés</span>
+                    </button>
+                    
+                    <button 
+                      className={`${styles.quickBtn} ${editingEntry.paradigm ? styles.active : ''}`}
+                      onClick={() => handleQuickToggle('paradigm')}
+                    >
+                      <span className={styles.quickIcon}>🙏</span>
+                      <span className={styles.quickLabel}>Paradigma</span>
+                    </button>
+
+                    <button 
+                      className={`${styles.quickBtn} ${editingEntry.satisfaction ? styles.activeBad : ''}`}
+                      onClick={() => handleQuickToggle('satisfaction')}
+                    >
+                      <span className={styles.quickIcon}>💦</span>
+                      <span className={styles.quickLabel}>Kielégülés</span>
+                    </button>
+
+                    <button 
+                      className={`${styles.quickBtn} ${editingEntry.dopamineContent ? styles.activeBad : ''}`}
+                      onClick={() => handleQuickToggle('dopamineContent')}
+                    >
+                      <span className={styles.quickIcon}>🧠</span>
+                      <span className={styles.quickLabel}>Dopamin</span>
+                    </button>
+
+                    <button 
+                      className={`${styles.quickBtn} ${editingEntry.gaming ? styles.activeBad : ''}`}
+                      onClick={() => handleQuickToggle('gaming')}
+                    >
+                      <span className={styles.quickIcon}>🎮</span>
+                      <span className={styles.quickLabel}>Gaming</span>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+            
+            <div className={styles.modalFooter}>
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setEditingEntry(null);
+                  setEditingDate(null);
+                }}
+              >
+                Bezárás
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <header className={styles.header}>
         <h1 className={styles.title}>Előzmények</h1>
         <div className={styles.statsBadge}>
