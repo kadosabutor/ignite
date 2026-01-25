@@ -531,7 +531,6 @@ export function FriendProfile() {
                               },
                             },
                           },
-                          averageLabels: {} as any,
                         },
                         scales: {
                           y: {
@@ -560,7 +559,6 @@ export function FriendProfile() {
                           },
                         },
                       }}
-                      plugins={[averageLabelsPlugin]}
                     />
                   </div>
                 </Card>
