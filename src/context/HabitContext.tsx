@@ -29,7 +29,7 @@ interface HabitContextType {
   streak: StreakData;
   saveUser: (user: Partial<UserProfile>) => Promise<void>;
   
-  // Settings (ÚJ)
+  // Settings
   settings: NotificationSettings;
   updateSettings: (newSettings: Partial<NotificationSettings>) => Promise<void>;
 
@@ -64,7 +64,7 @@ export function HabitProvider({ children }: { children: ReactNode }) {
   const [pendingRequests, setPendingRequests] = useState<{ incoming: Friend[]; outgoing: Friend[] }>({ incoming: [], outgoing: [] });
   const [hasFullHistory, setHasFullHistory] = useState(false);
   
-  // ÚJ: Settings state - Alapértelmezett Wizard
+  // Settings state
   const [settings, setSettings] = useState<NotificationSettings>({
     enabled: true,
     morningEnabled: true,
@@ -134,22 +134,31 @@ export function HabitProvider({ children }: { children: ReactNode }) {
         supabase.getRecentEntries(userId, 30),
         supabase.getAllFriends(userId),
         supabase.getPendingFriendRequests(userId),
-        supabase.getNotificationSettings(userId) // ÚJ: Beállítások betöltése
+        supabase.getNotificationSettings(userId)
       ]);
       
       if (loadedSettings) {
         setSettings(loadedSettings);
       }
       
+      // JAVÍTÁS: Visszaállítottam a push notification logikát, hogy a változók használatban legyenek
       if ('serviceWorker' in navigator && 'PushManager' in window) {
         try {
           const { subscribeToPush, requestNotificationPermission } = await import('../lib/push');
           
           let permission = Notification.permission;
           if (permission === 'default') {
-            // requestNotificationPermission().then(...) 
+            permission = await requestNotificationPermission();
+            console.log('Notification permission requested:', permission);
           }
           
+          if (permission === 'granted') {
+            const subscription = await subscribeToPush();
+            if (subscription) {
+              await supabase.savePushSubscription(subscription);
+              console.log('Push subscription saved');
+            }
+          }
         } catch (error) {
           console.error('Error setting up push:', error);
         }
@@ -281,7 +290,6 @@ export function HabitProvider({ children }: { children: ReactNode }) {
     setUser(loadedProfile);
   }, [authUser, user]);
 
-  // ÚJ: Beállítások mentése
   const updateSettings = useCallback(async (newSettings: Partial<NotificationSettings>) => {
     if (!authUser) return;
     const merged = { ...settings, ...newSettings };
@@ -390,8 +398,8 @@ export function HabitProvider({ children }: { children: ReactNode }) {
         user,
         streak,
         saveUser,
-        settings, // Exponálva
-        updateSettings, // Exponálva
+        settings,
+        updateSettings,
         friends,
         pendingRequests,
         addFriend,
