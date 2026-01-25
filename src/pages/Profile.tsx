@@ -11,7 +11,7 @@ import styles from './Profile.module.css';
 
 export function Profile() {
   const navigate = useNavigate();
-  const { user, entries, signOut, authUser, pendingRequests, saveUser } = useHabits();
+  const { user, entries, signOut, authUser, pendingRequests, saveUser, settings, updateSettings } = useHabits();
   const { showToast } = useToast();
   
   const [badges, setBadges] = useState<Badge[]>([]);
@@ -27,23 +27,10 @@ export function Profile() {
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Beállítások state
-  const [notifications, setNotifications] = useState({
-    enabled: true,
-    morningEnabled: true,
-    afternoonEnabled: true,
-    eveningEnabled: true,
-    streakEnabled: true,
-    socialEnabled: true,
-  });
-
   // Adatok betöltése
   useEffect(() => {
     if (authUser) {
       supabase.getUserBadges(authUser.id).then(setBadges);
-      supabase.getNotificationSettings(authUser.id).then(settings => 
-        setNotifications(prev => ({...prev, ...settings}))
-      );
     }
   }, [authUser]);
 
@@ -67,12 +54,9 @@ export function Profile() {
     }
   };
 
-  const handleNotificationChange = async (key: keyof typeof notifications, value: boolean) => {
-    if (!authUser) return;
-    const newSettings = { ...notifications, [key]: value };
-    setNotifications(newSettings);
-    const currentSettings = await supabase.getNotificationSettings(authUser.id);
-    await supabase.saveNotificationSettings(authUser.id, { ...currentSettings, ...newSettings });
+  const handleNotificationChange = async (key: string, value: any) => {
+    // ÚJ: A context updateSettings függvényét használjuk
+    await updateSettings({ [key]: value });
   };
 
   const handleSaveProfile = async () => {
@@ -178,17 +162,38 @@ export function Profile() {
       {showSettings ? (
         <div className={styles.settingsSection}>
           <div className={styles.settingsCard}>
+            <h3 className={styles.sectionTitle}>Megjelenés</h3>
+            <div className={styles.settingsList}>
+               {/* ÚJ: INPUT MODE SWITCH */}
+               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <span className={styles.switchLabel} style={{ fontSize: '14px', color: 'var(--color-foreground)' }}>
+                  Varázsló mód (Wizard)
+                </span>
+                <Switch 
+                  checked={settings.inputMode === 'wizard'} 
+                  onChange={(val) => handleNotificationChange('inputMode', val ? 'wizard' : 'dashboard')} 
+                />
+              </div>
+              <p style={{ fontSize: '11px', color: 'var(--color-muted)', marginTop: '-8px' }}>
+                {settings.inputMode === 'wizard' 
+                  ? 'A Dashboardon csak egy indító gomb lesz, a bevitel lépésről-lépésre történik.'
+                  : 'Minden beviteli mező közvetlenül a Dashboardon látható.'}
+              </p>
+            </div>
+          </div>
+
+          <div className={styles.settingsCard}>
             <h3 className={styles.sectionTitle}>Értesítések</h3>
             <div className={styles.settingsList}>
-              <Switch label="Összes értesítés" checked={notifications.enabled} onChange={(val: boolean) => handleNotificationChange('enabled', val)} />
-              {notifications.enabled && (
+              <Switch label="Összes értesítés" checked={settings.enabled} onChange={(val: boolean) => handleNotificationChange('enabled', val)} />
+              {settings.enabled && (
                 <>
                   <div className={styles.settingsDivider} />
-                  <Switch label="Reggeli motiváció (07:00)" checked={notifications.morningEnabled} onChange={(val: boolean) => handleNotificationChange('morningEnabled', val)} />
-                  <Switch label="Délutáni emlékeztető (15:00)" checked={notifications.afternoonEnabled} onChange={(val: boolean) => handleNotificationChange('afternoonEnabled', val)} />
-                  <Switch label="Esti felszólítás (21:00)" checked={notifications.eveningEnabled} onChange={(val: boolean) => handleNotificationChange('eveningEnabled', val)} />
-                  <Switch label="Streak figyelmeztetés" checked={notifications.streakEnabled} onChange={(val: boolean) => handleNotificationChange('streakEnabled', val)} />
-                  <Switch label="Közösségi (Ping/Tűz)" checked={notifications.socialEnabled} onChange={(val: boolean) => handleNotificationChange('socialEnabled', val)} />
+                  <Switch label="Reggeli motiváció (07:00)" checked={settings.morningEnabled} onChange={(val: boolean) => handleNotificationChange('morningEnabled', val)} />
+                  <Switch label="Délutáni emlékeztető (15:00)" checked={settings.afternoonEnabled} onChange={(val: boolean) => handleNotificationChange('afternoonEnabled', val)} />
+                  <Switch label="Esti felszólítás (21:00)" checked={settings.eveningEnabled} onChange={(val: boolean) => handleNotificationChange('eveningEnabled', val)} />
+                  <Switch label="Streak figyelmeztetés" checked={settings.streakEnabled} onChange={(val: boolean) => handleNotificationChange('streakEnabled', val)} />
+                  <Switch label="Közösségi (Ping/Tűz)" checked={settings.socialEnabled} onChange={(val: boolean) => handleNotificationChange('socialEnabled', val)} />
                 </>
               )}
             </div>
@@ -231,12 +236,10 @@ export function Profile() {
           <div className={styles.attributesSection}>
             <div className={styles.sectionHeader}>
               <h3 className={styles.sectionTitle}>Tulajdonságok</h3>
-              {/* Kiemelt Info gomb */}
               <button className={styles.infoButton} onClick={() => { setInfoTab('attributes'); setShowInfoModal(true); }}>i</button>
             </div>
             
             <div className={styles.attributeGrid}>
-              {/* Focus */}
               <div className={`${styles.attributeCard} ${styles.focus}`}>
                 <div className={styles.attrHeader}>
                   <span className={styles.attrLabel}>Focus</span>
@@ -247,7 +250,6 @@ export function Profile() {
                 </div>
               </div>
 
-              {/* Vitality */}
               <div className={`${styles.attributeCard} ${styles.vitality}`}>
                 <div className={styles.attrHeader}>
                   <span className={styles.attrLabel}>Vitality</span>
@@ -258,7 +260,6 @@ export function Profile() {
                 </div>
               </div>
 
-              {/* Will */}
               <div className={`${styles.attributeCard} ${styles.will}`}>
                 <div className={styles.attrHeader}>
                   <span className={styles.attrLabel}>Will</span>
@@ -269,7 +270,6 @@ export function Profile() {
                 </div>
               </div>
 
-              {/* Mind */}
               <div className={`${styles.attributeCard} ${styles.mind}`}>
                 <div className={styles.attrHeader}>
                   <span className={styles.attrLabel}>Mind</span>
@@ -299,7 +299,7 @@ export function Profile() {
             </div>
           </div>
 
-          {/* 4. ACTIONS (Legacy Funkciók) */}
+          {/* 4. ACTIONS */}
           <div className={styles.actionsSection}>
             <div style={{ position: 'relative' }}>
               <Button variant="secondary" fullWidth onClick={() => navigate('/friends')}>
