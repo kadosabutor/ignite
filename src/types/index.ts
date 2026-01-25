@@ -130,7 +130,7 @@ export interface LeaderboardEntry {
   isCurrentUser: boolean;
 }
 
-// Notification types
+// Notification & UI Settings types
 export interface NotificationSettings {
   enabled: boolean;
   morningEnabled: boolean;
@@ -141,6 +141,8 @@ export interface NotificationSettings {
   morningTime: string;
   afternoonTime: string;
   eveningTime: string;
+  // ÚJ: UI beállítás
+  inputMode?: 'dashboard' | 'wizard';
 }
 
 // Rank definitions
