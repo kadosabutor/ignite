@@ -82,21 +82,19 @@ export function FriendProfile() {
 
   // --- HOLD INTERACTION LOGIC ---
   const startHold = () => {
-    if (insight || isGenerating) return; // Ha már van, vagy tölt, ne induljon újra
+    if (insight || isGenerating) return;
     
-    // Haptikus visszajelzés induláskor
     if (navigator.vibrate) navigator.vibrate(10);
 
     let progress = 0;
-    const intervalTime = 20; // ms
-    const duration = 2000; // 2 másodperc kell a töltéshez
+    const intervalTime = 20; 
+    const duration = 2000; 
     const step = 100 / (duration / intervalTime);
 
     holdIntervalRef.current = window.setInterval(() => {
       progress += step;
       setHoldProgress(Math.min(progress, 100));
 
-      // Rezgés intenzitás növelése
       if (progress % 20 < step && navigator.vibrate) {
         navigator.vibrate(5);
       }
@@ -113,23 +111,20 @@ export function FriendProfile() {
       holdIntervalRef.current = null;
     }
     if (holdProgress < 100 && !isExploding) {
-      setHoldProgress(0); // Reset ha elengedte idő előtt
+      setHoldProgress(0);
     }
   };
 
   const completeHold = async () => {
     if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
     
-    // Haptikus robbanás
     if (navigator.vibrate) navigator.vibrate([50, 50, 50, 50, 200]);
     
     setIsExploding(true);
     setIsGenerating(true);
 
-    // AI Generálás indítása
     await handleGenerateInsight();
     
-    // Robbanás animáció vége
     setTimeout(() => {
       setIsExploding(false);
     }, 800);
@@ -151,7 +146,7 @@ export function FriendProfile() {
       setInsight(result);
     } catch (error) {
       console.error(error);
-      setHoldProgress(0); // Reset hiba esetén
+      setHoldProgress(0);
     } finally {
       setIsGenerating(false);
     }
@@ -196,10 +191,6 @@ export function FriendProfile() {
       const entry = friendEntries.find(e => e.date === date);
       return entry?.score ?? 0;
     });
-
-    // Calculate averages
-    const myAverage = myScores.reduce((a, b) => a + b, 0) / myScores.length;
-    const friendAverage = friendScores.reduce((a, b) => a + b, 0) / friendScores.length;
 
     const labels = last7Days.map(date => {
       const d = new Date(date);
@@ -249,28 +240,6 @@ export function FriendProfile() {
           shadowOffsetY: 0,
           type: 'line',
         },
-        {
-          label: 'Te (Átlag)',
-          data: Array(7).fill(myAverage),
-          borderColor: 'rgba(255, 112, 51, 0.5)',
-          borderWidth: 2,
-          borderDash: [6, 4],
-          fill: false,
-          pointRadius: 0,
-          pointHoverRadius: 0,
-          tension: 0,
-        },
-        {
-          label: friend?.displayName + ' (Átlag)' || 'Barát (Átlag)',
-          data: Array(7).fill(friendAverage),
-          borderColor: 'rgba(0, 255, 255, 0.5)',
-          borderWidth: 2,
-          borderDash: [6, 4],
-          fill: false,
-          pointRadius: 0,
-          pointHoverRadius: 0,
-          tension: 0,
-        }
       ] as any
     };
   }, [myEntries, friendEntries, friend]);
@@ -414,7 +383,6 @@ export function FriendProfile() {
       <div className={styles.contentArea}>
         {viewMode === 'details' ? (
           <div className={styles.detailsView}>
-            {/* ... (Részletek nézet változatlan) ... */}
             {friend.todayEntry ? (
               <div className={styles.gridStats}>
                 <div className={styles.statBox}>
@@ -513,7 +481,6 @@ export function FriendProfile() {
                             bodyFont: { weight: 'normal', size: 12 },
                             callbacks: {
                               label: function(context: any) {
-                                // Skip average lines (indices 2 and 3)
                                 if (context.datasetIndex > 1) {
                                   return '';
                                 }
@@ -555,61 +522,77 @@ export function FriendProfile() {
                   </div>
                 </Card>
                 
-                {/* AVERAGE COMPARISON */}
+                {/* 4. AVERAGE COMPARISON - IGNITE BRAND STYLE */}
                 <Card className={styles.chartCard}>
-                  <h3 className={styles.cardTitle}>Átlag Összehasonlítása</h3>
-                  <div style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '24px', textAlign: 'center' }}>
-                    {/* 7 Days */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingRight: '24px', borderRight: '1px solid var(--color-border)' }}>
-                      <div style={{ fontSize: '12px', color: 'var(--color-muted)', textTransform: 'uppercase', fontWeight: '600', letterSpacing: '0.05em' }}>Utolsó 7 Nap</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div style={{ fontSize: '24px', fontWeight: '800', color: 'rgba(255, 112, 51, 1)' }}>{Math.round(averageComparison.myLast7)}</div>
-                        <div style={{ fontSize: '12px', color: 'rgba(255, 112, 51, 0.8)', fontWeight: '600' }}>Te</div>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
-                        <div style={{ fontSize: '24px', fontWeight: '800', color: 'rgba(0, 255, 255, 1)' }}>{Math.round(averageComparison.friendLast7)}</div>
-                        <div style={{ fontSize: '12px', color: 'rgba(0, 255, 255, 0.8)', fontWeight: '600' }}>{friend.displayName}</div>
-                      </div>
-                    </div>
-
-                    {/* 30 Days */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', paddingRight: '24px', borderRight: '1px solid var(--color-border)' }}>
-                      <div style={{ fontSize: '12px', color: 'var(--color-muted)', textTransform: 'uppercase', fontWeight: '600', letterSpacing: '0.05em' }}>Utolsó 30 Nap</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div style={{ fontSize: '24px', fontWeight: '800', color: 'rgba(255, 112, 51, 1)' }}>{Math.round(averageComparison.myLast30)}</div>
-                        <div style={{ fontSize: '12px', color: 'rgba(255, 112, 51, 0.8)', fontWeight: '600' }}>Te</div>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
-                        <div style={{ fontSize: '24px', fontWeight: '800', color: 'rgba(0, 255, 255, 1)' }}>{Math.round(averageComparison.friendLast30)}</div>
-                        <div style={{ fontSize: '12px', color: 'rgba(0, 255, 255, 0.8)', fontWeight: '600' }}>{friend.displayName}</div>
+                  <h3 className={styles.cardTitle}>📊 Átlag Összehasonlítása</h3>
+                  
+                  <div className={styles.comparisonGrid}>
+                    {/* 7 Days Column */}
+                    <div className={styles.comparisonColumn}>
+                      <span className={styles.periodLabel}>Utolsó 7 nap</span>
+                      <div className={styles.scorePair}>
+                        {/* User */}
+                        <div className={styles.scoreBlock}>
+                          <span className={`${styles.scoreValue} ${styles.colorUser}`}>
+                            {Math.round(averageComparison.myLast7)}
+                          </span>
+                          <span className={`${styles.scoreOwner} ${styles.colorUser}`}>Te</span>
+                        </div>
+                        {/* Friend */}
+                        <div className={styles.scoreBlock}>
+                          <span className={`${styles.scoreValue} ${styles.colorFriend}`}>
+                            {Math.round(averageComparison.friendLast7)}
+                          </span>
+                          <span className={`${styles.scoreOwner} ${styles.colorFriend}`}>
+                            {friend.displayName.split(' ')[0]}
+                          </span>
+                        </div>
                       </div>
                     </div>
 
-                    {/* Year */}
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                      <div style={{ fontSize: '12px', color: 'var(--color-muted)', textTransform: 'uppercase', fontWeight: '600', letterSpacing: '0.05em' }}>Év (365 nap)</div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                        <div style={{ fontSize: '24px', fontWeight: '800', color: 'rgba(255, 112, 51, 1)' }}>{Math.round(averageComparison.myLastYear)}</div>
-                        <div style={{ fontSize: '12px', color: 'rgba(255, 112, 51, 0.8)', fontWeight: '600' }}>Te</div>
+                    {/* 30 Days Column */}
+                    <div className={styles.comparisonColumn}>
+                      <span className={styles.periodLabel}>Utolsó 30 nap</span>
+                      <div className={styles.scorePair}>
+                        <div className={styles.scoreBlock}>
+                          <span className={`${styles.scoreValue} ${styles.colorUser}`}>
+                            {Math.round(averageComparison.myLast30)}
+                          </span>
+                          <span className={`${styles.scoreOwner} ${styles.colorUser}`}>Te</span>
+                        </div>
+                        <div className={styles.scoreBlock}>
+                          <span className={`${styles.scoreValue} ${styles.colorFriend}`}>
+                            {Math.round(averageComparison.friendLast30)}
+                          </span>
+                          <span className={`${styles.scoreOwner} ${styles.colorFriend}`}>
+                            {friend.displayName.split(' ')[0]}
+                          </span>
+                        </div>
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '8px' }}>
-                        <div style={{ fontSize: '24px', fontWeight: '800', color: 'rgba(0, 255, 255, 1)' }}>{Math.round(averageComparison.friendLastYear)}</div>
-                        <div style={{ fontSize: '12px', color: 'rgba(0, 255, 255, 0.8)', fontWeight: '600' }}>{friend.displayName}</div>
+                    </div>
+
+                    {/* Year Column */}
+                    <div className={styles.comparisonColumn}>
+                      <span className={styles.periodLabel}>Év (365)</span>
+                      <div className={styles.scorePair}>
+                        <div className={styles.scoreBlock}>
+                          <span className={`${styles.scoreValue} ${styles.colorUser}`}>
+                            {Math.round(averageComparison.myLastYear)}
+                          </span>
+                          <span className={`${styles.scoreOwner} ${styles.colorUser}`}>Te</span>
+                        </div>
+                        <div className={styles.scoreBlock}>
+                          <span className={`${styles.scoreValue} ${styles.colorFriend}`}>
+                            {Math.round(averageComparison.friendLastYear)}
+                          </span>
+                          <span className={`${styles.scoreOwner} ${styles.colorFriend}`}>
+                            {friend.displayName.split(' ')[0]}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
                 </Card>
-                
-                <div className={styles.legendContainer}>
-                  <div className={styles.legendItem}>
-                    <span className={styles.legendDot} style={{ background: 'var(--color-primary)' }} />
-                    <span>Te</span>
-                  </div>
-                  <div className={styles.legendItem}>
-                    <span className={styles.legendDot} style={{ background: '#33CCFF' }} />
-                    <span>{friend.displayName}</span>
-                  </div>
-                </div>
               </>
             )}
           </div>
