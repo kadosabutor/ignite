@@ -290,6 +290,60 @@ export function Dashboard() {
         </div>
       </Card>
 
+      {/* REFLEKTÁLÁS SZEKCIÓ */}
+      <Card className={styles.weekCard}>
+        <div className={styles.weekHeader}>
+          <h3 className={styles.sectionTitle}>Reflektálás</h3>
+        </div>
+        
+        <div className={styles.reflectionSection}>
+          <div className={styles.reflectionItem}>
+            <label className={styles.reflectionLabel}>Hogy telt a napod? Közelebb kerültél célodhoz?</label>
+            <textarea
+              className={styles.reflectionInput}
+              value={localEntry?.approachedGoal || ''}
+              onChange={(e) => {
+                const updated = { ...localEntry, approachedGoal: e.target.value } as HabitEntry;
+                setLocalEntry(updated);
+                saveEntry(updated);
+              }}
+              placeholder="Írd le röviden a mai nap eseményeit..."
+              rows={3}
+            />
+          </div>
+          
+          <div className={styles.reflectionItem}>
+            <label className={styles.reflectionLabel}>Mi akadályozott célod eléréseben?</label>
+            <textarea
+              className={styles.reflectionInput}
+              value={localEntry?.businessObstacle || ''}
+              onChange={(e) => {
+                const updated = { ...localEntry, businessObstacle: e.target.value } as HabitEntry;
+                setLocalEntry(updated);
+                saveEntry(updated);
+              }}
+              placeholder="Nehézségek..."
+              rows={2}
+            />
+          </div>
+          
+          <div className={styles.reflectionItem}>
+            <label className={styles.reflectionLabel}>Mit rontottál el, hogyan lehetnél jobb?</label>
+            <textarea
+              className={styles.reflectionInput}
+              value={localEntry?.personalObstacle || ''}
+              onChange={(e) => {
+                const updated = { ...localEntry, personalObstacle: e.target.value } as HabitEntry;
+                setLocalEntry(updated);
+                saveEntry(updated);
+              }}
+              placeholder="Fejlődési pontok..."
+              rows={2}
+            />
+          </div>
+        </div>
+      </Card>
+
       {/* Weekly Overview */}
       <Card className={styles.weekCard}>
         <div className={styles.weekHeader}>

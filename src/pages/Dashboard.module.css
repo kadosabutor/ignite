@@ -451,3 +451,44 @@
   letter-spacing: 0.05em;
   text-align: center;
 }
+
+/* Reflection Section */
+.reflectionSection {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 0;
+}
+
+.reflectionItem {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.reflectionLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.reflectionInput {
+  width: 100%;
+  padding: 12px 10px;
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  color: var(--color-foreground);
+  font-size: 14px;
+  font-family: inherit;
+  resize: vertical;
+  transition: border-color 0.2s;
+}
+
+.reflectionInput:focus {
+  outline: none;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 2px rgba(255, 112, 51, 0.1);
+}
