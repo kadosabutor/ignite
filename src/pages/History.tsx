@@ -3,10 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
 import { Card, Button, TimeInput, ProgressRing } from '../components/ui';
 import { getScoreColor, formatMinutes, calculateSleepMinutes, calculateTotalScore } from '../lib/scoring';
-import { createNewEntry } from '../lib/supabase';
 import type { HabitEntry } from '../types';
 import styles from './History.module.css';
-import historyStyles from './History.module.css';
 
 export function History() {
   const navigate = useNavigate();

@@ -1,9 +1,9 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
-import { Button, Card, ProgressRing, TimeInput } from '../components/ui';
+import { Card, ProgressRing, TimeInput } from '../components/ui';
 import { StreakIcon } from '../components/StreakIcon';
-import { DateSelector } from '../components/DateSelector';
+
 import { getScoreColor, getTodayString, formatMinutes, calculateTotalScore, calculateSleepMinutes } from '../lib/scoring';
 import { createNewEntry } from '../lib/supabase';
 import { RANKS, type HabitEntry } from '../types';
@@ -17,7 +17,7 @@ export function Dashboard() {
   const hasLoggedToday = !!todayEntry;
   const scoreColor = getScoreColor(todayScore);
   
-  const [showDateSelector, setShowDateSelector] = useState(false);
+
   const [localEntry, setLocalEntry] = useState<HabitEntry | null>(todayEntry);
 
   const colorMap = {
@@ -41,23 +41,6 @@ export function Dashboard() {
 
   // Check if there are any missed days in the last 7 days
   const hasMissedDays = last7Days.some(day => !day.hasEntry && day.date !== getTodayString());
-
-  const handleStartWizard = () => {
-    if (hasMissedDays || !hasLoggedToday) {
-      setShowDateSelector(true);
-    } else {
-      navigate(`/wizard?date=${getTodayString()}`);
-    }
-  };
-
-  const handleDateSelect = (date: string) => {
-    setShowDateSelector(false);
-    navigate(`/wizard?date=${date}`);
-  };
-
-  const handleDateSelectorCancel = () => {
-    setShowDateSelector(false);
-  };
 
   // GYORS MŰVELETEK (Quick Actions)
   const handleQuickToggle = async (field: keyof HabitEntry) => {
@@ -144,16 +127,6 @@ export function Dashboard() {
 
   return (
     <div className={styles.container}>
-      {/* Date Selector Modal */}
-      {showDateSelector && (
-        <DateSelector
-          entries={entries}
-          onSelectDate={handleDateSelect}
-          onCancel={handleDateSelectorCancel}
-          maxMissedDays={7}
-        />
-      )}
-
       {/* Header */}
       <header className={styles.header}>
         <div className={styles.logo}>
