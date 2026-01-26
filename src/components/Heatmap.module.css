@@ -1,12 +1,13 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 12px; /* Kicsit nagyobb rés */
+  gap: 12px;
   width: 100%;
-  /* JAVÍTÁS: Nincs overflow-x és scrollbar rejtés, mert mostantól többsoros lesz */
+  /* JAVÍTÁS: Helyet hagyunk felül az Info gombnak, hogy ne lógjon bele a rácsba */
+  padding-top: 28px; 
 }
 
-/* JAVÍTÁS: Ez a wrapper fogja kezelni a sortörést */
+/* JAVÍTÁS: A wrapper kezeli a sortörést */
 .scrollWrapper {
   display: flex;
   width: 100%;
@@ -14,15 +15,13 @@
 
 .grid {
   display: flex;
-  flex-wrap: wrap; /* JAVÍTÁS: Sortörés engedélyezése */
-  gap: 4px; /* Kicsit nagyobb hézag a cellák között */
-  justify-content: center; /* Középre igazítás */
+  flex-wrap: wrap; /* Sortörés engedélyezése */
+  gap: 4px; 
+  justify-content: center;
 }
 
-/* JAVÍTÁS: A napok mostantól nem oszlopban, hanem simán egymás után jönnek */
-/* A .column osztály már nem kell, vagy csak 1 db cellát tartalmaz */
 .dayCell {
-  width: 12px; /* Kicsit nagyobb cellák */
+  width: 12px;
   height: 12px;
   border-radius: 3px;
   background-color: rgba(255, 255, 255, 0.05);
@@ -37,17 +36,17 @@
 }
 
 /* Színskála */
-.level0 { background-color: rgba(255, 255, 255, 0.05); } /* Üres */
-.level1 { background-color: #371b0e; } /* 1-25 */
-.level2 { background-color: #8c2f0d; } /* 26-50 */
-.level3 { background-color: #d84a1b; } /* 51-75 */
-.level4 { background-color: #ff7033; box-shadow: 0 0 4px #ff7033; } /* 76-90 */
-.level5 { background-color: #FFD700; box-shadow: 0 0 8px #FFD700; } /* 91+ (Legendary) */
+.level0 { background-color: rgba(255, 255, 255, 0.05); } 
+.level1 { background-color: #371b0e; } 
+.level2 { background-color: #8c2f0d; } 
+.level3 { background-color: #d84a1b; } 
+.level4 { background-color: #ff7033; box-shadow: 0 0 4px #ff7033; } 
+.level5 { background-color: #FFD700; box-shadow: 0 0 8px #FFD700; } 
 
 .legend {
   display: flex;
   align-items: center;
-  justify-content: center; /* Középre igazítva */
+  justify-content: center;
   gap: 6px;
   margin-top: 8px;
 }
@@ -64,11 +63,11 @@
   border-radius: 2px;
 }
 
-/* Info tooltip (magyarázat) */
+/* JAVÍTÁS: Info gomb a sarokban */
 .infoButton {
   position: absolute;
-  top: 16px;
-  right: 16px;
+  top: 0;   /* Teljesen a tetejére */
+  right: 0; /* Teljesen a jobbra */
   width: 20px;
   height: 20px;
   border-radius: 50%;
@@ -80,6 +79,12 @@
   justify-content: center;
   cursor: pointer;
   background: none;
+  transition: all 0.2s;
+}
+
+.infoButton:hover {
+  border-color: var(--color-primary);
+  color: var(--color-primary);
 }
 
 .infoTooltip {
@@ -92,6 +97,9 @@
   color: var(--color-muted);
   line-height: 1.4;
   animation: fadeIn 0.3s ease-out;
+  /* Biztosítjuk, hogy a tooltip a gomb alatt jelenjen meg szépen */
+  position: relative; 
+  z-index: 10;
 }
 
 @keyframes fadeIn {
