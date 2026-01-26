@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
 import { Card, ProgressRing, TimeInput, Button } from '../components/ui';
 import { StreakIcon } from '../components/StreakIcon';
+import { RankInfoModal } from '../components/RankInfoModal'; // IMPORTÁLVA
 
 import { getScoreColor, getTodayString, formatMinutes, calculateTotalScore, calculateSleepMinutes } from '../lib/scoring';
 import { createNewEntry } from '../lib/supabase';
@@ -18,6 +19,7 @@ export function Dashboard() {
   const scoreColor = getScoreColor(todayScore);
   
   const [localEntry, setLocalEntry] = useState<HabitEntry | null>(todayEntry);
+  const [showRankModal, setShowRankModal] = useState(false); // ÚJ STATE
 
   const colorMap = {
     success: 'var(--color-success)',
@@ -103,6 +105,15 @@ export function Dashboard() {
 
   return (
     <div className={styles.container}>
+      {/* Rank Info Modal */}
+      {showRankModal && user && (
+        <RankInfoModal 
+          currentRank={user.rank} 
+          currentAverage={user.monthlyAverage} 
+          onClose={() => setShowRankModal(false)} 
+        />
+      )}
+
       {/* Header */}
       <header className={styles.header}>
         <div className={styles.logo}>
@@ -110,7 +121,12 @@ export function Dashboard() {
           <span className={styles.logoText}>IGNITE</span>
         </div>
         {user && (
-          <div className={styles.userBadge}>
+          <div 
+            className={styles.userBadge} 
+            onClick={() => setShowRankModal(true)} // KATTINTÁS ESEMÉNY
+            role="button"
+            aria-label="Rang részletei"
+          >
             <span className={styles.rankEmoji}>{RANKS[user.rank].emoji}</span>
           </div>
         )}
