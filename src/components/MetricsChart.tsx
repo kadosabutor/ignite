@@ -10,6 +10,7 @@ import {
   Tooltip,
   Legend,
   Filler,
+  type ScriptableContext // Fontos a típushoz
 } from 'chart.js';
 import type { HabitEntry } from '../types';
 import styles from './MetricsChart.module.css';
@@ -89,7 +90,6 @@ export function MetricsChart({ entries, currentMonth }: MetricsChartProps) {
     
     const today = new Date();
     const isCurrentMonth = currentMonth.year === today.getFullYear() && currentMonth.month === today.getMonth();
-    // Show all days up to today (or end of month if past month)
     const lastDay = isCurrentMonth ? today.getDate() : new Date(currentMonth.year, currentMonth.month + 1, 0).getDate();
     
     const labels: string[] = [];
@@ -103,15 +103,11 @@ export function MetricsChart({ entries, currentMonth }: MetricsChartProps) {
       
       if (entry) {
         let value = getMetricValue(entry, selectedMetric);
-        
-        // Convert sleep minutes to hours in monthly view
         if (selectedMetric === 'sleepMinutes') {
           value = value / 60;
         }
-        
         values.push(value);
       } else {
-        // Use null for days without entries - they'll be visible on X-axis but no point on line
         values.push(null);
       }
     }
@@ -130,7 +126,6 @@ export function MetricsChart({ entries, currentMonth }: MetricsChartProps) {
     const values: number[] = [];
     
     for (let month = 0; month < 12; month++) {
-      // Skip future months in current year
       if (isCurrentYear && month > currentMonthIndex) {
         break;
       }
@@ -138,29 +133,23 @@ export function MetricsChart({ entries, currentMonth }: MetricsChartProps) {
       const monthStr = `${year}-${String(month + 1).padStart(2, '0')}`;
       const monthEntries = entries.filter(e => e.date.startsWith(monthStr));
       
-      // Only include months that have entries
       if (monthEntries.length === 0) {
         continue;
       }
       
-      // Aggregate based on metric type
       let aggregatedValue = 0;
       
       if (selectedMetric === 'score') {
-        // Average daily points for the month
         const total = monthEntries.reduce((sum, e) => sum + getMetricValue(e, selectedMetric), 0);
         aggregatedValue = total / monthEntries.length;
       } else if (selectedMetric === 'sleepMinutes') {
-        // Average sleep minutes converted to hours
         const totalMinutes = monthEntries.reduce((sum, e) => sum + getMetricValue(e, selectedMetric), 0);
-        aggregatedValue = totalMinutes / monthEntries.length / 60; // Convert to hours
+        aggregatedValue = totalMinutes / monthEntries.length / 60;
       } else if (selectedMetric === 'exercise' || selectedMetric === 'paradigm' || 
                  selectedMetric === 'cleanEating' || selectedMetric === 'satisfaction' ||
                  selectedMetric === 'dopamineContent') {
-        // Count occurrences (boolean metrics) - how many days in the month
         aggregatedValue = monthEntries.reduce((sum, e) => sum + getMetricValue(e, selectedMetric), 0);
       } else {
-        // Sum for other numeric metrics (businessMinutes)
         aggregatedValue = monthEntries.reduce((sum, e) => sum + getMetricValue(e, selectedMetric), 0);
       }
       
@@ -174,7 +163,6 @@ export function MetricsChart({ entries, currentMonth }: MetricsChartProps) {
 
   const chartData = viewType === 'monthly' ? monthlyData : yearlyData;
 
-  // Format tooltip value based on metric and view
   const formatTooltipValue = (value: number): string => {
     if (selectedMetric === 'sleepMinutes') {
       return `${value.toFixed(1)} óra`;
@@ -191,18 +179,25 @@ export function MetricsChart({ entries, currentMonth }: MetricsChartProps) {
         label: METRIC_LABELS[selectedMetric],
         data: chartData.values,
         borderColor: '#ff7033',
-        backgroundColor: 'rgba(255, 112, 51, 0.15)',
+        // IGNITE Brand Gradient
+        backgroundColor: (context: ScriptableContext<'line'>) => {
+          const ctx = context.chart.ctx;
+          const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+          gradient.addColorStop(0, 'rgba(255, 112, 51, 0.4)');
+          gradient.addColorStop(1, 'rgba(255, 112, 51, 0.0)');
+          return gradient;
+        },
+        borderWidth: 4,
         fill: true,
         tension: 0.4,
         pointRadius: chartData.values.length > 0 ? 5 : 0,
+        pointBackgroundColor: '#121212', // Fekete belső
+        pointBorderColor: '#ff7033',    // Narancs keret
+        pointBorderWidth: 3,
         pointHoverRadius: 8,
-        pointBackgroundColor: '#ff7033',
-        pointBorderColor: '#121212',
-        pointBorderWidth: 2,
-        pointHoverBackgroundColor: '#e65a1f',
-        pointHoverBorderColor: '#ff7033',
-        pointHoverBorderWidth: 3,
-        spanGaps: false, // Don't draw line through null values
+        pointHoverBackgroundColor: '#ff7033',
+        pointHoverBorderColor: '#fff',
+        spanGaps: false,
       },
     ],
   };
@@ -220,22 +215,24 @@ export function MetricsChart({ entries, currentMonth }: MetricsChartProps) {
       },
       tooltip: {
         enabled: true,
-        backgroundColor: 'var(--color-surface)',
-        titleColor: '#ff7033',
-        bodyColor: '#ff7033',
-        borderColor: '#ff7033',
+        backgroundColor: 'rgba(30, 30, 30, 0.95)',
+        titleColor: '#fff',
+        bodyColor: '#fff',
+        borderColor: 'rgba(255, 255, 255, 0.1)',
         borderWidth: 1,
-        padding: 14,
+        padding: 12,
+        cornerRadius: 12,
         displayColors: false,
         titleFont: {
-          size: 12,
-          weight: 600,
+          family: "'Montserrat', sans-serif",
+          size: 13,
+          weight: 'bold' as const,
         },
         bodyFont: {
+          family: "'Montserrat', sans-serif",
           size: 14,
-          weight: 700,
+          weight: 'bold' as const,
         },
-        cornerRadius: 8,
         callbacks: {
           title: (context: any) => {
             if (viewType === 'monthly') {
@@ -260,28 +257,34 @@ export function MetricsChart({ entries, currentMonth }: MetricsChartProps) {
           display: false,
         },
         ticks: {
-          color: '#ff7033',
+          color: '#9BA1A6',
           font: {
+            family: "'Montserrat', sans-serif",
             size: 11,
-            weight: 600,
+            weight: 'bold' as const,
           },
           padding: 8,
+          maxRotation: 0,
         },
       },
       y: {
         grid: {
-          color: '#9BA1A6',
+          color: 'rgba(255, 255, 255, 0.05)', // Nagyon halvány rács
           drawBorder: false,
         },
         ticks: {
-          color: '#ff7033',
+          color: '#9BA1A6',
           font: {
+            family: "'Montserrat', sans-serif",
             size: 11,
-            weight: 600,
+            weight: 'bold' as const,
           },
           padding: 12,
         },
         beginAtZero: true,
+        border: {
+            display: false
+        }
       },
     },
   };
@@ -321,6 +324,7 @@ export function MetricsChart({ entries, currentMonth }: MetricsChartProps) {
       
       <div className={styles.chartContainer}>
         {hasData ? (
+          // @ts-ignore - ChartJS típuskompatibilitás miatt
           <Line data={data} options={options} />
         ) : (
           <div className={styles.emptyState}>
@@ -337,4 +341,3 @@ export function MetricsChart({ entries, currentMonth }: MetricsChartProps) {
     </div>
   );
 }
-
