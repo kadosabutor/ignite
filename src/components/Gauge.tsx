@@ -34,7 +34,7 @@ export function Gauge({ value, min = 0, max = 100, label, color = 'primary', suf
   return (
     <div className={styles.container}>
       <svg
-        viewBox="0 0 100 60" // 100 széles, 60 magas (félkör + kis hely)
+        viewBox="0 0 100 65" // JAVÍTVA: Magasabb viewBox (60 -> 65), hogy legyen hely alul a feliratnak
         className={styles.gaugeSvg}
       >
         {/* Háttér ív */}
@@ -53,17 +53,17 @@ export function Gauge({ value, min = 0, max = 100, label, color = 'primary', suf
           }}
         />
         
-        {/* Szövegek */}
-        <text x="50" y="45" className={styles.value}>
+        {/* Szövegek - POZÍCIÓK JAVÍTVA */}
+        <text x="50" y="42" className={styles.value}> {/* y=45 helyett 42 (feljebb) */}
           {Math.round(animatedValue)}{suffix}
         </text>
-        <text x="50" y="60" className={styles.label}>
+        <text x="50" y="62" className={styles.label}> {/* y=60 helyett 62 (lejjebb) */}
           {label}
         </text>
         
         {/* Min/Max jelölők */}
-        <text x="10" y="60" className={styles.minMax}>{min}</text>
-        <text x="90" y="60" className={styles.minMax}>{max}</text>
+        <text x="10" y="62" className={styles.minMax}>{min}</text>
+        <text x="90" y="62" className={styles.minMax}>{max}</text>
       </svg>
     </div>
   );
