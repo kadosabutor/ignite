@@ -31,6 +31,8 @@
   border-radius: 10px;
 }
 
+/* ... A fájl eleje változatlan ... */
+
 .logoText {
   font-size: 24px;
   font-weight: 800;
@@ -38,19 +40,31 @@
   letter-spacing: 0.1em;
 }
 
+/* JAVÍTOTT RÉSZ */
 .userBadge {
-  width: 40px;
-  height: 40px;
+  width: 44px;
+  height: 44px;
   border-radius: 50%;
   background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
   display: flex;
   align-items: center;
   justify-content: center;
+  cursor: pointer; /* Kéz ikon */
+  transition: all 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.userBadge:active {
+  transform: scale(0.9);
+  background-color: var(--color-surface-light);
+  border-color: var(--color-primary);
 }
 
 .rankEmoji {
-  font-size: 20px;
+  font-size: 24px;
+  line-height: 1;
 }
+/* ... A fájl többi része változatlan ... */
 
 /* Streak Section */
 .streakSection {
