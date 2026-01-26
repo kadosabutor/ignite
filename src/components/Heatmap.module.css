@@ -1,44 +1,37 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 12px; /* Kicsit nagyobb rés */
   width: 100%;
-  overflow-x: auto;
-  padding-bottom: 8px;
-  /* Elrejtjük a scrollbar-t de engedjük a görgetést */
-  scrollbar-width: none; 
+  /* JAVÍTÁS: Nincs overflow-x és scrollbar rejtés, mert mostantól többsoros lesz */
 }
 
-.container::-webkit-scrollbar {
-  display: none;
-}
-
+/* JAVÍTÁS: Ez a wrapper fogja kezelni a sortörést */
 .scrollWrapper {
   display: flex;
-  min-width: max-content;
+  width: 100%;
 }
 
 .grid {
   display: flex;
-  gap: 3px;
+  flex-wrap: wrap; /* JAVÍTÁS: Sortörés engedélyezése */
+  gap: 4px; /* Kicsit nagyobb hézag a cellák között */
+  justify-content: center; /* Középre igazítás */
 }
 
-.column {
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-
-.cell {
-  width: 10px;
-  height: 10px;
-  border-radius: 2px;
+/* JAVÍTÁS: A napok mostantól nem oszlopban, hanem simán egymás után jönnek */
+/* A .column osztály már nem kell, vagy csak 1 db cellát tartalmaz */
+.dayCell {
+  width: 12px; /* Kicsit nagyobb cellák */
+  height: 12px;
+  border-radius: 3px;
   background-color: rgba(255, 255, 255, 0.05);
   transition: all 0.2s;
+  position: relative;
 }
 
-.cell:hover {
-  transform: scale(1.5);
+.dayCell:hover {
+  transform: scale(1.4);
   z-index: 2;
   border: 1px solid rgba(255,255,255,0.5);
 }
@@ -54,19 +47,54 @@
 .legend {
   display: flex;
   align-items: center;
-  justify-content: flex-end;
-  gap: 4px;
-  margin-top: 4px;
+  justify-content: center; /* Középre igazítva */
+  gap: 6px;
+  margin-top: 8px;
 }
 
 .legendLabel {
   font-size: 10px;
   color: var(--color-muted);
-  margin-right: 4px;
+  margin: 0 4px;
 }
 
 .legendBox {
   width: 10px;
   height: 10px;
   border-radius: 2px;
+}
+
+/* Info tooltip (magyarázat) */
+.infoButton {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  border: 1px solid var(--color-muted);
+  color: var(--color-muted);
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background: none;
+}
+
+.infoTooltip {
+  background-color: var(--color-surface-light);
+  padding: 12px;
+  border-radius: 8px;
+  margin-bottom: 12px;
+  border: 1px solid var(--color-border);
+  font-size: 12px;
+  color: var(--color-muted);
+  line-height: 1.4;
+  animation: fadeIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
 }
