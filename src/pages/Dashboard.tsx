@@ -6,7 +6,7 @@ import { StreakIcon } from '../components/StreakIcon';
 import { RankInfoModal } from '../components/RankInfoModal'; // IMPORTÁLVA
 
 import { getScoreColor, getTodayString, formatMinutes, calculateTotalScore, calculateSleepMinutes } from '../lib/scoring';
-import { createNewEntry } from '../lib/supabase';
+import { createNewEntry } from '../lib/api';
 import { RANKS, type HabitEntry } from '../types';
 import styles from './Dashboard.module.css';
 
@@ -191,23 +191,24 @@ export function Dashboard() {
         {/* --- UI SWITCH LOGIC --- */}
         {isWizardMode ? (
           /* WIZARD MODE: Csak egy gomb */
-          <div style={{ marginTop: '24px', display: 'flex', justifyContent: 'center' }}>
+          <div className={styles.wizardButtonContainer}>
             <Button 
               size="lg" 
               fullWidth 
               onClick={() => navigate('/wizard')}
-              style={{ 
-                background: 'linear-gradient(135deg, var(--color-primary) 0%, #ff4500 100%)',
-                color: '#121212',
-                fontWeight: '800',
-                fontSize: '16px',
-                padding: '16px',
-                borderRadius: '16px',
-                boxShadow: '0 4px 15px rgba(255, 112, 51, 0.3)'
-              }}
+              className={styles.wizardButton}
             >
               {hasLoggedToday ? 'BEJEGYZÉS SZERKESZTÉSE' : 'NAPI RÖGZÍTÉS INDÍTÁSA 🔥'}
             </Button>
+            {hasLoggedToday && (
+              <Button
+                variant="secondary"
+                fullWidth
+                onClick={() => navigate('/wizard?step=summary')}
+              >
+                Gyors Reflektálás
+              </Button>
+            )}
           </div>
         ) : (
           /* GRID MODE: Hagyományos beviteli mezők */

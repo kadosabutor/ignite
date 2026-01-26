@@ -198,7 +198,7 @@ export function Arena() {
     showToast(`${emoji} elküldve!`, 'success');
 
     try {
-      const { sendPushNotification } = await import('../lib/supabase');
+      const { sendPushNotification } = await import('../lib/api');
       let title = 'Reakció érkezett!';
       let body = `${user?.displayName || 'Valaki'} reagált a napodra: ${emoji}`;
       

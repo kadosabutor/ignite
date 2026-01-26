@@ -5,7 +5,7 @@ import { Button, Card, Input } from '../components/ui';
 import { ProfileCard } from '../components/ProfileCard';
 import { HeroCard } from '../components/HeroCard'; // ÚJ: HeroCard importálása
 import { StreakIcon } from '../components/StreakIcon';
-import * as supabase from '../lib/supabase';
+import * as api from '../lib/api';
 import { RANKS, getAvatarSrc, type Friend } from '../types';
 import { getRandomPingMessage, getRandomFireMessage } from '../lib/push'; // ÚJ: Reakciókhoz
 import { useToast } from '../context/ToastContext'; // ÚJ: Toast
@@ -45,7 +45,7 @@ export function Friends() {
     setSearchResults([]);
     
     try {
-      const results = await supabase.searchUsers(searchQuery.trim());
+      const results = await api.searchUsers(searchQuery.trim());
       const filtered = results.filter(u => 
         u.id !== user?.id && 
         !friends.some(f => f.id === u.id)
@@ -70,7 +70,7 @@ export function Friends() {
       const targetUser = searchResults.find(u => u.username === username);
       if (targetUser && user) {
         try {
-          await supabase.sendPushNotification(
+          await api.sendPushNotification(
             targetUser.id,
             '👋 Új Barátkérelem!',
             `${user.displayName || user.username} barátkérelmet küldött neked!`,
@@ -96,7 +96,7 @@ export function Friends() {
       await acceptFriendRequest(requesterId);
       if (user) {
         try {
-          await supabase.sendPushNotification(
+          await api.sendPushNotification(
             requesterId,
             '✅ Barátkérelem Elfogadva!',
             `${user.displayName || user.username} elfogadta a barátkérelmedet!`,
@@ -191,7 +191,7 @@ export function Friends() {
         body = getRandomPingMessage();
       }
 
-      await supabase.sendPushNotification(
+      await api.sendPushNotification(
         activeStoryFriend.id,
         title,
         body,

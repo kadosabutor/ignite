@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useHabits } from '../context/HabitContext';
 import { Button, TimeInput, Toggle } from '../components/ui';
 import { calculateSleepMinutes, calculateTotalScore, getTodayString } from '../lib/scoring';
-import { createNewEntry, addXpToUser } from '../lib/supabase';
+import { createNewEntry, addXpToUser } from '../lib/api';
 import { getDailyRank, calculateDailyXP } from '../lib/gamification';
 import type { HabitEntry } from '../types';
 import styles from './Wizard.module.css';
@@ -22,9 +22,10 @@ export function Wizard() {
   const { getEntryByDate, saveEntry, authUser } = useHabits();
   
   const dateParam = searchParams.get('date') || getTodayString();
+  const startStepParam = searchParams.get('step');
   const existingEntry = getEntryByDate(dateParam);
   
-  const [currentStep, setCurrentStep] = useState(0);
+  const [currentStep, setCurrentStep] = useState(startStepParam === 'summary' ? 4 : 0);
   const [entry, setEntry] = useState<HabitEntry>(() => 
     existingEntry || createNewEntry(dateParam)
   );

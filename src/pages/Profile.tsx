@@ -4,7 +4,7 @@ import { useHabits } from '../context/HabitContext';
 import { Button, Switch } from '../components/ui';
 import { RANKS, getAvatarSrc, type Badge } from '../types';
 import { calculateAttributes, getLevelFromXP, ATTRIBUTE_DESCRIPTIONS, BADGES } from '../lib/gamification';
-import * as supabase from '../lib/supabase';
+import * as api from '../lib/api';
 import { useToast } from '../context/ToastContext';
 import { ImageCropper } from '../components/ImageCropper';
 import styles from './Profile.module.css';
@@ -30,7 +30,7 @@ export function Profile() {
   // Adatok betöltése
   useEffect(() => {
     if (authUser) {
-      supabase.getUserBadges(authUser.id).then(setBadges);
+      api.getUserBadges(authUser.id).then(setBadges);
     }
   }, [authUser]);
 
@@ -83,7 +83,7 @@ export function Profile() {
     if (!authUser) return;
     setIsUploading(true);
     try {
-      const publicUrl = await supabase.uploadAvatar(authUser.id, croppedFile);
+      const publicUrl = await api.uploadAvatar(authUser.id, croppedFile);
       await saveUser({ avatar: publicUrl });
       showToast('Profilkép frissítve!', 'success');
     } catch (error: any) {

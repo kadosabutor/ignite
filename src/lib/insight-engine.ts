@@ -1,4 +1,4 @@
-import { supabase } from './supabase';
+import { supabase } from './api';
 import type { HabitEntry } from '../types';
 
 // ÚJ: Bővített kimeneti típus a strukturált válaszhoz

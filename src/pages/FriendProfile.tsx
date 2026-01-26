@@ -19,7 +19,7 @@ import {
 } from 'chart.js';
 import { calculateRadarStats } from '../lib/scoring';
 import { generateInsight, type InsightResult } from '../lib/insight-engine';
-import * as supabase from '../lib/supabase';
+import * as api from '../lib/api';
 import styles from './FriendProfile.module.css';
 
 // Chart.js regisztráció
@@ -70,7 +70,7 @@ export function FriendProfile() {
       const loadData = async () => {
         setIsLoading(true);
         try {
-          const entries = await supabase.getFriendEntries(friendId, 90);
+          const entries = await api.getFriendEntries(friendId, 90);
           setFriendEntries(entries);
         } catch (err) {
           console.error(err);

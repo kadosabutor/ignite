@@ -1,6 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, useRef, type ReactNode } from 'react';
 import type { HabitEntry, UserProfile, StreakData, Friend, NotificationSettings } from '../types';
-import * as supabase from '../lib/supabase';
+import * as api from '../lib/api';
 import { getTodayString } from '../lib/scoring';
 import { v4 as uuidv4 } from 'uuid';
 import { useToast } from './ToastContext';
@@ -86,7 +86,7 @@ export function HabitProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const checkAuth = async () => {
       try {
-        const currentUser = await supabase.getCurrentUser();
+        const currentUser = await api.getCurrentUser();
         if (currentUser) {
           setAuthUser(currentUser);
           setIsAuthenticated(true);
@@ -101,7 +101,7 @@ export function HabitProvider({ children }: { children: ReactNode }) {
     
     checkAuth();
     
-    const { data: { subscription } } = supabase.onAuthStateChange(async (user) => {
+    const { data: { subscription } } = api.onAuthStateChange(async (user) => {
       setAuthUser(user);
       setIsAuthenticated(!!user);
       if (user) {
@@ -130,11 +130,11 @@ export function HabitProvider({ children }: { children: ReactNode }) {
       }
       
       const [loadedProfile, loadedEntries, loadedFriends, loadedPendingRequests, loadedSettings] = await Promise.all([
-        supabase.getUserProfile(userId),
-        supabase.getRecentEntries(userId, 30),
-        supabase.getAllFriends(userId),
-        supabase.getPendingFriendRequests(userId),
-        supabase.getNotificationSettings(userId)
+        api.getUserProfile(userId),
+        api.getRecentEntries(userId, 30),
+        api.getAllFriends(userId),
+        api.getPendingFriendRequests(userId),
+        api.getNotificationSettings(userId)
       ]);
       
       if (loadedSettings) {
@@ -155,7 +155,7 @@ export function HabitProvider({ children }: { children: ReactNode }) {
           if (permission === 'granted') {
             const subscription = await subscribeToPush();
             if (subscription) {
-              await supabase.savePushSubscription(subscription);
+              await api.savePushSubscription(subscription);
               console.log('Push subscription saved');
             }
           }
@@ -164,7 +164,7 @@ export function HabitProvider({ children }: { children: ReactNode }) {
         }
       }
       
-      const updatedStreak = await supabase.updateStreak(userId);
+      const updatedStreak = await api.updateStreak(userId);
       
       if (loadedProfile) {
         loadedProfile.streak = updatedStreak;
@@ -176,7 +176,7 @@ export function HabitProvider({ children }: { children: ReactNode }) {
       setPendingRequests(loadedPendingRequests);
       setHasFullHistory(false);
 
-      supabase.subscribeToEntries(userId, (payload) => {
+      api.subscribeToEntries(userId, (payload) => {
         if (payload.eventType === 'INSERT' || payload.eventType === 'UPDATE') {
           refreshEntries();
         } else if (payload.eventType === 'DELETE') {
@@ -184,8 +184,8 @@ export function HabitProvider({ children }: { children: ReactNode }) {
         }
       });
       
-      friendshipSubscriptionRef.current = supabase.subscribeToFriendships(userId, async (payload) => {
-        const currentSettings = await supabase.getNotificationSettings(userId);
+      friendshipSubscriptionRef.current = api.subscribeToFriendships(userId, async (payload) => {
+        const currentSettings = await api.getNotificationSettings(userId);
         if (!currentSettings.enabled || !currentSettings.socialEnabled) {
           return;
         }
@@ -193,7 +193,7 @@ export function HabitProvider({ children }: { children: ReactNode }) {
         if (payload.eventType === 'INSERT') {
           const newRecord = payload.new;
           if (newRecord.friend_id === userId && newRecord.status === 'pending') {
-            const requesterProfile = await supabase.getUserProfile(newRecord.user_id);
+            const requesterProfile = await api.getUserProfile(newRecord.user_id);
             if (requesterProfile) {
               showToast(`Új barátkérelem: ${requesterProfile.displayName} (@${requesterProfile.username})`, 'info', 6000);
             }
@@ -204,7 +204,7 @@ export function HabitProvider({ children }: { children: ReactNode }) {
           const newRecord = payload.new;
           
           if (oldRecord.status === 'pending' && newRecord.status === 'connected' && newRecord.user_id === userId) {
-            const friendProfile = await supabase.getUserProfile(newRecord.friend_id);
+            const friendProfile = await api.getUserProfile(newRecord.friend_id);
             if (friendProfile) {
               showToast(`${friendProfile.displayName} (@${friendProfile.username}) elfogadta a barátkérelmedet! 🎉`, 'success', 6000);
             }
@@ -228,15 +228,15 @@ export function HabitProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signUp = useCallback(async (email: string, password: string, username: string, displayName: string, avatar: string) => {
-    await supabase.signUp(email, password, username, displayName, avatar);
+    await api.signUp(email, password, username, displayName, avatar);
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
-    await supabase.signIn(email, password);
+    await api.signIn(email, password);
   }, []);
 
   const signOut = useCallback(async () => {
-    await supabase.signOut();
+    await api.signOut();
     setAuthUser(null);
     setIsAuthenticated(false);
     setEntries([]);
@@ -248,17 +248,17 @@ export function HabitProvider({ children }: { children: ReactNode }) {
   const refreshEntries = useCallback(async () => {
     if (!authUser) return;
     const loadedEntries = hasFullHistory 
-      ? await supabase.getAllEntries(authUser.id)
-      : await supabase.getRecentEntries(authUser.id, 30);
+      ? await api.getAllEntries(authUser.id)
+      : await api.getRecentEntries(authUser.id, 30);
     setEntries(loadedEntries);
-    const loadedProfile = await supabase.getUserProfile(authUser.id);
+    const loadedProfile = await api.getUserProfile(authUser.id);
     setUser(loadedProfile);
   }, [authUser, hasFullHistory]);
 
   const fetchAllEntries = useCallback(async () => {
     if (!authUser || hasFullHistory) return;
     try {
-      const allEntries = await supabase.getAllEntries(authUser.id);
+      const allEntries = await api.getAllEntries(authUser.id);
       setEntries(allEntries);
       setHasFullHistory(true);
     } catch (error) {
@@ -269,13 +269,13 @@ export function HabitProvider({ children }: { children: ReactNode }) {
   const saveEntry = useCallback(async (entry: HabitEntry) => {
     if (!authUser) return;
     if (!entry.id) entry.id = uuidv4();
-    await supabase.saveEntry(authUser.id, entry);
+    await api.saveEntry(authUser.id, entry);
     await refreshEntries();
   }, [authUser, refreshEntries]);
 
   const deleteEntry = useCallback(async (date: string) => {
     if (!authUser) return;
-    await supabase.deleteEntry(authUser.id, date);
+    await api.deleteEntry(authUser.id, date);
     await refreshEntries();
   }, [authUser, refreshEntries]);
 
@@ -285,8 +285,8 @@ export function HabitProvider({ children }: { children: ReactNode }) {
 
   const saveUser = useCallback(async (updatedUser: Partial<UserProfile>) => {
     if (!authUser || !user) return;
-    await supabase.saveUserProfile({ ...updatedUser, id: authUser.id });
-    const loadedProfile = await supabase.getUserProfile(authUser.id);
+    await api.saveUserProfile({ ...updatedUser, id: authUser.id });
+    const loadedProfile = await api.getUserProfile(authUser.id);
     setUser(loadedProfile);
   }, [authUser, user]);
 
@@ -294,52 +294,52 @@ export function HabitProvider({ children }: { children: ReactNode }) {
     if (!authUser) return;
     const merged = { ...settings, ...newSettings };
     setSettings(merged);
-    await supabase.saveNotificationSettings(authUser.id, merged);
+    await api.saveNotificationSettings(authUser.id, merged);
   }, [authUser, settings]);
 
   const addFriend = useCallback(async (username: string) => {
     if (!authUser) return;
-    await supabase.addFriend(authUser.id, username);
+    await api.addFriend(authUser.id, username);
     await refreshFriends();
     await refreshPendingRequests();
   }, [authUser]);
 
   const removeFriend = useCallback(async (friendId: string) => {
     if (!authUser) return;
-    await supabase.removeFriend(authUser.id, friendId);
+    await api.removeFriend(authUser.id, friendId);
     await refreshFriends();
   }, [authUser]);
 
   const acceptFriendRequest = useCallback(async (requesterId: string) => {
     if (!authUser) return;
-    await supabase.acceptFriendRequest(authUser.id, requesterId);
+    await api.acceptFriendRequest(authUser.id, requesterId);
     await refreshFriends();
     await refreshPendingRequests();
   }, [authUser]);
 
   const rejectFriendRequest = useCallback(async (requesterId: string) => {
     if (!authUser) return;
-    await supabase.rejectFriendRequest(authUser.id, requesterId);
+    await api.rejectFriendRequest(authUser.id, requesterId);
     await refreshPendingRequests();
   }, [authUser]);
 
   const cancelFriendRequest = useCallback(async (friendId: string) => {
     if (!authUser) return;
-    await supabase.cancelFriendRequest(authUser.id, friendId);
+    await api.cancelFriendRequest(authUser.id, friendId);
     await refreshPendingRequests();
   }, [authUser]);
 
   const refreshFriends = useCallback(async () => {
     if (!authUser) return;
-    const loadedFriends = await supabase.getAllFriends(authUser.id);
+    const loadedFriends = await api.getAllFriends(authUser.id);
     setFriends(loadedFriends);
   }, [authUser]);
 
   const refreshPendingRequests = useCallback(async () => {
     if (!authUser) return;
-    const loadedPendingRequests = await supabase.getPendingFriendRequests(authUser.id);
+    const loadedPendingRequests = await api.getPendingFriendRequests(authUser.id);
     if (showToast) {
-      const settings = await supabase.getNotificationSettings(authUser.id);
+      const settings = await api.getNotificationSettings(authUser.id);
       if (settings.enabled && settings.socialEnabled) {
         const previousIncoming = previousPendingRequestsRef.current.incoming.map(f => f.id);
         const newIncoming = loadedPendingRequests.incoming.filter(f => !previousIncoming.includes(f.id));
@@ -354,7 +354,7 @@ export function HabitProvider({ children }: { children: ReactNode }) {
 
   const getLeaderboard = useCallback(async (period: 'today' | 'week' | 'month') => {
     if (!authUser) return [];
-    return await supabase.getLeaderboard(authUser.id, period);
+    return await api.getLeaderboard(authUser.id, period);
   }, [authUser]);
 
   const todayEntry = entries.find(e => e.date === getTodayString()) || null;
