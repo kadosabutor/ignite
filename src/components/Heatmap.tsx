@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { HabitEntry } from '../types';
 import styles from './Heatmap.module.css';
 
@@ -7,34 +7,29 @@ interface HeatmapProps {
 }
 
 export function Heatmap({ entries }: HeatmapProps) {
-  // Adatok előkészítése: 52 hét, napi bontásban
-  const weeks = useMemo(() => {
+  const [showInfo, setShowInfo] = useState(false);
+
+  // Adatok előkészítése: Utolsó 365 nap, lapos listában
+  const days = useMemo(() => {
     const today = new Date();
-    // 52 héttel ezelőtti vasárnap (hogy szép rács legyen)
+    // 365 nappal ezelőtt
     const startDate = new Date(today);
     startDate.setDate(today.getDate() - 364);
     
     const data = [];
     const entryMap = new Map(entries.map(e => [e.date, e.score]));
 
-    // 52 oszlop
-    for (let w = 0; w < 52; w++) {
-      const week = [];
-      // 7 nap per oszlop
-      for (let d = 0; d < 7; d++) {
-        const date = new Date(startDate);
-        date.setDate(startDate.getDate() + (w * 7) + d);
-        const dateStr = date.toISOString().split('T')[0];
-        
-        // Csak a mai napig mutassuk
-        if (date > today) {
-          week.push(null);
-        } else {
-          const score = entryMap.get(dateStr) ?? 0;
-          week.push({ date: dateStr, score });
-        }
-      }
-      data.push(week);
+    // Végigmegyünk minden napon
+    for (let d = 0; d <= 365; d++) {
+      const date = new Date(startDate);
+      date.setDate(startDate.getDate() + d);
+      const dateStr = date.toISOString().split('T')[0];
+      
+      // Jövőbeli napok nem kellenek (bár a ciklus ma-ig megy)
+      if (date > today) break;
+
+      const score = entryMap.get(dateStr) ?? 0;
+      data.push({ date: dateStr, score });
     }
     return data;
   }, [entries]);
@@ -49,19 +44,31 @@ export function Heatmap({ entries }: HeatmapProps) {
   };
 
   return (
-    <div className={styles.container}>
+    <div className={styles.container} style={{ position: 'relative' }}>
+      {/* Info gomb a jobb felső sarokban */}
+      <button 
+        className={styles.infoButton} 
+        onClick={() => setShowInfo(!showInfo)}
+        title="Hogyan működik?"
+      >
+        i
+      </button>
+
+      {/* Magyarázat szöveg */}
+      {showInfo && (
+        <div className={styles.infoTooltip}>
+          Minden négyzet egy napot jelöl az elmúlt évből. A színek a napi pontszámodat mutatják: minél világosabb és "tüzesebb" a szín, annál magasabb volt a pontszámod aznap. A cél, hogy ne legyenek üres (sötét) hézagok!
+        </div>
+      )}
+
       <div className={styles.scrollWrapper}>
         <div className={styles.grid}>
-          {weeks.map((week, wIndex) => (
-            <div key={wIndex} className={styles.column}>
-              {week.map((day, dIndex) => (
-                <div
-                  key={dIndex}
-                  className={`${styles.cell} ${day ? getLevel(day.score) : styles.level0}`}
-                  title={day ? `${day.date}: ${Math.round(day.score)} pont` : ''}
-                />
-              ))}
-            </div>
+          {days.map((day, index) => (
+            <div
+              key={index}
+              className={`${styles.dayCell} ${getLevel(day.score)}`}
+              title={`${day.date}: ${Math.round(day.score)} pont`}
+            />
           ))}
         </div>
       </div>
