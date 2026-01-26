@@ -35,17 +35,18 @@
 .fill.warning { stroke: var(--color-warning); filter: drop-shadow(0 0 4px var(--color-warning)); }
 .fill.error { stroke: var(--color-error); filter: drop-shadow(0 0 4px var(--color-error)); }
 
-/* Value text */
+/* Value text - FELJEBB HÚZVA */
 .value {
-  font-size: 24px;
+  font-size: 20px; /* Kicsit kisebb, hogy biztosan ne lógjon bele */
   font-weight: 800;
   fill: #fff;
   text-anchor: middle;
   dominant-baseline: central;
 }
 
+/* Label text - LEJJEBB TOLVA */
 .label {
-  font-size: 10px;
+  font-size: 9px;
   font-weight: 700;
   fill: var(--color-muted);
   text-anchor: middle;
