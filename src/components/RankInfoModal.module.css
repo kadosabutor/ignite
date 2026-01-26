@@ -1,0 +1,168 @@
+.overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.85);
+  backdrop-filter: blur(5px);
+  z-index: 9999;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  animation: fadeIn 0.2s ease-out;
+}
+
+.content {
+  width: 100%;
+  max-width: 360px;
+  background-color: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 24px;
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  max-height: 80vh;
+  animation: scaleUp 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px;
+  border-bottom: 1px solid var(--color-border);
+  background-color: rgba(255, 255, 255, 0.03);
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--color-foreground);
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: var(--color-muted);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 4px;
+  transition: color 0.2s;
+}
+
+.closeButton:hover {
+  color: var(--color-foreground);
+}
+
+.body {
+  padding: 16px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+/* Rank Item Card */
+.rankItem {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 16px;
+  border-radius: 16px;
+  background-color: var(--color-background);
+  border: 1px solid var(--color-border);
+  transition: all 0.2s;
+  position: relative;
+  opacity: 0.6; /* Alapból halványabb */
+}
+
+/* Az aktív szint kiemelése */
+.rankItem.active {
+  opacity: 1;
+  border-color: var(--color-primary);
+  background: linear-gradient(90deg, rgba(255, 112, 51, 0.1) 0%, rgba(255, 112, 51, 0.02) 100%);
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.3);
+  transform: scale(1.02);
+  z-index: 2;
+}
+
+.emojiWrapper {
+  width: 48px;
+  height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--color-surface);
+  border-radius: 12px;
+  font-size: 24px;
+  border: 1px solid var(--color-border);
+}
+
+.info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rankName {
+  font-size: 14px;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--color-foreground); /* Javítva: explicite beállítva, hogy az active felülírhassa */
+}
+
+.scoreRange {
+  font-size: 12px;
+  color: var(--color-muted);
+  font-weight: 600;
+}
+
+/* "Jelenlegi" címke */
+.currentBadge {
+  position: absolute;
+  top: -8px;
+  right: 12px;
+  background-color: var(--color-primary);
+  color: #121212;
+  font-size: 9px;
+  font-weight: 800;
+  padding: 2px 8px;
+  border-radius: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+/* Next Level Progress (Ha ez a következő szint) */
+.progressBarBg {
+  height: 4px;
+  background-color: rgba(255, 255, 255, 0.1);
+  border-radius: 2px;
+  margin-top: 8px;
+  overflow: hidden;
+}
+
+.progressBarFill {
+  height: 100%;
+  background-color: var(--color-muted);
+  border-radius: 2px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes scaleUp {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
