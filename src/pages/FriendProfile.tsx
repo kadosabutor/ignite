@@ -9,27 +9,29 @@ import {
   Chart as ChartJS,
   CategoryScale,
   LinearScale,
-  BarElement,
   LineElement,
   PointElement,
   Title,
   Tooltip,
   Legend,
+  Filler,
+  ScriptableContext
 } from 'chart.js';
 import { calculateRadarStats } from '../lib/scoring';
 import { generateInsight, type InsightResult } from '../lib/insight-engine';
 import * as supabase from '../lib/supabase';
 import styles from './FriendProfile.module.css';
 
+// Chart.js regisztráció
 ChartJS.register(
   CategoryScale,
   LinearScale,
-  BarElement,
   LineElement,
   PointElement,
   Title,
   Tooltip,
-  Legend
+  Legend,
+  Filler // Fontos: Ez kell a kitöltéshez (gradient area)
 );
 
 export function FriendProfile() {
@@ -38,14 +40,14 @@ export function FriendProfile() {
   const [searchParams] = useSearchParams();
   const { friends, entries: myEntries, user } = useHabits();
   
-  // Tab kezelés: URL-ből olvassa ki, alapértelmezett a 'details'
+  // Tab kezelés
   const initialTab = searchParams.get('tab') === 'vs' ? 'vs' : 'details';
   const [viewMode, setViewMode] = useState<'details' | 'vs'>(initialTab);
   
   const [friendEntries, setFriendEntries] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   
-  // --- ENERGY HOLD STATES ---
+  // Energy Hold States
   const [insight, setInsight] = useState<InsightResult | null>(null);
   const [holdProgress, setHoldProgress] = useState(0);
   const [isExploding, setIsExploding] = useState(false);
@@ -54,7 +56,7 @@ export function FriendProfile() {
   const holdIntervalRef = useRef<number | null>(null);
   const friend = friends.find(f => f.id === friendId);
 
-  // Navigáció szinkronizálása a state-tel
+  // Navigáció szinkronizálása
   useEffect(() => {
     const tab = searchParams.get('tab');
     if (tab === 'vs' && viewMode !== 'vs') {
@@ -80,10 +82,9 @@ export function FriendProfile() {
     }
   }, [viewMode, friendId, friendEntries.length]);
 
-  // --- HOLD INTERACTION LOGIC ---
+  // --- HOLD INTERACTION ---
   const startHold = () => {
     if (insight || isGenerating) return;
-    
     if (navigator.vibrate) navigator.vibrate(10);
 
     let progress = 0;
@@ -117,7 +118,6 @@ export function FriendProfile() {
 
   const completeHold = async () => {
     if (holdIntervalRef.current) clearInterval(holdIntervalRef.current);
-    
     if (navigator.vibrate) navigator.vibrate([50, 50, 50, 50, 200]);
     
     setIsExploding(true);
@@ -135,14 +135,12 @@ export function FriendProfile() {
     
     try {
       const commonLength = Math.min(myEntries.length, friendEntries.length);
-      
       const result = await generateInsight({
         userEntries: myEntries.slice(0, commonLength),
         friendEntries: friendEntries.slice(0, commonLength),
         userName: user?.displayName || 'Te',
         friendName: friend.displayName
       });
-      
       setInsight(result);
     } catch (error) {
       console.error(error);
@@ -155,7 +153,6 @@ export function FriendProfile() {
   const myRadarStats = useMemo(() => calculateRadarStats(myEntries.slice(0, 30)), [myEntries]);
   const friendRadarStats = useMemo(() => calculateRadarStats(friendEntries.slice(0, 30)), [friendEntries]);
   
-  // Calculate averages for different periods
   const averageComparison = useMemo(() => {
     const calculateAverageForDays = (entries: any[], days: number) => {
       const filtered = entries.slice(0, days);
@@ -173,7 +170,7 @@ export function FriendProfile() {
     };
   }, [myEntries, friendEntries]);
 
-  // Chart data for last 7 days comparison
+  // Chart data setup
   const last7DaysData = useMemo(() => {
     const today = new Date();
     const last7Days = Array.from({ length: 7 }, (_, i) => {
@@ -194,7 +191,10 @@ export function FriendProfile() {
 
     const labels = last7Days.map(date => {
       const d = new Date(date);
-      return d.toLocaleDateString('hu-HU', { weekday: 'short', month: 'numeric', day: 'numeric' });
+      // "H", "K", "Sze" formátum
+      const dayName = d.toLocaleDateString('hu-HU', { weekday: 'short' });
+      const dayNum = d.getDate();
+      return `${dayNum}., ${dayName.charAt(0).toUpperCase() + dayName.slice(1)}`;
     });
 
     return {
@@ -203,46 +203,138 @@ export function FriendProfile() {
         {
           label: 'Te',
           data: myScores,
-          borderColor: 'rgba(255, 112, 51, 1)',
-          backgroundColor: 'transparent',
-          borderWidth: 3,
-          fill: false,
+          borderColor: '#ff7033', // Ignite Orange
+          backgroundColor: (context: ScriptableContext<'line'>) => {
+            const ctx = context.chart.ctx;
+            const gradient = ctx.createLinearGradient(0, 0, 0, 300);
+            gradient.addColorStop(0, 'rgba(255, 112, 51, 0.4)');
+            gradient.addColorStop(1, 'rgba(255, 112, 51, 0.0)');
+            return gradient;
+          },
+          borderWidth: 4,
+          fill: true,
           tension: 0.4,
-          pointRadius: 5,
-          pointBackgroundColor: 'rgba(255, 112, 51, 1)',
-          pointBorderColor: 'rgba(255, 112, 51, 1)',
-          pointBorderWidth: 2,
-          pointHoverRadius: 7,
-          pointHoverBackgroundColor: 'rgba(255, 112, 51, 0.8)',
-          shadowColor: 'rgba(255, 112, 51, 1)',
-          shadowBlur: 20,
-          shadowOffsetX: 0,
-          shadowOffsetY: 0,
-          type: 'line',
+          pointRadius: 6,
+          pointBackgroundColor: '#121212',
+          pointBorderColor: '#ff7033',
+          pointBorderWidth: 3,
+          pointHoverRadius: 8,
+          pointHoverBackgroundColor: '#ff7033',
+          pointHoverBorderColor: '#fff',
         },
         {
           label: friend?.displayName || 'Barát',
           data: friendScores,
-          borderColor: 'rgba(0, 255, 255, 1)',
+          borderColor: '#33CCFF', // Ignite Cyan
           backgroundColor: 'transparent',
-          borderWidth: 3,
+          borderWidth: 4,
           fill: false,
           tension: 0.4,
-          pointRadius: 5,
-          pointBackgroundColor: 'rgba(0, 255, 255, 1)',
-          pointBorderColor: 'rgba(0, 255, 255, 1)',
-          pointBorderWidth: 2,
-          pointHoverRadius: 7,
-          pointHoverBackgroundColor: 'rgba(0, 255, 255, 0.8)',
-          shadowColor: 'rgba(51, 204, 255, 1)',
-          shadowBlur: 20,
-          shadowOffsetX: 0,
-          shadowOffsetY: 0,
-          type: 'line',
+          pointRadius: 6,
+          pointBackgroundColor: '#121212',
+          pointBorderColor: '#33CCFF',
+          pointBorderWidth: 3,
+          pointHoverRadius: 8,
+          pointHoverBackgroundColor: '#33CCFF',
+          pointHoverBorderColor: '#fff',
         },
-      ] as any
+      ]
     };
   }, [myEntries, friendEntries, friend]);
+
+  // Chart Options
+  const chartOptions = {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: {
+      mode: 'index' as const,
+      intersect: false,
+    },
+    plugins: {
+      legend: {
+        display: true,
+        position: 'top' as const,
+        align: 'end' as const, // Jobbra igazítva a legenda
+        labels: {
+          color: '#ECEDEE', 
+          font: {
+            family: "'Montserrat', sans-serif",
+            size: 11,
+            weight: '700',
+          },
+          usePointStyle: true,
+          pointStyle: 'circle',
+          boxWidth: 8,
+          padding: 10,
+        }
+      },
+      tooltip: {
+        backgroundColor: 'rgba(30, 30, 30, 0.95)',
+        titleColor: '#fff',
+        bodyColor: '#fff',
+        borderColor: 'rgba(255, 255, 255, 0.1)',
+        borderWidth: 1,
+        padding: 12,
+        cornerRadius: 12,
+        titleFont: {
+          family: "'Montserrat', sans-serif",
+          size: 13,
+          weight: '700',
+        },
+        bodyFont: {
+          family: "'Montserrat', sans-serif",
+          size: 12,
+          weight: '600',
+        },
+        displayColors: true,
+        boxWidth: 8,
+        boxHeight: 8,
+        usePointStyle: true,
+        callbacks: {
+          label: (context: any) => ` ${context.dataset.label}: ${Math.round(context.parsed.y)} pont`
+        }
+      }
+    },
+    scales: {
+      x: {
+        grid: {
+          display: false,
+        },
+        ticks: {
+          color: '#9BA1A6',
+          font: {
+            family: "'Montserrat', sans-serif",
+            size: 10,
+            weight: '600',
+          },
+          maxRotation: 45,
+          minRotation: 45,
+        }
+      },
+      y: {
+        min: 0,
+        max: 105, // Kis hely a tetején
+        grid: {
+          color: 'rgba(255, 255, 255, 0.05)',
+          drawBorder: false,
+          tickLength: 0,
+        },
+        ticks: {
+          color: '#9BA1A6',
+          font: {
+            family: "'Montserrat', sans-serif",
+            size: 10,
+            weight: '600',
+          },
+          stepSize: 25,
+          padding: 8,
+        },
+        border: {
+          display: false // Nincs bal oldali tengelyvonal
+        }
+      }
+    }
+  };
 
   if (!friend) {
     return (
@@ -318,7 +410,6 @@ export function FriendProfile() {
                 </span>
               </div>
               
-              {/* Tug of War Chart */}
               <div className={styles.tugBar}>
                 <div className={styles.tugLeft} style={{ width: `${section.scoreUser}%` }} />
                 <div className={styles.tugRight} style={{ width: `${section.scoreFriend}%` }} />
@@ -428,7 +519,7 @@ export function FriendProfile() {
               <div className={styles.loadingText}>Adatok betöltése...</div>
             ) : (
               <>
-                {/* 1. AI LOOT BOX (Legfelül) */}
+                {/* 1. AI LOOT BOX */}
                 {insight ? renderInsightCard() : renderEnergyButton()}
 
                 {/* 2. RADAR CHART */}
@@ -439,90 +530,27 @@ export function FriendProfile() {
                     compareStats={friendRadarStats}
                     compareLabel={friend.displayName}
                   />
+                  <div className={styles.legendContainer}>
+                    <div className={styles.legendItem}>
+                      <span className={styles.legendDot} style={{ background: 'var(--color-primary)' }} />
+                      <span>Te</span>
+                    </div>
+                    <div className={styles.legendItem}>
+                      <span className={styles.legendDot} style={{ background: '#33CCFF' }} />
+                      <span>{friend.displayName}</span>
+                    </div>
+                  </div>
                 </Card>
-                
-                <div className={styles.legendContainer}>
-                  <div className={styles.legendItem}>
-                    <span className={styles.legendDot} style={{ background: 'var(--color-primary)' }} />
-                    <span>Te</span>
-                  </div>
-                  <div className={styles.legendItem}>
-                    <span className={styles.legendDot} style={{ background: '#33CCFF' }} />
-                    <span>{friend.displayName}</span>
-                  </div>
-                </div>
 
-                {/* 3. LAST 7 DAYS COMPARISON */}
+                {/* 3. LINE CHART (A Te kérésed szerint frissítve) */}
                 <Card className={styles.chartCard}>
                   <h3 className={styles.cardTitle}>Pontok az Utolsó 7 Napban</h3>
-                  <div style={{ position: 'relative', height: '300px' }}>
-                    <Line
-                      data={last7DaysData}
-                      options={{
-                        responsive: true,
-                        maintainAspectRatio: false,
-                        interaction: {
-                          mode: 'index',
-                          intersect: false,
-                        },
-                        plugins: {
-                          legend: {
-                            display: false,
-                          },
-                          tooltip: {
-                            backgroundColor: 'rgba(0, 0, 0, 0.95)',
-                            titleColor: '#FFFFFF',
-                            bodyColor: '#FFFFFF',
-                            borderColor: 'var(--color-primary)',
-                            borderWidth: 2,
-                            padding: 12,
-                            cornerRadius: 8,
-                            titleFont: { weight: 'bold', size: 13 },
-                            bodyFont: { weight: 'normal', size: 12 },
-                            callbacks: {
-                              label: function(context: any) {
-                                if (context.datasetIndex > 1) {
-                                  return '';
-                                }
-                                const label = context.dataset.label || '';
-                                const value = Math.round(context.parsed.y);
-                                return `${label}: ${value}`;
-                              },
-                            },
-                          },
-                        },
-                        scales: {
-                          y: {
-                            beginAtZero: true,
-                            max: 100,
-                            ticks: {
-                              color: '#FFFFFF',
-                              font: { weight: 'bold', size: 13 },
-                              padding: 10,
-                            },
-                            grid: {
-                              color: 'rgba(255, 255, 255, 0.08)',
-                              display: true,
-                              lineWidth: 1,
-                            },
-                          },
-                          x: {
-                            ticks: {
-                              color: '#FFFFFF',
-                              font: { weight: 'bold', size: 13 },
-                              padding: 10,
-                            },
-                            grid: {
-                              display: false,
-                            },
-                          },
-                        },
-                      }}
-                    />
+                  <div style={{ position: 'relative', height: '300px', width: '100%' }}>
+                    <Line data={last7DaysData} options={chartOptions} />
                   </div>
                 </Card>
                 
-                {/* 4. AVERAGE COMPARISON - IGNITE BRAND STYLE */}
+                {/* 4. AVERAGE COMPARISON */}
                 <Card className={styles.chartCard}>
                   <h3 className={styles.cardTitle}>📊 Átlag Összehasonlítása</h3>
                   
@@ -531,14 +559,12 @@ export function FriendProfile() {
                     <div className={styles.comparisonColumn}>
                       <span className={styles.periodLabel}>Utolsó 7 nap</span>
                       <div className={styles.scorePair}>
-                        {/* User */}
                         <div className={styles.scoreBlock}>
                           <span className={`${styles.scoreValue} ${styles.colorUser}`}>
                             {Math.round(averageComparison.myLast7)}
                           </span>
                           <span className={`${styles.scoreOwner} ${styles.colorUser}`}>Te</span>
                         </div>
-                        {/* Friend */}
                         <div className={styles.scoreBlock}>
                           <span className={`${styles.scoreValue} ${styles.colorFriend}`}>
                             {Math.round(averageComparison.friendLast7)}
