@@ -15,7 +15,7 @@ import {
   Tooltip,
   Legend,
   Filler,
-  ScriptableContext
+  type ScriptableContext // JAVÍTVA: type-only import
 } from 'chart.js';
 import { calculateRadarStats } from '../lib/scoring';
 import { generateInsight, type InsightResult } from '../lib/insight-engine';
@@ -31,7 +31,7 @@ ChartJS.register(
   Title,
   Tooltip,
   Legend,
-  Filler // Fontos: Ez kell a kitöltéshez (gradient area)
+  Filler
 );
 
 export function FriendProfile() {
@@ -254,13 +254,13 @@ export function FriendProfile() {
       legend: {
         display: true,
         position: 'top' as const,
-        align: 'end' as const, // Jobbra igazítva a legenda
+        align: 'end' as const, 
         labels: {
           color: '#ECEDEE', 
           font: {
             family: "'Montserrat', sans-serif",
             size: 11,
-            weight: '700',
+            weight: 'bold', // JAVÍTVA: '700' helyett 'bold'
           },
           usePointStyle: true,
           pointStyle: 'circle',
@@ -279,12 +279,12 @@ export function FriendProfile() {
         titleFont: {
           family: "'Montserrat', sans-serif",
           size: 13,
-          weight: '700',
+          weight: 'bold', // JAVÍTVA: '700' helyett 'bold'
         },
         bodyFont: {
           family: "'Montserrat', sans-serif",
           size: 12,
-          weight: '600',
+          weight: 'bold', // JAVÍTVA: '600' helyett 'bold'
         },
         displayColors: true,
         boxWidth: 8,
@@ -305,7 +305,7 @@ export function FriendProfile() {
           font: {
             family: "'Montserrat', sans-serif",
             size: 10,
-            weight: '600',
+            weight: 'bold', // JAVÍTVA: '600' helyett 'bold'
           },
           maxRotation: 45,
           minRotation: 45,
@@ -313,7 +313,7 @@ export function FriendProfile() {
       },
       y: {
         min: 0,
-        max: 105, // Kis hely a tetején
+        max: 105,
         grid: {
           color: 'rgba(255, 255, 255, 0.05)',
           drawBorder: false,
@@ -324,13 +324,13 @@ export function FriendProfile() {
           font: {
             family: "'Montserrat', sans-serif",
             size: 10,
-            weight: '600',
+            weight: 'bold', // JAVÍTVA: '600' helyett 'bold'
           },
           stepSize: 25,
           padding: 8,
         },
         border: {
-          display: false // Nincs bal oldali tengelyvonal
+          display: false
         }
       }
     }
@@ -542,11 +542,12 @@ export function FriendProfile() {
                   </div>
                 </Card>
 
-                {/* 3. LINE CHART (A Te kérésed szerint frissítve) */}
+                {/* 3. LINE CHART */}
                 <Card className={styles.chartCard}>
                   <h3 className={styles.cardTitle}>Pontok az Utolsó 7 Napban</h3>
                   <div style={{ position: 'relative', height: '300px', width: '100%' }}>
-                    <Line data={last7DaysData} options={chartOptions} />
+                    {/* TypeScriptnek casting a chartOptions-re, mert a ChartJS típusok nagyon szigorúak */}
+                    <Line data={last7DaysData} options={chartOptions as any} />
                   </div>
                 </Card>
                 
