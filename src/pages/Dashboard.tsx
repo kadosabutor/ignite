@@ -225,7 +225,7 @@ export function Dashboard() {
                 <TimeInput
                   value={localEntry?.wakeUpTime || ''}
                   onChange={(val: string) => handleQuickSaveTimeData('wakeUpTime', val)}
-                  label="☀️ Ébresztés"
+                  label="☀️ Ébredés"
                 />
               </div>
               
@@ -233,11 +233,10 @@ export function Dashboard() {
                 <label className={styles.inputLabel}>💼 Munka (perc)</label>
                 <input
                   type="number"
-                  value={localEntry?.businessMinutes || 0}
+                  value={localEntry?.businessMinutes || ''}
                   onChange={(e) => handleQuickSaveTimeData('businessMinutes', e.target.value)}
                   className={styles.numberInput}
-                  placeholder="600"
-                  min="0"
+                  placeholder="Biz percek"
                   max="1440"
                 />
               </div>
