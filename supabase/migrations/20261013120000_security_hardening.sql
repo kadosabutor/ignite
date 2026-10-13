@@ -148,9 +148,10 @@ STABLE
 SECURITY DEFINER
 SET search_path = ''
 AS $$
+  -- $1: a `secret` név ütközne a vault.decrypted_secrets.secret oszloppal
   SELECT EXISTS (
-    SELECT 1 FROM vault.decrypted_secrets
-    WHERE name = 'ignite_cron_secret' AND decrypted_secret = secret
+    SELECT 1 FROM vault.decrypted_secrets ds
+    WHERE ds.name = 'ignite_cron_secret' AND ds.decrypted_secret = $1
   );
 $$;
 
