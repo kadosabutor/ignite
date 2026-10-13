@@ -114,8 +114,10 @@ ignite/
 │
 ├── supabase/
 │   └── functions/
-│       ├── cron-scheduler/   # Deno function for daily cron jobs
-│       └── send-push/        # Deno function to send push notifications
+│       ├── cron-scheduler/   # Óránkénti értesítés-ütemező (pg_cron hívja)
+│       ├── generate-insight/ # AI összehasonlító elemzés (OpenAI)
+│       └── send-push/        # Web push küldés
+│   └── migrations/           # SQL migrációk
 │
 ├── supabase-schema.sql       # PostgreSQL schema (tables, RLS, functions)
 ├── vite.config.ts            # Vite + PWA plugin config
@@ -200,44 +202,29 @@ export async function myFunction(userId: string) {
 
 ## 🔐 Security Posture
 
-### ✅ Current Security
-- **Authentication**: Supabase Auth (email/password) with JWT tokens
-- **Data Privacy**: PostgreSQL RLS policies prevent unauthorized access
-- **Sensitive Operations**: All mutations require auth
-- **Anonymous Key**: Supabase public/anon key is designed to be exposed; RLS enforces access control
-- **Push Notifications**: VAPID public key is public by design
-- **No Third-party APIs**: No OpenAI, external APIs, or exposed service keys
-- **No API Keys Exposed**: Verified - only Supabase credentials needed
+- **Auth**: Supabase Auth (email/jelszó, email-megerősítéssel). A `users` / `streaks` / `settings` sorokat regisztrációkor az `on_auth_user_created` trigger hozza létre.
+- **RLS minden public táblán.** A `users.email` oszlop a kliensek elől rejtett (oszlopszintű `GRANT`), ezért a `users` táblát mindig explicit oszloplistával kérdezd le (`USER_COLUMNS` a `supabase.ts`-ben).
+- **Anon kulcs**: nyilvános a frontendben; a hozzáférést az RLS védi.
+- **Edge Functions**:
+  - `send-push`: service role (cron) vagy bejelentkezett felhasználó hívhatja; felhasználó csak olyannak küldhet, akivel barátsági kapcsolatban áll.
+  - `generate-insight`: csak bejelentkezett felhasználó; OpenAI-t hív.
+  - `cron-scheduler`: óránként fut pg_cron-ból; a Vaultban tárolt `ignite_cron_secret`-tel hitelesít.
+- **Titkok soha nem kerülnek a kódba.** Supabase → Edge Functions → Secrets:
 
-### ⚠️ CRITICAL Security Issues Found
+  | Secret | Mire |
+  |---|---|
+  | `VAPID_PUBLIC_KEY` | Web push (egyeznie kell a `src/lib/push.ts`-beli kulccsal) |
+  | `VAPID_PRIVATE_KEY` | Web push aláírás |
+  | `VAPID_SUBJECT` | opcionális, `mailto:` cím |
+  | `OPENAI_API_KEY` | `generate-insight` |
 
-**🚨 ACTION REQUIRED:**
+- `.env`, `*.local` és `.pw.txt` a `.gitignore`-ban van. Lokális fejlesztéshez: `.env` a `VITE_SUPABASE_URL` és `VITE_SUPABASE_ANON_KEY` értékekkel.
 
-1. **`.env` file is not in `.gitignore`**
-   - Currently contains live Supabase credentials
-   - `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` are exposed
-   - If repo is public/shared, these should be considered compromised
+### Adatbázis-változások
+Új séma-módosítás → új fájl a `supabase/migrations/` alá (`ÉÉÉÉHHNNÓÓPPMM_nev.sql`), és frissítsd a `supabase-schema.sql`-t is (az a teljes, friss telepítéshez való állapot).
 
-2. **`.pw.txt` file exists** - Remove if it contains passwords
-
-**Immediate Actions:**
-1. Add to `.gitignore`:
-   ```
-   .env
-   .env.local
-   .env.*.local
-   .pw.txt
-   ```
-2. If repo is public, rotate Supabase anonymous key (Supabase Dashboard → Settings → API → Rotate Key)
-3. Create `.env.example` with placeholder values for documentation
-4. Delete sensitive local files from git history if needed
-
-### ✅ Security Recommendations
-- Ensure `.env` is NEVER committed
-- Monitor Supabase logs for suspicious activity (Dashboard → Logs)
-- Keep RLS policies strict (review [supabase-schema.sql](supabase-schema.sql))
-- Use `.env.example` to document required env variables without exposing keys
-- Implement rate limiting on auth endpoints if needed
+### Dátumok
+Minden napló-dátum **budapesti** naptári nap, 04:00-s napzárással. Használd a `scoring.ts` segédfüggvényeit (`getTodayString`, `getEffectiveDate`, `toDateString`, `addDays`) — soha ne `toISOString().split('T')[0]`-t.
 
 ---
 
@@ -263,7 +250,7 @@ export async function myFunction(userId: string) {
 - `workbox-window` - Service worker management
 - `web-push` - Push notifications
 
-**Note**: No external API services (OpenAI, GPT, etc.) configured. All features use local computation or Supabase.
+**Külső szolgáltatás**: OpenAI (`gpt-4o-mini`) a VS mód AI-elemzéséhez, kizárólag a `generate-insight` Edge Functionön keresztül.
 
 ---
 
@@ -308,7 +295,7 @@ pnpm lint
 - Weighted formula - some habits worth more than others
 
 ### Streak Logic
-- Resets if no entry by 4:00 AM cutoff
+- Resets if no entry by 4:00 AM cutoff (Europe/Budapest)
 - Levels: Spark (1-7 days) → Blaze (8-30) → Inferno (31-90) → Plasma (91+)
 - Cryo Freeze: Skip 1 day without losing streak (limited uses)
 - Phoenix: Recover broken streak within 3 days

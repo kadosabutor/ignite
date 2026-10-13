@@ -223,39 +223,72 @@ export function formatMinutes(minutes: number): string {
   return `${hours}ó ${mins}p`;
 }
 
+// ============ DÁTUMOK (Europe/Budapest) ============
+// Minden napló-dátum budapesti naptári nap; a toISOString() UTC-t adna,
+// ami éjfél és 01–02 óra között az előző napra csúszott.
+
+const TIME_ZONE = 'Europe/Budapest';
+const CUTOFF_HOUR = 4;
+
+const dateFormatter = new Intl.DateTimeFormat('en-CA', {
+  timeZone: TIME_ZONE,
+  year: 'numeric',
+  month: '2-digit',
+  day: '2-digit',
+});
+
+const hourFormatter = new Intl.DateTimeFormat('en-GB', {
+  timeZone: TIME_ZONE,
+  hour: '2-digit',
+  hourCycle: 'h23',
+});
+
+/**
+ * Budapesti naptári nap (YYYY-MM-DD) egy adott pillanatra
+ */
+export function toDateString(date: Date): string {
+  return dateFormatter.format(date);
+}
+
+/**
+ * Napok hozzáadása egy YYYY-MM-DD dátumhoz (időzóna-független)
+ */
+export function addDays(dateStr: string, days: number): string {
+  const d = new Date(`${dateStr}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + days);
+  return d.toISOString().split('T')[0];
+}
+
+function budapestHour(date: Date = new Date()): number {
+  return Number(hourFormatter.format(date));
+}
+
 /**
  * Check if a date string is today
  */
 export function isToday(dateStr: string): boolean {
-  const today = new Date().toISOString().split('T')[0];
-  return dateStr === today;
+  return dateStr === getTodayString();
 }
 
 /**
  * Get today's date string
  */
 export function getTodayString(): string {
-  return new Date().toISOString().split('T')[0];
+  return toDateString(new Date());
 }
 
 /**
  * Check if current time is past the 04:00 cutoff for the previous day
  */
 export function isPastCutoff(): boolean {
-  const now = new Date();
-  return now.getHours() >= 4;
+  return budapestHour() >= CUTOFF_HOUR;
 }
 
 /**
  * Get the effective date for logging (accounts for 04:00 cutoff)
  */
 export function getEffectiveDate(): string {
-  const now = new Date();
-  if (now.getHours() < 4) {
-    // Before 4 AM, we're still logging for yesterday
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    return yesterday.toISOString().split('T')[0];
-  }
-  return now.toISOString().split('T')[0];
+  const today = getTodayString();
+  // 04:00 előtt még a tegnapi napot naplózzuk
+  return isPastCutoff() ? today : addDays(today, -1);
 }

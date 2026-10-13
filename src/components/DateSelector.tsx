@@ -1,5 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Button } from './ui';
+import { toDateString } from '../lib/scoring';
 import styles from './DateSelector.module.css';
 
 interface DateSelectorProps {
@@ -15,7 +16,7 @@ export function DateSelector({ entries, onSelectDate, onCancel, maxMissedDays = 
   // Calculate today and missed days
   const { today, missedDays } = useMemo(() => {
     const todayDate = new Date();
-    const todayStr = todayDate.toISOString().split('T')[0];
+    const todayStr = toDateString(todayDate);
     
     // Get set of dates that already have entries
     const entryDates = new Set(entries.map(e => e.date));
@@ -26,7 +27,7 @@ export function DateSelector({ entries, onSelectDate, onCancel, maxMissedDays = 
     for (let i = 1; i <= maxMissedDays; i++) {
       const checkDate = new Date(todayDate);
       checkDate.setDate(checkDate.getDate() - i);
-      const dateStr = checkDate.toISOString().split('T')[0];
+      const dateStr = toDateString(checkDate);
       
       if (!entryDates.has(dateStr)) {
         const label = checkDate.toLocaleDateString('hu-HU', { month: 'short', day: 'numeric' }) + '.';

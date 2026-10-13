@@ -5,7 +5,7 @@ import { Card, ProgressRing, TimeInput, Button } from '../components/ui';
 import { StreakIcon } from '../components/StreakIcon';
 import { RankInfoModal } from '../components/RankInfoModal'; // IMPORTÁLVA
 
-import { getScoreColor, getTodayString, formatMinutes, calculateTotalScore, calculateSleepMinutes } from '../lib/scoring';
+import { getScoreColor, getTodayString, toDateString, formatMinutes, calculateTotalScore, calculateSleepMinutes } from '../lib/scoring';
 import { createNewEntry } from '../lib/supabase';
 import { RANKS, type HabitEntry } from '../types';
 import styles from './Dashboard.module.css';
@@ -31,7 +31,7 @@ export function Dashboard() {
   const last7Days = Array.from({ length: 7 }, (_, i) => {
     const date = new Date();
     date.setDate(date.getDate() - (6 - i));
-    const dateStr = date.toISOString().split('T')[0];
+    const dateStr = toDateString(date);
     const entry = entries.find(e => e.date === dateStr);
     return {
       date: dateStr,

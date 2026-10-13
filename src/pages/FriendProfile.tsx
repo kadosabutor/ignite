@@ -17,7 +17,7 @@ import {
   Filler,
   type ScriptableContext // JAVÍTVA: type-only import
 } from 'chart.js';
-import { calculateRadarStats } from '../lib/scoring';
+import { calculateRadarStats, toDateString } from '../lib/scoring';
 import { generateInsight, type InsightResult } from '../lib/insight-engine';
 import * as supabase from '../lib/supabase';
 import styles from './FriendProfile.module.css';
@@ -176,7 +176,7 @@ export function FriendProfile() {
     const last7Days = Array.from({ length: 7 }, (_, i) => {
       const date = new Date(today);
       date.setDate(date.getDate() - (6 - i));
-      return date.toISOString().split('T')[0];
+      return toDateString(date);
     });
 
     const myScores = last7Days.map(date => {

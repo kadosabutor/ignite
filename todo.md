@@ -47,7 +47,7 @@
 - [x] Aréna (napi feed, kártyák)
 - [x] Ping rendszer (18:00 után)
 - [x] Tűz elismerés (dupla koppintás)
-- [ ] VS Mode (radar diagram, összehasonlítás)
+- [x] VS Mode (radar diagram, összehasonlítás, AI elemzés)
 - [x] Leaderboard (Ma, Hét, Hónap)
 - [x] Rangrendszer (Sleepwalker -> Titan)
 

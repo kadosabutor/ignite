@@ -4,11 +4,9 @@
  * Works on iOS 16.4+ (when added to Home Screen) and Android.
  */
 
-// VAPID Public Key - Generated for IGNITE
-const VAPID_PUBLIC_KEY = 'BKzPGSS5yEJp0Fk42IN8sOsAuQweLpNscwDEaIbumFJXUNfeQY7nta1AI49E4CKsmR5gBXZP503O-FuxU7v8fOQ';
-
-// Supabase Edge Function URL for sending push notifications
-const PUSH_API_URL = 'https://thibewmulezvjenwowmh.supabase.co/functions/v1/send-push';
+// VAPID Public Key (a párja Supabase secretként: VAPID_PRIVATE_KEY).
+// Kulcscserénél ezt és a VAPID_PUBLIC_KEY secretet együtt kell frissíteni.
+const VAPID_PUBLIC_KEY = 'BMLWBTIuFtdUDvfbU0EasbcnlvkPwI_vj898j6fetEJVPquM6UmjuIFAAXS4rEL-aPts6ypD0aEtYXvHXh6X4bk';
 
 /**
  * Check if push notifications are supported
@@ -75,6 +73,13 @@ function urlBase64ToUint8Array(base64String: string): BufferSource {
   return outputArray as BufferSource;
 }
 
+function isSameKey(current: ArrayBuffer | null, expected: string): boolean {
+  if (!current) return false;
+  const a = new Uint8Array(current);
+  const b = new Uint8Array(urlBase64ToUint8Array(expected) as ArrayBuffer);
+  return a.length === b.length && a.every((v, i) => v === b[i]);
+}
+
 /**
  * Subscribe to push notifications
  * Returns the subscription object or null if failed
@@ -93,8 +98,11 @@ export async function subscribeToPush(): Promise<any | null> {
     let subscription = await registration.pushManager.getSubscription();
 
     if (subscription) {
-      console.log('Existing push subscription found');
-      return subscription;
+      if (isSameKey(subscription.options.applicationServerKey, VAPID_PUBLIC_KEY)) {
+        return subscription;
+      }
+      // Régi VAPID kulccsal készült feliratkozás: újra kell iratkozni
+      await subscription.unsubscribe();
     }
 
     // Create new subscription
@@ -145,46 +153,6 @@ export async function getCurrentSubscription(): Promise<PushSubscription | null>
   } catch (error) {
     console.error('Error getting subscription:', error);
     return null;
-  }
-}
-
-/**
- * Send a push notification to a specific user
- * This calls the Supabase Edge Function
- */
-export async function sendPushNotification(
-  recipientUserId: string,
-  title: string,
-  body: string,
-  data?: Record<string, any>,
-  authToken?: string
-): Promise<boolean> {
-  try {
-    const response = await fetch(PUSH_API_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': authToken ? `Bearer ${authToken}` : '',
-      },
-      body: JSON.stringify({
-        recipientUserId,
-        title,
-        body,
-        data,
-      }),
-    });
-
-    if (!response.ok) {
-      const error = await response.text();
-      console.error('Push notification failed:', error);
-      return false;
-    }
-
-    console.log('Push notification sent successfully');
-    return true;
-  } catch (error) {
-    console.error('Error sending push notification:', error);
-    return false;
   }
 }
 

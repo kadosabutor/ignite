@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 import type { HabitEntry } from '../types';
+import { toDateString } from '../lib/scoring';
 import styles from './Heatmap.module.css';
 
 interface HeatmapProps {
@@ -23,7 +24,7 @@ export function Heatmap({ entries }: HeatmapProps) {
     for (let d = 0; d <= 365; d++) {
       const date = new Date(startDate);
       date.setDate(startDate.getDate() + d);
-      const dateStr = date.toISOString().split('T')[0];
+      const dateStr = toDateString(date);
       
       // Jövőbeli napok nem kellenek (bár a ciklus ma-ig megy)
       if (date > today) break;
