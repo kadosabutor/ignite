@@ -210,6 +210,11 @@ SwiftUI, iOS 17+, bundle ID `hu.butorkadosa.ignite`. Ugyanazt a Supabase backend
 - Demó mód (csak Debug): indítási argumentum `-demo` → mintaadatok, hálózat nélkül
 - Push: az app a device tokent a `device_tokens` táblába menti; a `send-push` APNs-en is küld, ha az `APNS_*` secretek be vannak állítva
 
+**TestFlight feltöltés:** Xcode → Product → Archive → Distribute App → TestFlight Internal Only. Két buktató:
+- Kell egy **helyi** „Apple Distribution” tanúsítvány (Xcode → Settings → Accounts → Manage Certificates → + → Apple Distribution). A felhős (cloud-managed) aláírás az ékezetes névben („Márton”) hibásan kódolja az „á”-t, és az Apple „Invalid Signature” hibával elutasítja a buildet.
+- Parancssori buildnél a `-derivedDataPath` ne az Asztalon legyen (iCloud-szinkron → a codesign elutasítja a fájlattribútumokat).
+- Minden új feltöltéshez növelni kell a `CURRENT_PROJECT_VERSION`-t (build szám).
+
 Ha a pontozáson vagy a streak-logikán változtatsz, **mindkét helyen** módosítsd: `src/lib/scoring.ts` és `ios/Ignite/Logic/Scoring.swift`.
 
 ---
