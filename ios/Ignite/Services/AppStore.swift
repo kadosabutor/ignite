@@ -110,17 +110,32 @@ final class AppStore {
 
     func refreshAll() async {
         guard let id = userId, !isDemo else { return }
-        do {
-            async let p = API.profile(id)
-            async let e = API.entries(id)
-            async let s = API.streak(id)
-            async let b = API.unlockedBadges(id)
-            async let st = API.settings(id)
-            (profile, entries, streak, unlockedBadges, settings) = try await (p, e, s, b, st)
+        // Minden adat külön töltődik: egy hiba ne ürítse ki az egész appot
+        async let p = Result { try await API.profile(id) }
+        async let e = Result { try await API.entries(id) }
+        async let s = Result { try await API.streak(id) }
+        async let b = Result { try await API.unlockedBadges(id) }
+        async let st = Result { try await API.settings(id) }
+        let (pr, er, sr, br, str) = await (p, e, s, b, st)
+
+        var failures: [Error] = []
+        func take<T>(_ r: Result<T, Error>, _ assign: (T) -> Void) {
+            switch r {
+            case .success(let v): assign(v)
+            case .failure(let err): failures.append(err)
+            }
+        }
+        take(pr) { profile = $0 }
+        take(er) { entries = $0 }
+        take(sr) { streak = $0 }
+        take(br) { unlockedBadges = $0 }
+        take(str) { settings = $0 }
+
+        if let first = failures.first {
+            errorMessage = "Nem sikerült minden adatot betölteni: \(first.localizedDescription)"
+        } else {
             // A streak a napváltás miatt elavulhat – újraszámoljuk
-            try await recomputeStreakAndRank()
-        } catch {
-            errorMessage = error.localizedDescription
+            do { try await recomputeStreakAndRank() } catch { errorMessage = error.localizedDescription }
         }
         await refreshFriends()
     }

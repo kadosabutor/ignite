@@ -21,22 +21,31 @@ struct ProfileView: View {
                         StatTile(value: "\(store.entries.count)", label: "Nap")
                     }
                     badgesCard
-                    Button("Kijelentkezés", role: .destructive) {
-                        Task { await store.signOut() }
-                    }
-                    .buttonStyle(.ghost)
-                    .padding(.top, 8)
+                    signOutButton
+                }
+                .padding(16)
+            } else {
+                VStack(spacing: 16) {
+                    ContentUnavailableView("A profil nem töltődött be", systemImage: "person.crop.circle.badge.exclamationmark",
+                                           description: Text("Húzd le a frissítéshez, vagy jelentkezz ki és be."))
+                    signOutButton
                 }
                 .padding(16)
             }
         }
+        .refreshable { await store.refreshAll() }
         .background(Theme.background)
         .navigationTitle("Profil")
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Button("Profil szerkesztése", systemImage: "pencil") { showEdit = true }
+                        .disabled(store.profile == nil)
                     Button("Értesítések", systemImage: "bell") { showSettings = true }
+                    Divider()
+                    Button("Kijelentkezés", systemImage: "rectangle.portrait.and.arrow.right", role: .destructive) {
+                        Task { await store.signOut() }
+                    }
                 } label: {
                     Image(systemName: "gearshape")
                 }
@@ -57,6 +66,15 @@ struct ProfileView: View {
             .presentationDetents([.height(320)])
         }
         .onChange(of: photoItem) { Task { await uploadPhoto() } }
+    }
+
+    private var signOutButton: some View {
+        Button("Kijelentkezés", role: .destructive) {
+            Task { await store.signOut() }
+        }
+        .buttonStyle(.ghost)
+        .padding(.top, 8)
+        .padding(.bottom, 80) // ne lógjon a lebegő fülsáv alá
     }
 
     private func header(_ p: UserProfile) -> some View {
