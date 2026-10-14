@@ -200,6 +200,20 @@ export async function myFunction(userId: string) {
 
 ---
 
+## 📱 Natív iOS app (`ios/`)
+
+SwiftUI, iOS 17+, bundle ID `hu.butorkadosa.ignite`. Ugyanazt a Supabase backendet használja, mint a webapp.
+
+- Megnyitás: `ios/Ignite.xcodeproj` (Xcode 16+; a fájlok mappa-szinkronnal kerülnek a targetbe, új fájlhoz nem kell a projektet szerkeszteni)
+- Függőség: [supabase-swift](https://github.com/supabase/supabase-swift) (SPM)
+- Felépítés: `Models/` (adattípusok), `Logic/` (pontozás, dátumok, gamifikáció – a `src/lib` hű portja), `Services/` (`API.swift` = DB-hívások, `AppStore.swift` = állapot, `PushManager.swift` = APNs), `Views/`
+- Demó mód (csak Debug): indítási argumentum `-demo` → mintaadatok, hálózat nélkül
+- Push: az app a device tokent a `device_tokens` táblába menti; a `send-push` APNs-en is küld, ha az `APNS_*` secretek be vannak állítva
+
+Ha a pontozáson vagy a streak-logikán változtatsz, **mindkét helyen** módosítsd: `src/lib/scoring.ts` és `ios/Ignite/Logic/Scoring.swift`.
+
+---
+
 ## 🔐 Security Posture
 
 - **Auth**: Supabase Auth (email/jelszó, email-megerősítéssel). A `users` / `streaks` / `settings` sorokat regisztrációkor az `on_auth_user_created` trigger hozza létre.
@@ -217,6 +231,7 @@ export async function myFunction(userId: string) {
   | `VAPID_PRIVATE_KEY` | Web push aláírás |
   | `VAPID_SUBJECT` | opcionális, `mailto:` cím |
   | `OPENAI_API_KEY` | `generate-insight` |
+  | `APNS_KEY_ID`, `APNS_TEAM_ID`, `APNS_PRIVATE_KEY`, `APNS_BUNDLE_ID` | Natív iOS push (a `.p8` kulcs teljes tartalma) |
 
 - `.env`, `*.local` és `.pw.txt` a `.gitignore`-ban van. Lokális fejlesztéshez: `.env` a `VITE_SUPABASE_URL` és `VITE_SUPABASE_ANON_KEY` értékekkel.
 

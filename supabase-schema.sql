@@ -111,6 +111,17 @@ CREATE TABLE IF NOT EXISTS public.user_badges (
   UNIQUE (user_id, badge_id)
 );
 
+-- Natív iOS push (APNs) device tokenek
+CREATE TABLE IF NOT EXISTS public.device_tokens (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id UUID NOT NULL REFERENCES public.users(id) ON DELETE CASCADE,
+  token TEXT NOT NULL UNIQUE,
+  platform TEXT NOT NULL DEFAULT 'ios' CHECK (platform IN ('ios')),
+  environment TEXT NOT NULL DEFAULT 'production' CHECK (environment IN ('sandbox', 'production')),
+  created_at TIMESTAMPTZ DEFAULT NOW(),
+  updated_at TIMESTAMPTZ DEFAULT NOW()
+);
+
 -- Jelenleg a kliens nem használja (a ping/tűz csak push értesítés)
 CREATE TABLE IF NOT EXISTS public.pings (
   id UUID PRIMARY KEY DEFAULT extensions.uuid_generate_v4(),
@@ -157,6 +168,7 @@ CREATE INDEX IF NOT EXISTS idx_friendships_user ON public.friendships(user_id);
 CREATE INDEX IF NOT EXISTS idx_friendships_friend ON public.friendships(friend_id);
 CREATE INDEX IF NOT EXISTS idx_users_username ON public.users(username);
 CREATE INDEX IF NOT EXISTS idx_push_subscriptions_user_id ON public.push_subscriptions(user_id);
+CREATE INDEX IF NOT EXISTS idx_device_tokens_user ON public.device_tokens(user_id);
 CREATE INDEX IF NOT EXISTS idx_notifications_user ON public.notifications(user_id, read, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_friend_requests_receiver ON public.friend_requests(receiver_id, status);
 CREATE INDEX IF NOT EXISTS idx_friend_requests_sender ON public.friend_requests(sender_id, status);
@@ -171,6 +183,7 @@ ALTER TABLE public.streaks            ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.friendships        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.settings           ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.push_subscriptions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.device_tokens      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.notifications      ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_badges        ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.pings              ENABLE ROW LEVEL SECURITY;
@@ -245,6 +258,12 @@ CREATE POLICY "Users can manage own settings" ON public.settings
 -- push_subscriptions
 CREATE POLICY "Users can manage own subscriptions" ON public.push_subscriptions
   FOR ALL USING (auth.uid() = user_id);
+
+-- device_tokens
+CREATE POLICY "Users can manage own device tokens" ON public.device_tokens
+  FOR ALL TO authenticated
+  USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
 
 -- notifications (beszúrás csak a send-push Edge Functionből, service role-lal)
 CREATE POLICY "Users can view own notifications" ON public.notifications

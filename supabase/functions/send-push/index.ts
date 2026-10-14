@@ -6,11 +6,14 @@
  *  - bejelentkezett felhasználó (saját JWT) → csak olyannak, akivel van
  *    barátsági kapcsolata (függő vagy elfogadott), és nem saját magának
  *
- * Szükséges secretek: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY (opcionális: VAPID_SUBJECT)
+ * Csatornák (bármelyik elég, a hiányzót kihagyja):
+ *  - Web push (PWA): VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY (opcionális: VAPID_SUBJECT)
+ *  - Natív iOS (APNs): APNS_KEY_ID, APNS_TEAM_ID, APNS_PRIVATE_KEY, APNS_BUNDLE_ID – lásd apns.ts
  */
 
 import { createClient } from 'npm:@supabase/supabase-js@2';
 import webpush from 'npm:web-push@3.6.7';
+import { apnsConfigured, sendApns, type ApnsEnvironment } from './apns.ts';
 
 const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
 const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -37,11 +40,12 @@ Deno.serve(async (req) => {
     return new Response('ok', { headers: corsHeaders });
   }
 
-  if (!VAPID_PUBLIC_KEY || !VAPID_PRIVATE_KEY) {
-    console.error('VAPID secrets are not configured');
+  const webPushConfigured = Boolean(VAPID_PUBLIC_KEY && VAPID_PRIVATE_KEY);
+  if (!webPushConfigured && !apnsConfigured) {
+    console.error('Neither VAPID nor APNs secrets are configured');
     return json({ error: 'Push not configured' }, 503);
   }
-  webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY);
+  if (webPushConfigured) webpush.setVapidDetails(VAPID_SUBJECT, VAPID_PUBLIC_KEY!, VAPID_PRIVATE_KEY!);
 
   const admin = createClient(supabaseUrl, supabaseServiceKey);
 
@@ -93,14 +97,13 @@ Deno.serve(async (req) => {
       data: { ...(payload.data ?? {}), senderId: senderId ?? undefined },
     });
 
-    const { data: subscriptions, error: fetchError } = await admin
-      .from('push_subscriptions')
-      .select('*')
-      .eq('user_id', recipientUserId);
+    let sent = 0;
+    let failed = 0;
 
-    if (fetchError || !subscriptions || subscriptions.length === 0) {
-      return json({ success: true, sent: 0, failed: 0, message: 'No subscriptions' });
-    }
+    // --- Web push (PWA) ---
+    const { data: subscriptions } = webPushConfigured
+      ? await admin.from('push_subscriptions').select('*').eq('user_id', recipientUserId)
+      : { data: [] };
 
     const notificationPayload = JSON.stringify({
       title,
@@ -111,10 +114,7 @@ Deno.serve(async (req) => {
       data: { type },
     });
 
-    let sent = 0;
-    let failed = 0;
-
-    for (const sub of subscriptions) {
+    for (const sub of subscriptions ?? []) {
       if (!sub.p256dh || !sub.auth) {
         failed++;
         continue;
@@ -132,8 +132,32 @@ Deno.serve(async (req) => {
         if (status === 404 || status === 410 || status === 401 || status === 403) {
           await admin.from('push_subscriptions').delete().eq('endpoint', sub.endpoint);
         } else {
-          console.error('Push failed:', status, (error as Error).message);
+          console.error('Web push failed:', status, (error as Error).message);
         }
+      }
+    }
+
+    // --- Natív iOS (APNs) ---
+    const { data: devices } = apnsConfigured
+      ? await admin.from('device_tokens').select('token, environment').eq('user_id', recipientUserId)
+      : { data: [] };
+
+    for (const device of devices ?? []) {
+      try {
+        const result = await sendApns(device.token, device.environment as ApnsEnvironment, { title, body, type });
+        if (result.ok) {
+          sent++;
+        } else {
+          failed++;
+          if (result.invalidToken) {
+            await admin.from('device_tokens').delete().eq('token', device.token);
+          } else {
+            console.error('APNs failed:', result.status, result.reason);
+          }
+        }
+      } catch (error) {
+        failed++;
+        console.error('APNs error:', (error as Error).message);
       }
     }
 
