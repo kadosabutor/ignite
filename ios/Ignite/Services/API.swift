@@ -4,7 +4,8 @@ import Supabase
 let supabase = SupabaseClient(supabaseURL: Config.supabaseURL, supabaseKey: Config.supabaseKey)
 
 /// Adatbázis-hozzáférés – a webapp src/lib/supabase.ts megfelelője.
-/// A users.email oszlop nem olvasható a kliensről, ezért mindig explicit oszloplistát kérünk.
+/// A users.email oszlop nem olvasható a kliensről, ezért mindig explicit oszloplistát kérünk,
+/// és a users táblán az update-eknél `returning: .minimal` kell (különben RETURNING * → permission denied).
 enum API {
     static let userColumns = "id, username, display_name, avatar, bio, rank, monthly_average, total_xp, created_at"
 
@@ -192,7 +193,7 @@ enum API {
     static func saveProfile(_ userId: UUID, displayName: String, bio: String, avatar: String) async throws {
         struct Update: Encodable { let display_name: String; let bio: String; let avatar: String; let updated_at: String }
         try await supabase.from("users")
-            .update(Update(display_name: displayName, bio: bio, avatar: avatar, updated_at: nowTimestamp()))
+            .update(Update(display_name: displayName, bio: bio, avatar: avatar, updated_at: nowTimestamp()), returning: .minimal)
             .eq("id", value: userId.uuidString)
             .execute()
     }
@@ -224,7 +225,7 @@ enum API {
         let rows: [XPRow] = try await supabase.from("users").select("total_xp").eq("id", value: userId.uuidString).execute().value
         let current = rows.first?.total_xp ?? 0
         try await supabase.from("users")
-            .update(["total_xp": current + amount])
+            .update(["total_xp": current + amount], returning: .minimal)
             .eq("id", value: userId.uuidString)
             .execute()
     }
@@ -232,7 +233,7 @@ enum API {
     static func updateRank(_ userId: UUID, monthlyAverage: Double, rank: Rank) async throws {
         struct Update: Encodable { let monthly_average: Double; let rank: String; let updated_at: String }
         try await supabase.from("users")
-            .update(Update(monthly_average: (monthlyAverage * 10).rounded() / 10, rank: rank.rawValue, updated_at: nowTimestamp()))
+            .update(Update(monthly_average: (monthlyAverage * 10).rounded() / 10, rank: rank.rawValue, updated_at: nowTimestamp()), returning: .minimal)
             .eq("id", value: userId.uuidString)
             .execute()
     }
