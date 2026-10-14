@@ -106,6 +106,11 @@ struct FriendProfileView: View {
                 if let insightError {
                     Text(insightError).font(.footnote).foregroundStyle(Theme.error)
                 }
+                if let missing = missingDataReason {
+                    Label(missing, systemImage: "info.circle")
+                        .font(.footnote)
+                        .foregroundStyle(Theme.warning)
+                }
                 Button {
                     Task { await loadInsight() }
                 } label: {
@@ -118,6 +123,16 @@ struct FriendProfileView: View {
                 .buttonStyle(.fire)
                 .disabled(isLoadingInsight || myEntries.isEmpty || friendEntries.isEmpty)
             }
+        }
+    }
+
+    /// Miért nem indítható az elemzés (mindkét félnek kell bejegyzés az elmúlt 30 napból)
+    private var missingDataReason: String? {
+        switch (myEntries.isEmpty, friendEntries.isEmpty) {
+        case (true, true): "Nincs elég adat: az elmúlt 30 napban egyikőtöknek sincs bejegyzése."
+        case (true, false): "Nincs elég adat: az elmúlt 30 napban neked nincs bejegyzésed. Rögzíts egy napot!"
+        case (false, true): "Nincs elég adat: \(friend.displayName) az elmúlt 30 napban nem rögzített."
+        default: nil
         }
     }
 
